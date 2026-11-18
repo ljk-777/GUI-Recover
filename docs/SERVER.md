@@ -3,6 +3,17 @@
 由用户在服务器执行。当前没有 SSH 连接，也没有在服务器安装或运行任何任务。
 将整个 GUI-Recover 项目目录复制到服务器，进入该目录。下面仅准备推理和评测，不启动训练。
 
+也可以把交付的 `gui-recover.bundle` 复制到服务器，用 Git 恢复完整本地提交历史：
+
+```bash
+git clone /实际存放路径/gui-recover.bundle gui-recover
+cd gui-recover
+git remote remove origin
+git log --oneline -2
+```
+
+移除的是指向离线 bundle 文件的 origin；以后创建独立 GitHub 仓库时再添加真实远程地址。
+
 ## 1. 环境与权限
 
 确认 Python 3.11、空闲磁盘、可用 RAM、NVIDIA 驱动及允许使用的 GPU。

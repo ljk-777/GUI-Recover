@@ -69,6 +69,7 @@ manifest 记录模型版本、提示词、依赖、seed、步数预算、Git 版
 ## 开源与后续
 
 - [仓库、许可证和数据核查](docs/UPSTREAM_AUDIT.md)
+- [本地实测验收记录](docs/LOCAL_VALIDATION.md)
 - [V0.2 实验设计](docs/V0.2.md)
 - [贡献约定与 Git 操作](CONTRIBUTING.md)
 
