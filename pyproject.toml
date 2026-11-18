@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gui-recover"
+version = "0.1.0.dev0"
+description = "Visual GUI agent trajectories and recovery evaluation"
+requires-python = ">=3.11,<3.13"
+license = {text = "Apache-2.0"}
+dependencies = ["browsergym-core==0.14.3", "browsergym-miniwob==0.14.3", "pillow>=10.1", "numpy>=1.24"]
+
+[project.optional-dependencies]
+showui = ["torch==2.6.0", "torchvision==0.21.0", "transformers==4.49.0"]
+dev = ["pytest>=8,<10"]
+
+[project.scripts]
+gui-recover = "gui_recover.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: launches real local Chromium; requires MINIWOB_URL"]
