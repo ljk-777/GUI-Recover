@@ -129,7 +129,7 @@ def prepare_development(reference, out, config, runtime):
     return manifest
 
 
-def preflight(reference_roots, out, groups, *, prior_scenes=()):
+def preflight(reference_roots, out, groups, *, prior_scenes=(), include_goal=False):
     """Choose the first noncolliding reserved layouts, before actor inference."""
     prior_scenes = list(prior_scenes)
     known = {row["initial_sha256"] for row in prior_scenes}
@@ -156,7 +156,10 @@ def preflight(reference_roots, out, groups, *, prior_scenes=()):
                 if sha in known or (group["task"], seed) in scenes:
                     rejected.append({"task": group["task"], "seed": seed, "sha256": sha})
                 else:
-                    selected.append({"task": group["task"], "seed": seed, "initial_sha256": sha})
+                    row = {"task": group["task"], "seed": seed, "initial_sha256": sha}
+                    if include_goal:
+                        row["goal"] = execution.obs.goal
+                    selected.append(row)
                     known.add(sha); scenes.add((group["task"], seed)); accepted += 1
             finally:
                 execution.close()

@@ -12,9 +12,12 @@ import numpy as np
 from .actions import Action
 
 
+INPUT_FAULTS = ("drop-input", "partial-input", "wrong-input", "case-input", "trailing-space-input")
+
+
 class ActionFault:
     def __init__(self, kind="none", seed=0):
-        if kind not in ("none", "drop-click", "offset-click", "drop-input", "partial-input", "wrong-input"):
+        if kind not in ("none", "drop-click", "offset-click", *INPUT_FAULTS):
             raise ValueError("Unknown fault kind")
         self.kind = kind
         self.seed = seed
@@ -22,7 +25,7 @@ class ActionFault:
         self.injected = False
 
     def apply(self, action):
-        eligible = "INPUT" if self.kind in ("drop-input", "partial-input", "wrong-input") else "CLICK"
+        eligible = "INPUT" if self.kind in INPUT_FAULTS else "CLICK"
         if self.kind == "none" or self.injected or action.action != eligible:
             return action, None
         self.injected = True
@@ -33,6 +36,10 @@ class ActionFault:
             executed = Action("INPUT", value=action.value[:len(action.value) // 2], position=action.position)
         elif self.kind == "wrong-input":
             executed = Action("INPUT", value=action.value + "!", position=action.position)
+        elif self.kind == "case-input":
+            executed = Action("INPUT", value=action.value[:1].swapcase()+action.value[1:], position=action.position)
+        elif self.kind == "trailing-space-input":
+            executed = Action("INPUT", value=action.value+" ", position=action.position)
         elif self.kind == "drop-click":
             # A missed press with the pointer still moving to the intended target.
             executed = Action("HOVER", position=action.position)
