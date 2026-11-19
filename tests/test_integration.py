@@ -124,3 +124,19 @@ def test_visual_layout_fixtures_keep_rewards_and_report_limits(variant):
         assert is_success(reward, terminated, truncated, info["task_info"])
     finally:
         env.close()
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("task", ["click-dialog", "click-tab"])
+@pytest.mark.skipif(not os.getenv("MINIWOB_URL"), reason="Set MINIWOB_URL to enable real browser tests")
+def test_new_sft_holdout_teacher_targets_are_executable(task):
+    from gui_recover.sft_recovery import center, visible_target_boxes
+    env=MiniwobEnvironment(task)
+    try:
+        obs,_=env.reset(7)
+        _,boxes,kind,value=visible_target_boxes(env,obs)
+        assert boxes
+        _,reward,done,truncated,info,_=env.step(Action(kind,value,tuple(center(boxes[0]))))
+        assert is_success(reward,done,truncated,info["task_info"])
+    finally:
+        env.close()

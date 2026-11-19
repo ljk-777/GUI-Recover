@@ -95,6 +95,7 @@ manifest 记录模型版本、提示词、依赖、seed、步数预算、Git 版
 ## 开源与后续
 
 - [首轮 SFT 训练与重载](docs/SFT_SMOKE.md)：64 对监督、32 次 QLoRA 更新，adapter 已可加载执行；独立定位对照为 23/28 对 23/28，尚无收益，暂不包含自主规划或 RL。
+- [干扰按钮与真实错误前缀的补充实验](docs/SFT_RECOVERY.md)：相同数据与预算下比较动作历史条件，显式区分原地纠正与终止后重启。
 - [仓库、许可证和数据核查](docs/UPSTREAM_AUDIT.md)
 - [本地实测验收记录](docs/LOCAL_VALIDATION.md)
 - [单卡服务器实测](docs/SERVER_VALIDATION.md)

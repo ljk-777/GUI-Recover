@@ -22,6 +22,7 @@ def main():
     parser.add_argument("--data", required=True)
     parser.add_argument("--model", required=True)
     parser.add_argument("--out", required=True)
+    parser.add_argument("--context-mode", choices=["none", "previous-action"], default="none")
     args = parser.parse_args()
     config = json.loads(Path(args.config).read_text())
     if config["base_revision"] != MODEL_REVISION:
@@ -51,6 +52,7 @@ def main():
         "base_weights_sha256": base_sha,
         "dataset_manifest_sha256": hashlib.sha256((Path(args.data)/"manifest.json").read_bytes()).hexdigest(),
         "train_records": len(train), "validation_records": len(validation),
+        "context_mode": args.context_mode,
         "packages": {p: importlib.metadata.version(p) for p in ("peft", "accelerate", "bitsandbytes", "psutil")},
         "precision": "NF4 double quantized base; BF16 compute; decoder q/v LoRA only",
         "loss": "assistant answer and end token only; all image/user tokens masked"}
@@ -81,7 +83,7 @@ def main():
     torch.cuda.reset_peak_memory_stats()
 
     def batch(row):
-        return encode_record(processor, args.data, row).to("cuda:0")
+        return encode_record(processor, args.data, row, context_mode=args.context_mode).to("cuda:0")
 
     def mean_loss(current, rows):
         current.eval()
