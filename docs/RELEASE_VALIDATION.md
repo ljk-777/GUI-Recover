@@ -72,7 +72,8 @@ v2 仅忽略深色连通分量中的独立单像素，保持文字/光标、区�
 - 从源码包运行 `scripts/demo_cpu.sh`，CPU oracle 三个 seed 为 3/3。此成绩只验证执行与记录，不是 ShowUI 推理。
 - wheel/源码包通过 Twine 元数据检查；源码包包含文档、脚本、配置、测试与小型示例。
 
-随后补充了超大非法坐标的拒绝检查，最终包会重新构建并核验。构建物与 Git bundle 的 SHA256SUMS 随交付提供。
+补充超大非法坐标的拒绝检查后，最终代码候选 `5f77ddd` 在 Linux 上通过 72 项测试（33.98 秒），独立 wheel 环境也通过全部 72 项测试（22.64 秒）。
+最终 wheel/源码包通过 Twine 检查。随后仅补充此验收记录，交付构建的 Python 模块内容会与已测试 wheel 逐字节核对；构建物与 Git bundle 的 SHA256SUMS 随交付提供。
 CI 已配置 Ubuntu 22.04/24.04 的测试及包构建；尚未推送 GitHub，因此没有远程 Actions 通过记录。
 Runner 标签和 action 使用方式核对来源：[GitHub runner 文档](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)、[checkout](https://github.com/actions/checkout)、[setup-python](https://github.com/actions/setup-python)。
 

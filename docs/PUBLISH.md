@@ -30,4 +30,5 @@ gh repo create OWNER/GUI-Recover --public --source . --remote origin --push
 若已有目标仓库，添加真实 origin 后正常推送，不覆盖远程历史。
 推送后检查 Actions 的单元、浏览器和构建任务；只有实际成功才能记录 CI 通过。
 确认 GitHub 实际结果后可创建 alpha 预发布，并附源码包、wheel、SHA256SUMS 与 CHANGELOG。
+交付 bundle 含本地 `v0.2.0a1` 标签；准备创建预发布时还需将该标签正常推送到 origin。
 软件包内没有服务器密钥、模型权重或大型数据集；固定模型和环境各自保留许可证。
