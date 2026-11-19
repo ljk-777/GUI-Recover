@@ -1,0 +1,508 @@
+{
+  "runtime": {
+    "python": "3.11.18",
+    "platform": "Linux-5.15.0-156-generic-x86_64-with-glibc2.39",
+    "packages": {
+      "gui-recover": "0.2.0a1",
+      "browsergym-core": "0.14.3",
+      "browsergym-miniwob": "0.14.3",
+      "gymnasium": "1.4.0",
+      "playwright": "1.44.0",
+      "torch": "2.6.0",
+      "transformers": "4.49.0",
+      "pillow": "13.0.0",
+      "numpy": "2.4.6"
+    },
+    "git_commit": "67882f33a8a2a7040056307467bdbd11b6b9e3fd",
+    "git_dirty": false,
+    "miniwob_commit": "7fd85d71a4b60325c6585396ec4f48377d049838",
+    "cuda_visible_devices": "0"
+  },
+  "registered_config_sha256": "39f804856a5f8b168115dc69714f5d930dd836fe68b6adc9eadf53009a3b714a",
+  "rendering": {
+    "pillow_layout": "RAQM",
+    "raqm": "0.11.0",
+    "harfbuzz": "14.5.0",
+    "freetype": "2.14.3",
+    "font_sha256": "4659bc0c58c5028dd488ec928d41d9265db43d9b669fc14ca8b0832daca7b144"
+  },
+  "summary": {
+    "profile": "test",
+    "plan_sha256": "1ed890a63c429282c8e7cd10264508d3774f3ef522a8a00aef0e89549e87ae5a",
+    "detection": {
+      "click-button-sequence": {
+        "counts": {
+          "correct": 8,
+          "blank": 8,
+          "wrong_control": 8,
+          "natural": 8
+        },
+        "terminal": 0,
+        "invalid": 0,
+        "same_pixels_correct": 8,
+        "groups": {
+          "healthy_control": {
+            "count": 8,
+            "detectors": {
+              "frozen": {
+                "triggers": 8,
+                "waits": 8,
+                "unresolved": 0
+              },
+              "appearance": {
+                "triggers": 8,
+                "waits": 0,
+                "unresolved": 0
+              },
+              "target_state": {
+                "triggers": 0,
+                "waits": 8,
+                "unresolved": 8
+              }
+            }
+          },
+          "blank_control": {
+            "count": 8,
+            "detectors": {
+              "frozen": {
+                "triggers": 8,
+                "waits": 8,
+                "unresolved": 0
+              },
+              "appearance": {
+                "triggers": 8,
+                "waits": 0,
+                "unresolved": 0
+              },
+              "target_state": {
+                "triggers": 0,
+                "waits": 8,
+                "unresolved": 8
+              }
+            }
+          },
+          "wrong_control": {
+            "count": 8,
+            "detectors": {
+              "frozen": {
+                "triggers": 8,
+                "waits": 8,
+                "unresolved": 0
+              },
+              "appearance": {
+                "triggers": 8,
+                "waits": 0,
+                "unresolved": 0
+              },
+              "target_state": {
+                "triggers": 0,
+                "waits": 8,
+                "unresolved": 8
+              }
+            }
+          },
+          "healthy_natural": {
+            "count": 6,
+            "detectors": {
+              "frozen": {
+                "triggers": 6,
+                "waits": 6,
+                "unresolved": 0
+              },
+              "appearance": {
+                "triggers": 6,
+                "waits": 0,
+                "unresolved": 0
+              },
+              "target_state": {
+                "triggers": 0,
+                "waits": 6,
+                "unresolved": 6
+              }
+            }
+          },
+          "failed_natural": {
+            "count": 2,
+            "detectors": {
+              "frozen": {
+                "triggers": 2,
+                "waits": 2,
+                "unresolved": 0
+              },
+              "appearance": {
+                "triggers": 2,
+                "waits": 0,
+                "unresolved": 0
+              },
+              "target_state": {
+                "triggers": 0,
+                "waits": 2,
+                "unresolved": 2
+              }
+            }
+          }
+        }
+      },
+      "click-checkboxes": {
+        "counts": {
+          "correct": 14,
+          "blank": 14,
+          "wrong_control": 11,
+          "natural": 14
+        },
+        "terminal": 0,
+        "invalid": 0,
+        "same_pixels_correct": 0,
+        "groups": {
+          "healthy_control": {
+            "count": 14,
+            "detectors": {
+              "frozen": {
+                "triggers": 11,
+                "waits": 14,
+                "unresolved": 3
+              },
+              "appearance": {
+                "triggers": 14,
+                "waits": 0,
+                "unresolved": 0
+              },
+              "target_state": {
+                "triggers": 0,
+                "waits": 2,
+                "unresolved": 2
+              }
+            }
+          },
+          "blank_control": {
+            "count": 14,
+            "detectors": {
+              "frozen": {
+                "triggers": 11,
+                "waits": 14,
+                "unresolved": 3
+              },
+              "appearance": {
+                "triggers": 14,
+                "waits": 0,
+                "unresolved": 0
+              },
+              "target_state": {
+                "triggers": 12,
+                "waits": 2,
+                "unresolved": 2
+              }
+            }
+          },
+          "wrong_control": {
+            "count": 11,
+            "detectors": {
+              "frozen": {
+                "triggers": 8,
+                "waits": 11,
+                "unresolved": 3
+              },
+              "appearance": {
+                "triggers": 11,
+                "waits": 0,
+                "unresolved": 0
+              },
+              "target_state": {
+                "triggers": 11,
+                "waits": 0,
+                "unresolved": 0
+              }
+            }
+          },
+          "healthy_natural": {
+            "count": 0,
+            "detectors": {
+              "frozen": {
+                "triggers": 0,
+                "waits": 0,
+                "unresolved": 0
+              },
+              "appearance": {
+                "triggers": 0,
+                "waits": 0,
+                "unresolved": 0
+              },
+              "target_state": {
+                "triggers": 0,
+                "waits": 0,
+                "unresolved": 0
+              }
+            }
+          },
+          "failed_natural": {
+            "count": 14,
+            "detectors": {
+              "frozen": {
+                "triggers": 10,
+                "waits": 14,
+                "unresolved": 4
+              },
+              "appearance": {
+                "triggers": 14,
+                "waits": 0,
+                "unresolved": 0
+              },
+              "target_state": {
+                "triggers": 12,
+                "waits": 2,
+                "unresolved": 2
+              }
+            }
+          }
+        }
+      },
+      "all": {
+        "counts": {
+          "correct": 22,
+          "blank": 22,
+          "wrong_control": 19,
+          "natural": 22
+        },
+        "terminal": 0,
+        "invalid": 0,
+        "same_pixels_correct": 8,
+        "groups": {
+          "healthy_control": {
+            "count": 22,
+            "detectors": {
+              "frozen": {
+                "triggers": 19,
+                "waits": 22,
+                "unresolved": 3
+              },
+              "appearance": {
+                "triggers": 22,
+                "waits": 0,
+                "unresolved": 0
+              },
+              "target_state": {
+                "triggers": 0,
+                "waits": 10,
+                "unresolved": 10
+              }
+            }
+          },
+          "blank_control": {
+            "count": 22,
+            "detectors": {
+              "frozen": {
+                "triggers": 19,
+                "waits": 22,
+                "unresolved": 3
+              },
+              "appearance": {
+                "triggers": 22,
+                "waits": 0,
+                "unresolved": 0
+              },
+              "target_state": {
+                "triggers": 12,
+                "waits": 10,
+                "unresolved": 10
+              }
+            }
+          },
+          "wrong_control": {
+            "count": 19,
+            "detectors": {
+              "frozen": {
+                "triggers": 16,
+                "waits": 19,
+                "unresolved": 3
+              },
+              "appearance": {
+                "triggers": 19,
+                "waits": 0,
+                "unresolved": 0
+              },
+              "target_state": {
+                "triggers": 11,
+                "waits": 8,
+                "unresolved": 8
+              }
+            }
+          },
+          "healthy_natural": {
+            "count": 6,
+            "detectors": {
+              "frozen": {
+                "triggers": 6,
+                "waits": 6,
+                "unresolved": 0
+              },
+              "appearance": {
+                "triggers": 6,
+                "waits": 0,
+                "unresolved": 0
+              },
+              "target_state": {
+                "triggers": 0,
+                "waits": 6,
+                "unresolved": 6
+              }
+            }
+          },
+          "failed_natural": {
+            "count": 16,
+            "detectors": {
+              "frozen": {
+                "triggers": 12,
+                "waits": 16,
+                "unresolved": 4
+              },
+              "appearance": {
+                "triggers": 16,
+                "waits": 0,
+                "unresolved": 0
+              },
+              "target_state": {
+                "triggers": 12,
+                "waits": 4,
+                "unresolved": 4
+              }
+            }
+          }
+        }
+      }
+    },
+    "recovery": {
+      "click-button-sequence": {
+        "wrong_control": {
+          "traces": 8,
+          "initial_correct": 0,
+          "final_correct": 0,
+          "recovered": 0,
+          "regressed": 0,
+          "completed_with_oracle_continuation": 0,
+          "repair_attempts": 0,
+          "repair_clicks": 0,
+          "undone_wrong_clicks": 0
+        },
+        "correct": {
+          "traces": 8,
+          "initial_correct": 8,
+          "final_correct": 8,
+          "recovered": 0,
+          "regressed": 0,
+          "completed_with_oracle_continuation": 8,
+          "repair_attempts": 0,
+          "repair_clicks": 0,
+          "undone_wrong_clicks": 0
+        },
+        "natural": {
+          "traces": 8,
+          "initial_correct": 6,
+          "final_correct": 6,
+          "recovered": 0,
+          "regressed": 0,
+          "completed_with_oracle_continuation": 6,
+          "repair_attempts": 0,
+          "repair_clicks": 0,
+          "undone_wrong_clicks": 0
+        },
+        "blank": {
+          "traces": 8,
+          "initial_correct": 0,
+          "final_correct": 0,
+          "recovered": 0,
+          "regressed": 0,
+          "completed_with_oracle_continuation": 0,
+          "repair_attempts": 0,
+          "repair_clicks": 0,
+          "undone_wrong_clicks": 0
+        }
+      },
+      "click-checkboxes": {
+        "wrong_control": {
+          "traces": 11,
+          "initial_correct": 0,
+          "final_correct": 11,
+          "recovered": 11,
+          "regressed": 0,
+          "completed_with_oracle_continuation": 11,
+          "repair_attempts": 11,
+          "repair_clicks": 22,
+          "undone_wrong_clicks": 11
+        },
+        "correct": {
+          "traces": 14,
+          "initial_correct": 14,
+          "final_correct": 14,
+          "recovered": 0,
+          "regressed": 0,
+          "completed_with_oracle_continuation": 14,
+          "repair_attempts": 0,
+          "repair_clicks": 0,
+          "undone_wrong_clicks": 0
+        },
+        "blank": {
+          "traces": 14,
+          "initial_correct": 0,
+          "final_correct": 12,
+          "recovered": 12,
+          "regressed": 0,
+          "completed_with_oracle_continuation": 12,
+          "repair_attempts": 12,
+          "repair_clicks": 12,
+          "undone_wrong_clicks": 0
+        },
+        "natural": {
+          "traces": 14,
+          "initial_correct": 0,
+          "final_correct": 12,
+          "recovered": 12,
+          "regressed": 0,
+          "completed_with_oracle_continuation": 12,
+          "repair_attempts": 12,
+          "repair_clicks": 16,
+          "undone_wrong_clicks": 4
+        }
+      }
+    },
+    "inference": {
+      "logical_requests": 22,
+      "actual_generations": 22,
+      "actual_input_tokens": 7245,
+      "actual_generated_tokens": 279,
+      "scope": "Actual token totals exclude cached/reused original predictions with unavailable token counts"
+    },
+    "features": {
+      "image_requests": 340,
+      "actual_vision_encoder_calls": 48,
+      "text_requests": 170,
+      "actual_text_embedding_calls": 15
+    },
+    "peak_cuda_reserved_bytes": 5182062592
+  },
+  "linux_cpu_audit": {
+    "status": "passed",
+    "layouts": 22,
+    "executed_branches": 85,
+    "native_pngs": 429,
+    "physical_repair_clicks": 50,
+    "verified_same_renderer": true,
+    "view_evidence_disagreements": 0,
+    "view_score_margin_max_absolute_difference": 0.0,
+    "gpu_samples": 270,
+    "peak_sampled_mib": 5299
+  },
+  "mac_file_audit": {
+    "status": "passed",
+    "layouts": 22,
+    "executed_branches": 85,
+    "native_pngs": 429,
+    "physical_repair_clicks": 50,
+    "verified_same_renderer": false,
+    "view_evidence_disagreements": 0,
+    "view_score_margin_max_absolute_difference": 0.09807370051930098,
+    "gpu_samples": 270,
+    "peak_sampled_mib": 5299
+  },
+  "layout_rejections": [],
+  "frozen_ci": "https://github.com/ljk-777/GUI-Recover/actions/runs/44539836353"
+}
