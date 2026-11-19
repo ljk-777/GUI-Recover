@@ -2,7 +2,8 @@
   "common": {
     "policy": "showui-scripted", "tasks": ["enter-text"],
     "seeds": [70,71,72,73,74], "max-steps": 4,
-    "parser": "mixed", "input-guard-version": "v3", "recovery": "input-guard", "fault-seed": 20261119
+    "parser": "mixed", "input-guard-version": "v3", "recovery": "input-guard", "fault-seed": 20261119,
+    "input-precheck-version": "v1"
   },
   "arms": [
     {"name":"clean-off", "settings":{"fault":"none","input-precheck":"off"}},

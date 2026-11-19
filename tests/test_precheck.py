@@ -23,6 +23,16 @@ def test_invalid_target_cannot_pass(position):
     assert inspect_input_target(field(), position)["reason"] == "invalid_position"
 
 
+@pytest.mark.parametrize("background,foreground", [((255, 255, 255), (0, 0, 0)),
+                                                  ((51, 51, 51), (255, 255, 255))])
+def test_v2_accepts_an_inside_edge_point_without_expanding_outside_field(background, foreground):
+    picture = themed_field("empty", background, foreground)
+    near_inside_edge = (0.5, 31 / 80)
+    assert inspect_input_target(picture, near_inside_edge, version="v1")["status"] == "unknown"
+    assert inspect_input_target(picture, near_inside_edge, version="v2")["status"] == "empty_region"
+    assert inspect_input_target(picture, (0.5, 29 / 80), version="v2")["status"] == "unknown"
+
+
 class Grounder:
     config = {"model": "test"}
     last_metrics = {}

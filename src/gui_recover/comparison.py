@@ -40,7 +40,7 @@ def compare_runs(clean, faulted, recovered, clean_recovered=None):
             guard["enabled"] = False
         return config
     shared = ("policy", "tasks", "seeds", "max_steps", "model", "revision", "prompt_profile", "parser", "fault_seed",
-              "input_guard_version", "visual_variant", "input_precheck")
+              "input_guard_version", "visual_variant", "input_precheck", "input_precheck_version")
     for directory, manifest, rows in runs:
         if set(rows) != set(identifiers):
             raise ValueError("Mismatched task/seed sets")

@@ -34,6 +34,8 @@ def main():
         source = Path(source)
         source_manifest = json.loads((source / "manifest.json").read_text())
         signal_version = source_manifest["model_config"]["input_guard"]["signal"].rsplit("_", 1)[-1]
+        precheck_version = source_manifest["model_config"].get("input_precheck", {}).get(
+            "signal", "enclosed_uniform_empty_target_v1").rsplit("_", 1)[-1]
         summary = json.loads((source / "summary.json").read_text())
         for result in summary["results"]:
             path = source / f"{result['task']}-{result['seed']}" / "trajectory.jsonl"
@@ -56,7 +58,7 @@ def main():
                         if event["observed_screenshot"] != previous_screenshot:
                             raise ValueError("Precheck screenshot reference differs")
                         start = time.perf_counter()
-                        reproduced = inspect_input_target(before, event["proposed_action"]["position"])
+                        reproduced = inspect_input_target(before, event["proposed_action"]["position"], version=precheck_version)
                         detector_seconds = time.perf_counter() - start
                         if json.loads(json.dumps(reproduced)) != event["signal"]:
                             raise ValueError("Original precheck could not be reproduced")

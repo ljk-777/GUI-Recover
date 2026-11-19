@@ -76,6 +76,7 @@ def main(argv=None, backend=None):
     run.add_argument("--recovery", choices=["none", "feedback", "input-guard", "input-retry"], default="none")
     run.add_argument("--input-guard-version", choices=["v1", "v2", "v3"], default="v2")
     run.add_argument("--input-precheck", choices=["off", "visual"], default="off")
+    run.add_argument("--input-precheck-version", choices=["v1", "v2"], default="v2")
     run.add_argument("--visual-variant", choices=["default", "shifted", "dark"], default="default")
     args = parser.parse_args(argv)
     if args.command == "doctor":
@@ -149,7 +150,8 @@ def main(argv=None, backend=None):
             model = ScriptedGroundingPolicy(model, input_guard=args.recovery == "input-guard",
                                             blind_input_retry=args.recovery == "input-retry",
                                             input_guard_version=args.input_guard_version,
-                                            input_precheck=args.input_precheck == "visual")
+                                            input_precheck=args.input_precheck == "visual",
+                                            input_precheck_version=args.input_precheck_version)
     except Exception as exc:
         write_json(directory / "startup_error.json", {"error_type": type(exc).__name__, "error": str(exc)})
         raise
