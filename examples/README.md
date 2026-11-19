@@ -25,3 +25,6 @@ Both pairs are post-evaluation illustrations, not the score denominator. Their n
 - `history-balanced-regression/`: a retained clean-task counterexample for the fixed primary balanced model.
 
 These examples are post-evaluation illustrations, not the denominators. All PNGs and logs remain unmodified. Both reports retain strict teacher-box scores and GUI outcomes, including boundary differences; no post-hoc margin rescoring. No weights are committed.
+
+
+`visual-verification-results.json` records the fresh 300-scene/630-variant outcome-verification study, validation-only injection-transfer fitting and six fixed recovery controls. The primary visual verifier actually decides from screenshots/action/goal at runtime; only oracle accesses task labels/pending state. Deterministic control rendering and FIFO delayed input are explicit fixtures, not stock MiniWoB or real-network claims. Rejects, live/terminal state denominators, natural errors, caches and all failures are retained. Native illustrative cases are labelled post-evaluation and do not determine the score. Classifier/base weights are not committed.

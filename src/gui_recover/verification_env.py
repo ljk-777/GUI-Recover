@@ -1,0 +1,143 @@
+"""Controlled execution fixtures and teacher-only labels, outside visual inference."""
+
+import re
+from copy import deepcopy
+
+from .actions import Action
+from .environment import MiniwobEnvironment,VisualObservation
+from .input_guard import inspect_input
+from .recovery import ActionFault
+from .runner import is_success
+from .verification_capture import capture_after_repaint
+
+
+def task_request(task, goal):
+    if task == "enter-text":
+        value = re.fullmatch(r'Enter "(.*)" into the text field and press Submit\.',goal).group(1)
+        return "text field", "INPUT", value
+    if task == "click-button":
+        value = re.fullmatch(r'Click on the "(.*)" button\.',goal).group(1)
+        return f'The "{value}" button', "CLICK", None
+    if task == "focus-text":
+        return "text field", "CLICK", None
+    if task == "click-test":
+        return "Click Me! button", "CLICK", None
+    if task == "click-dialog":
+        return 'The "x" close button of the dialog', "CLICK", None
+    if task == "click-tab":
+        number = re.fullmatch(r'Click on Tab #(\d)\.',goal).group(1)
+        return f"Tab #{number}", "CLICK", None
+    raise ValueError("Unsupported fixed-controller task")
+
+
+def teacher_effect(execution):
+    """Offline labels / explicitly privileged oracle baseline only."""
+    return teacher_evidence(execution)["effect_achieved"]
+
+
+def teacher_evidence(execution):
+    """Raw offline evidence retained for label auditing, never for a visual model."""
+    env = execution.env
+    if env.task == "enter-text":
+        _, _, expected = task_request(env.task, execution.obs.goal)
+        observed=env.env.unwrapped.page.locator("#tt").input_value()
+        return {"kind":"exact_input_value","expected":expected,"observed":observed,"effect_achieved":observed==expected}
+    if env.task == "focus-text":
+        focused=env.env.unwrapped.page.locator("#tt").evaluate("el => el === document.activeElement")
+        # MiniWoB's focus handler calls this.blur() before endEpisode(1).
+        # The terminal task evidence records the focus event; activeElement
+        # after that handler is deliberately no longer the textbox.
+        return {"kind":"focus_event_success","focused_after_step":bool(focused),
+            "effect_achieved":is_success(execution.reward,execution.done,
+                execution.truncated,execution.info.get("task_info",{}))}
+    return {"kind":"environment_success","effect_achieved":is_success(execution.reward,execution.done,
+        execution.truncated,execution.info.get("task_info",{}))}
+
+
+class TransitionExecution:
+    """Fixture knows interventions; the verifier receives only a TransitionView.
+
+    deferred-input is a queued-delivery simulator, not a claim of real network
+    latency. Pending delivery uses FIFO before the next physical operation.
+    A retry planned from a stale empty screenshot can therefore append twice.
+    """
+    def __init__(self, task, seed, proposed, regime="none"):
+        self.env = MiniwobEnvironment(task)
+        self.seed, self.proposed, self.regime = seed, proposed, regime
+        self.pending = None
+        self.events = []
+        self.snapshots = []
+        self.obs, self.info = self.env.reset(seed)
+        # CDP screenshots capture a blinking caret on Linux. Make the new
+        # verification fixture deterministic before any data collection; raw
+        # PNGs remain unedited and task/reward/focus semantics stay unchanged.
+        self.env.env.unwrapped.page.add_style_tag(content=(
+            "input,textarea{caret-color:transparent !important}"
+            "button{appearance:none!important;border:2px solid #777!important;border-radius:2px!important}"))
+        self.env.obs=self.env._visual(self.env.env.unwrapped._get_obs())
+        self.obs=self.env.obs
+        self._capture()
+        self.before = self.obs
+        self.reward, self.done, self.truncated = 0.0, False, False
+
+    def _capture(self):
+        self.obs=VisualObservation(self.obs.goal,capture_after_repaint(self.env.env.unwrapped.page),
+                                   self.obs.last_action_error)
+        self.env.obs=self.obs
+
+    def first(self):
+        if self.regime == "deferred-input":
+            if self.proposed.action != "INPUT":
+                raise ValueError("Deferred fixture supports INPUT only")
+            self.pending = self.proposed
+            actual = Action("CLICK",position=self.proposed.position)
+        else:
+            actual, _ = ActionFault(self.regime,self.seed).apply(self.proposed)
+        self._step(actual,"first")
+        return self.obs
+
+    def _step(self, actual, event):
+        self.obs,self.reward,self.done,self.truncated,self.info,code = self.env.step(actual)
+        self._capture()
+        self.events.append({"event":event,"executed_action":actual.to_dict(),"executed_code":code,
+            "reward":self.reward,"terminated":self.done,"truncated":self.truncated,
+            "task_info":deepcopy(self.info.get("task_info",{})),"execution_error":self.obs.last_action_error})
+        self.snapshots.append(self.obs)
+
+    def wait_once(self):
+        if self.done or self.truncated:
+            return self.obs
+        self.env.env.unwrapped.page.wait_for_timeout(150)
+        if self.pending is not None:
+            actual,self.pending = self.pending,None
+            self._step(actual,"pending_delivered_on_wait")
+        else:
+            self._step(Action("HOVER",position=self.proposed.position or (0.0,0.0)),"wait_hover")
+        return self.obs
+
+    def flush_pending(self):
+        if self.pending is not None and not (self.done or self.truncated):
+            actual,self.pending = self.pending,None
+            self._step(actual,"pending_delivered_before_continuation")
+
+    def repair(self, point):
+        if self.proposed.action == "INPUT":
+            _,_,value = task_request(self.env.task,self.obs.goal)
+            signal=inspect_input(self.before.screenshot,self.obs.screenshot,point,version="v2")
+            append=signal["status"]=="empty"
+            self.flush_pending()
+            if append:
+                self._step(Action("INPUT",value,tuple(point)),"append_input_repair")
+                return
+            self.obs,self.reward,self.done,self.truncated,self.info,code = self.env.replace_input(point,value)
+            self._capture()
+            self.events.append({"event":"replace_input","position":list(point),"value":value,
+                "executed_code":code,"reward":self.reward,"terminated":self.done,"truncated":self.truncated,
+                "task_info":deepcopy(self.info.get("task_info",{})),"execution_error":self.obs.last_action_error})
+            self.snapshots.append(self.obs)
+        else:
+            self.flush_pending()
+            self._step(Action("CLICK",position=tuple(point)),"retry_click")
+
+    def close(self):
+        self.env.close()

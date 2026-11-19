@@ -1,0 +1,106 @@
+<!doctype html><meta charset="utf-8"><title>GUI-Recover trajectory</title><style>body{font:15px system-ui;max-width:1000px;margin:30px auto}section{border-top:1px solid #ccc;padding:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere}img{max-width:100%}</style><h1>GUI-Recover trajectory</h1><section><img src="0000.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;reset&quot;,
+  &quot;goal&quot;: &quot;Click on Tab #3.&quot;,
+  &quot;target&quot;: &quot;Tab #3&quot;,
+  &quot;screenshot&quot;: &quot;0000.png&quot;,
+  &quot;sha256&quot;: &quot;d02a764d5b1458be41352be2c9686a479d62ae38bde68587fd6310d86df149f1&quot;
+}</pre></section><section><img src="0001.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;first&quot;,
+  &quot;executed_action&quot;: {
+    &quot;action&quot;: &quot;HOVER&quot;,
+    &quot;value&quot;: null,
+    &quot;position&quot;: [
+      0.3,
+      0.28
+    ]
+  },
+  &quot;executed_code&quot;: &quot;mouse_move(149.4, 89.88000000000001)&quot;,
+  &quot;reward&quot;: 0.0,
+  &quot;terminated&quot;: false,
+  &quot;truncated&quot;: false,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: 0,
+    &quot;RAW_REWARD_GLOBAL&quot;: 0,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: false,
+    &quot;EPISODE_ID&quot;: 0,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;execution_error&quot;: &quot;&quot;,
+  &quot;screenshot&quot;: &quot;0001.png&quot;,
+  &quot;sha256&quot;: &quot;83220ee5fb4875e2ec9d5b687331937b0da29e667694cf4ca1c3891f84ee20b2&quot;
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;verification&quot;,
+  &quot;phase&quot;: &quot;immediate&quot;,
+  &quot;verdict&quot;: {
+    &quot;status&quot;: &quot;not_achieved&quot;,
+    &quot;privileged_oracle&quot;: true
+  }
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;repair_prediction&quot;,
+  &quot;prediction&quot;: {
+    &quot;raw&quot;: &quot;[0.3, 0.28]&quot;,
+    &quot;point&quot;: [
+      0.3,
+      0.28
+    ]
+  }
+}</pre></section><section><img src="0002.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;retry_click&quot;,
+  &quot;executed_action&quot;: {
+    &quot;action&quot;: &quot;CLICK&quot;,
+    &quot;value&quot;: null,
+    &quot;position&quot;: [
+      0.3,
+      0.28
+    ]
+  },
+  &quot;executed_code&quot;: &quot;mouse_click(149.4, 89.88000000000001)&quot;,
+  &quot;reward&quot;: 1.0,
+  &quot;terminated&quot;: true,
+  &quot;truncated&quot;: false,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: 0.998258,
+    &quot;RAW_REWARD_GLOBAL&quot;: 1,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: true,
+    &quot;EPISODE_ID&quot;: 1,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;execution_error&quot;: &quot;&quot;,
+  &quot;screenshot&quot;: &quot;0002.png&quot;,
+  &quot;sha256&quot;: &quot;c77bbfac21acd0e1ad299a1207071c3f976272f217dd68117bf5ee0de4742632&quot;
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;episode_end&quot;,
+  &quot;id&quot;: &quot;click-tab-12002-drop-click&quot;,
+  &quot;scene_id&quot;: &quot;click-tab-12002&quot;,
+  &quot;task&quot;: &quot;click-tab&quot;,
+  &quot;seed&quot;: 12002,
+  &quot;regime&quot;: &quot;drop-click&quot;,
+  &quot;strategy&quot;: &quot;oracle&quot;,
+  &quot;success&quot;: true,
+  &quot;reason&quot;: &quot;success&quot;,
+  &quot;prefix_matched&quot;: true,
+  &quot;waits&quot;: 0,
+  &quot;repairs&quot;: 1,
+  &quot;logical_actor_calls&quot;: 2,
+  &quot;invalid_predictions&quot;: 0,
+  &quot;source_prediction_reused&quot;: true,
+  &quot;verifier_calls&quot;: 1,
+  &quot;verifier_seconds&quot;: 9.493902325630188e-06,
+  &quot;triggered_recovery&quot;: true,
+  &quot;reward&quot;: 1.0,
+  &quot;terminated&quot;: true,
+  &quot;truncated&quot;: false,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: 0.998258,
+    &quot;RAW_REWARD_GLOBAL&quot;: 1,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: true,
+    &quot;EPISODE_ID&quot;: 1,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;environment_steps&quot;: 2,
+  &quot;new_actor_generations&quot;: 0,
+  &quot;elapsed_seconds&quot;: 3.5489883795380592
+}</pre></section>
