@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0a1 — release candidate
+## 0.2.0a1 — 2026-11-19 (alpha prerelease)
 
 - Added explicit ShowUI grounding and a separately labelled scripted MiniWoB planner.
 - Added click/input fault injection, visual input appearance checks, bounded retries and offline replay audits.

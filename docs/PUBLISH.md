@@ -1,7 +1,9 @@
 # 发布候选交接
 
 目标版本：0.2.0a1，alpha。范围与未支持项见 RELEASE_VALIDATION.md。
-当前提供完整 Git bundle、源码包和 wheel；未发布到 PyPI。GitHub 上的 CI 状态只能在实际推送后确认。
+当前提供完整 Git bundle、源码包和 wheel；未发布到 PyPI。GitHub 上的 CI 状态见下面的实际运行记录。
+
+2026-11-19 已完成首次公开 Alpha：[仓库](https://github.com/ljk-777/GUI-Recover)、[预发布](https://github.com/ljk-777/GUI-Recover/releases/tag/v0.2.0a1)、[标签 CI](https://github.com/ljk-777/GUI-Recover/actions/runs/44449374272)。以下命令留作后续版本维护参考。
 
 ## 本地包验证
 

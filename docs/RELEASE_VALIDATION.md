@@ -74,10 +74,16 @@ v2 仅忽略深色连通分量中的独立单像素，保持文字/光标、区�
 
 补充超大非法坐标的拒绝检查后，最终代码候选 `5f77ddd` 在 Linux 上通过 72 项测试（33.98 秒），独立 wheel 环境也通过全部 72 项测试（22.64 秒）。
 最终 wheel/源码包通过 Twine 检查。随后仅补充此验收记录，交付构建的 Python 模块内容会与已测试 wheel 逐字节核对；构建物与 Git bundle 的 SHA256SUMS 随交付提供。
-CI 已配置 Ubuntu 22.04/24.04 的测试及包构建；尚未推送 GitHub，因此没有远程 Actions 通过记录。
+CI 已配置 Ubuntu 22.04/24.04 的测试及包构建；本地候选构建之后的实际 GitHub 验证见下方发布记录。
 Runner 标签和 action 使用方式核对来源：[GitHub runner 文档](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)、[checkout](https://github.com/actions/checkout)、[setup-python](https://github.com/actions/setup-python)。
 
 ## 发布状态
 
-当前为本地可审阅的 alpha 发布候选；创建远程仓库和实际推送仍需有效的 GitHub 身份认证。
-发布命令与交接步骤见 PUBLISH.md。应在实际推送、Actions 运行和预发布创建后，再记录对应的公开链接与状态。
+已公开发布 Alpha，PyPI 尚未发布。维护者的发布命令与交接步骤见 PUBLISH.md。
+
+- [公开仓库](https://github.com/ljk-777/GUI-Recover)，GitHub 识别许可证为 Apache-2.0。
+- [v0.2.0a1 预发布](https://github.com/ljk-777/GUI-Recover/releases/tag/v0.2.0a1)，标签对应提交 `e902245`。
+- [标签 CI](https://github.com/ljk-777/GUI-Recover/actions/runs/44449374272)：Ubuntu 22.04、Ubuntu 24.04、package 三个任务全部通过；每个系统运行 63 项单元测试和 9 项集成测试。
+- 五个发布附件均已上传，GitHub 返回的文件长度与 SHA256 逐项匹配本地交付。
+
+公开发布后只在 main 更新发布链接与记录，原始 Alpha 标签和附件保持构建时的快照。

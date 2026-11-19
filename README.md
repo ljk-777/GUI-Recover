@@ -2,7 +2,9 @@
 
 Fault injection, visual recovery experiments, and traceable evaluation for GUI agents.
 
-**V0.2.0a1 发布候选：实验工具，尚未发布到 PyPI。** 基于 ShowUI + BrowserGym/MiniWoB，保存截图、预测、执行动作和奖励，并核查恢复实验的配对与成本。
+**[V0.2.0a1 Alpha 已发布](https://github.com/ljk-777/GUI-Recover/releases/tag/v0.2.0a1)：实验工具，尚未发布到 PyPI。** 基于 ShowUI + BrowserGym/MiniWoB，保存截图、预测、执行动作和奖励，并核查恢复实验的配对与成本。
+
+[下载源码与安装包](https://github.com/ljk-777/GUI-Recover/releases/tag/v0.2.0a1) · [发布版本测试](https://github.com/ljk-777/GUI-Recover/actions/runs/44449374272)
 
 - **模型与环境接口**：视觉策略只接收任务文字、截图、动作历史和执行错误。
 - **可复现故障**：漏点击、坐标偏移、漏输入、部分输入和错误文字。
