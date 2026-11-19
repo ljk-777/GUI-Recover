@@ -39,7 +39,8 @@ def compare_runs(clean, faulted, recovered, clean_recovered=None):
             # and the entire base model/planner configuration must remain identical.
             guard["enabled"] = False
         return config
-    shared = ("policy", "tasks", "seeds", "max_steps", "model", "revision", "prompt_profile", "parser", "fault_seed")
+    shared = ("policy", "tasks", "seeds", "max_steps", "model", "revision", "prompt_profile", "parser", "fault_seed",
+              "input_guard_version", "visual_variant")
     for directory, manifest, rows in runs:
         if set(rows) != set(identifiers):
             raise ValueError("Mismatched task/seed sets")

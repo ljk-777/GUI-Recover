@@ -53,11 +53,14 @@ def point_hits_boxes(point, boxes):
 class ScriptedGroundingPolicy:
     """Text-derived two-step plan; ShowUI supplies every coordinate."""
 
-    def __init__(self, backend, input_guard=False, blind_input_retry=False):
+    def __init__(self, backend, input_guard=False, blind_input_retry=False, input_guard_version="v2"):
         if input_guard and blind_input_retry:
             raise ValueError("Choose visual guard or blind retry, not both")
         self.backend = backend
         self.input_guard = input_guard
+        if input_guard_version not in ("v1", "v2"):
+            raise ValueError("Unknown input guard version")
+        self.input_guard_version = input_guard_version
         self.blind_input_retry = blind_input_retry
         self.last_metrics = {}
         self.config = {**backend.config, "planner": "scripted_miniwob_goal_patterns_v1",
@@ -65,7 +68,7 @@ class ScriptedGroundingPolicy:
                        "advances_plan": "history order by default; visual input check when input_guard enabled",
                        "input_guard": {"enabled": input_guard, "retry_limit": 1,
                                        "blind_retry": blind_input_retry,
-                                       "signal": "enclosed_white_input_ink_v1"}}
+                                       "signal": f"enclosed_white_input_ink_{input_guard_version}"}}
         self._clear_state()
 
     def _clear_state(self):
@@ -95,7 +98,8 @@ class ScriptedGroundingPolicy:
                 self.step_index += 1
                 decision = "advance"
             return {"kind": "blind_input_retry", "decision": decision, "input_attempts": self.input_attempts}
-        signal = inspect_input(before.screenshot, after.screenshot, proposed.position)
+        signal = inspect_input(before.screenshot, after.screenshot, proposed.position,
+                               version=self.input_guard_version)
         status = signal["status"]
         self.input_attempts += 1
         self.guard_metrics["checks"] += 1

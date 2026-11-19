@@ -64,9 +64,11 @@ def main():
     run.add_argument("--revision", default=MODEL_REVISION)
     run.add_argument("--prompt-profile", choices=["baseline", "official-web", "official-miniwob"], default="baseline")
     run.add_argument("--parser", choices=["strict", "mixed"], default="strict")
-    run.add_argument("--fault", choices=["none", "drop-click", "offset-click", "drop-input"], default="none")
+    run.add_argument("--fault", choices=["none", "drop-click", "offset-click", "drop-input", "partial-input", "wrong-input"], default="none")
     run.add_argument("--fault-seed", type=int, default=0)
     run.add_argument("--recovery", choices=["none", "feedback", "input-guard", "input-retry"], default="none")
+    run.add_argument("--input-guard-version", choices=["v1", "v2"], default="v2")
+    run.add_argument("--visual-variant", choices=["default", "shifted", "dark"], default="default")
     args = parser.parse_args()
     if args.command == "doctor":
         data = fingerprint()
@@ -103,6 +105,8 @@ def main():
         parser.error("Input guard requires the explicitly scripted planner")
     if args.policy == "showui-scripted" and any(t not in ("click-test", "click-button", "enter-text") for t in args.tasks):
         parser.error("Scripted planner supports click-test, click-button and enter-text only")
+    if args.visual_variant != "default" and args.tasks != ["enter-text"]:
+        parser.error("Visual fixtures require tasks=[enter-text]")
     directory = Path(args.out)
     directory.mkdir(parents=True, exist_ok=False)
     manifest = {"schema_version": 1, "policy": args.policy, "diagnostic_only": args.policy == "oracle-smoke",
@@ -115,7 +119,8 @@ def main():
                              prompt_profile=args.prompt_profile) if args.policy != "oracle-smoke" else None
         if args.policy == "showui-scripted":
             model = ScriptedGroundingPolicy(model, input_guard=args.recovery == "input-guard",
-                                            blind_input_retry=args.recovery == "input-retry")
+                                            blind_input_retry=args.recovery == "input-retry",
+                                            input_guard_version=args.input_guard_version)
     except Exception as exc:
         write_json(directory / "startup_error.json", {"error_type": type(exc).__name__, "error": str(exc)})
         raise
@@ -127,7 +132,7 @@ def main():
         for seed in args.seeds:
             env = None
             try:
-                env = MiniwobEnvironment(task)
+                env = MiniwobEnvironment(task, visual_variant=args.visual_variant)
                 policy = model if model is not None else OracleSmokePolicy(env)
                 result = run_episode(env, policy, task, seed, args.max_steps,
                                      directory / f"{task}-{seed}", parser_mode=args.parser,

@@ -51,7 +51,7 @@ def _blank_region(image, position):
     return None
 
 
-def _ink(image, bounds):
+def _ink(image, bounds, ignore_speckles=False):
     x0, y0, x1, y1 = bounds
     # Two interior pixels exclude Chromium's thicker focused outline at the
     # fixed MiniWoB screenshot scale, as well as border antialiasing.
@@ -60,26 +60,31 @@ def _ink(image, bounds):
     remaining = set(zip(*np.nonzero(dark)[::-1]))
     ink = 0
     ignored_caret_pixels = 0
+    ignored_speckle_pixels = 0
     while remaining:
         component = _component(dark, next(iter(remaining)))
         remaining.difference_update(component)
         xs, ys = zip(*component)
         w = max(xs) - min(xs) + 1
         h = max(ys) - min(ys) + 1
-        if w <= 2 and h >= crop.shape[0] * 0.5:
+        if ignore_speckles and len(component) == 1:
+            ignored_speckle_pixels += 1
+        elif w <= 2 and h >= crop.shape[0] * 0.5:
             ignored_caret_pixels += len(component)
         else:
             ink += len(component)
-    return ink, ignored_caret_pixels
+    return ink, ignored_caret_pixels, ignored_speckle_pixels
 
 
-def inspect_input(before_image, after_image, position):
+def inspect_input(before_image, after_image, position, version="v1"):
+    if version not in ("v1", "v2"):
+        raise ValueError("Unknown input guard version")
     if before_image.size != after_image.size:
         return {"status": "unknown", "reason": "screenshot_size_changed"}
     bounds = _blank_region(before_image, position)
     if bounds is None:
         return {"status": "unknown", "reason": "no_enclosed_white_input_region"}
-    before_ink, _ = _ink(before_image, bounds)
+    before_ink, _, _ = _ink(before_image, bounds, ignore_speckles=version == "v2")
     if before_ink:
         return {"status": "unknown", "reason": "region_was_not_empty", "region": bounds}
     x0, y0, x1, y1 = bounds
@@ -88,11 +93,14 @@ def inspect_input(before_image, after_image, position):
                white[y0:y1, x0 - 1], white[y0:y1, x1]]
     if any(float((~border).mean()) < 0.65 for border in borders):
         return {"status": "unknown", "reason": "input_outline_moved_or_changed", "region": bounds}
-    after_ink, caret = _ink(after_image, bounds)
+    after_ink, caret, speckles = _ink(after_image, bounds, ignore_speckles=version == "v2")
     interior_area = (x1 - x0 - 4) * (y1 - y0 - 4)
     if after_ink > interior_area * 0.4:
         return {"status": "unknown", "reason": "region_background_changed", "region": bounds}
     status = "text_visible" if after_ink >= 8 else ("empty" if after_ink == 0 else "unknown")
-    return {"status": status, "region": bounds, "ink_before": before_ink,
+    result = {"status": status, "region": bounds, "ink_before": before_ink,
             "ink_after": after_ink, "ignored_caret_pixels": caret,
             "reason": "appearance_only_not_text_correctness"}
+    if version == "v2":
+        result["ignored_speckle_pixels"] = speckles
+    return result

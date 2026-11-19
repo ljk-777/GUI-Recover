@@ -24,6 +24,8 @@ def field(kind="empty"):
         pixels[30:52, 178:180] = 0
     if kind == "text":
         pixels[35:46, 40:55] = 0
+    if kind == "speckle":
+        pixels[34, 40] = 0
     return Image.fromarray(pixels)
 
 
@@ -43,6 +45,12 @@ def test_guard_is_appearance_only_and_does_not_validate_content():
     assert result["reason"] == "appearance_only_not_text_correctness"
 
 
+def test_speckle_fix_is_versioned_and_preserves_v1_result():
+    assert inspect_input(field(), field("speckle"), (0.5, 0.5), version="v1")["status"] == "unknown"
+    fixed = inspect_input(field(), field("speckle"), (0.5, 0.5), version="v2")
+    assert fixed["status"] == "empty" and fixed["ignored_speckle_pixels"] == 1
+
+
 def test_input_fault_focuses_but_does_not_type_and_is_once():
     injector = ActionFault("drop-input", 7)
     assert injector.apply(Action("CLICK", position=(0.3, 0.3)))[1] is None
@@ -51,6 +59,12 @@ def test_input_fault_focuses_but_does_not_type_and_is_once():
     assert executed == Action("CLICK", position=(0.5, 0.5))
     assert label["kind"] == "drop-input"
     assert injector.apply(proposed) == (proposed, None)
+
+
+def test_partial_and_wrong_input_faults_are_deterministic_counterexamples():
+    proposed = Action("INPUT", "Myron", (0.5, 0.5))
+    assert ActionFault("partial-input").apply(proposed)[0].value == "My"
+    assert ActionFault("wrong-input").apply(proposed)[0].value == "Myron!"
 
 
 class Backend:

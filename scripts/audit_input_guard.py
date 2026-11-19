@@ -32,12 +32,14 @@ def main():
     labels, episodes = [], []
     for source in args.runs:
         source = Path(source)
+        source_manifest = json.loads((source / "manifest.json").read_text())
+        signal_version = source_manifest["model_config"]["input_guard"]["signal"].rsplit("_", 1)[-1]
         summary = json.loads((source / "summary.json").read_text())
         for result in summary["results"]:
             path = source / f"{result['task']}-{result['seed']}" / "trajectory.jsonl"
             events = [json.loads(line) for line in path.read_text().splitlines()]
             observations = {e["step"]: e for e in events if e["event"] == "policy_observation"}
-            env = MiniwobEnvironment(result["task"])
+            env = MiniwobEnvironment(result["task"], visual_variant=source_manifest["config"].get("visual_variant", "default"))
             try:
                 obs, _ = env.reset(result["seed"])
                 image_path = directory / f"{source.name}-{result['seed']}-reset.png"
@@ -63,7 +65,7 @@ def main():
                             before = Image.open(path.parent / previous_screenshot).convert("RGB")
                             after = Image.open(path.parent / event["screenshot"]).convert("RGB")
                             start = time.perf_counter()
-                            reproduced = inspect_input(before, after, event["proposed_action"]["position"])
+                            reproduced = inspect_input(before, after, event["proposed_action"]["position"], version=signal_version)
                             detector_seconds = time.perf_counter() - start
                             if json.loads(json.dumps(reproduced)) != signal:
                                 raise ValueError("Original screenshot signal could not be reproduced")

@@ -14,7 +14,7 @@ from .actions import Action
 
 class ActionFault:
     def __init__(self, kind="none", seed=0):
-        if kind not in ("none", "drop-click", "offset-click", "drop-input"):
+        if kind not in ("none", "drop-click", "offset-click", "drop-input", "partial-input", "wrong-input"):
             raise ValueError("Unknown fault kind")
         self.kind = kind
         self.seed = seed
@@ -22,13 +22,17 @@ class ActionFault:
         self.injected = False
 
     def apply(self, action):
-        eligible = "INPUT" if self.kind == "drop-input" else "CLICK"
+        eligible = "INPUT" if self.kind in ("drop-input", "partial-input", "wrong-input") else "CLICK"
         if self.kind == "none" or self.injected or action.action != eligible:
             return action, None
         self.injected = True
         if self.kind == "drop-input":
             # Focus/click succeeds, but the text keystrokes are lost entirely.
             executed = Action("CLICK", position=action.position)
+        elif self.kind == "partial-input":
+            executed = Action("INPUT", value=action.value[:len(action.value) // 2], position=action.position)
+        elif self.kind == "wrong-input":
+            executed = Action("INPUT", value=action.value + "!", position=action.position)
         elif self.kind == "drop-click":
             # A missed press with the pointer still moving to the intended target.
             executed = Action("HOVER", position=action.position)

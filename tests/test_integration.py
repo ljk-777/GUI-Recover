@@ -65,7 +65,7 @@ def test_dropped_click_still_advances_real_environment(tmp_path):
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("fault", ["none", "drop-input"])
+@pytest.mark.parametrize("fault", ["none", "drop-input", "partial-input", "wrong-input"])
 @pytest.mark.skipif(not os.getenv("MINIWOB_URL"), reason="Set MINIWOB_URL to enable real browser tests")
 def test_visual_input_guard_in_real_browser(tmp_path, fault):
     from gui_recover.grounding import ScriptedGroundingPolicy
@@ -92,8 +92,35 @@ def test_visual_input_guard_in_real_browser(tmp_path, fault):
         result = run_episode(env, ScriptedGroundingPolicy(DiagnosticBackend(), input_guard=True),
                              "enter-text", 7, 4, tmp_path / "episode",
                              fault_kind=fault, recovery="input-guard")
-        assert result["success"], result
+        assert result["success"] == (fault in ("none", "drop-input")), result
         assert result["input_guard"]["retries"] == int(fault == "drop-input")
         assert result["steps"] == 2 + int(fault == "drop-input")
+    finally:
+        env.close()
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("variant", ["shifted", "dark"])
+@pytest.mark.skipif(not os.getenv("MINIWOB_URL"), reason="Set MINIWOB_URL to enable real browser tests")
+def test_visual_layout_fixtures_keep_rewards_and_report_limits(variant):
+    from gui_recover.input_guard import inspect_input
+
+    env = MiniwobEnvironment("enter-text", visual_variant=variant)
+    try:
+        before, _ = env.reset(8)
+        page = env.env.unwrapped.page
+        scale = page._bgym_scale_factor
+        box = page.locator("#tt").bounding_box()
+        position = ((box["x"] + box["width"] / 2) * scale / before.screenshot.width,
+                    (box["y"] + box["height"] / 2) * scale / before.screenshot.height)
+        value = re.search(r'Enter "(.*?)"', before.goal).group(1)
+        after, _, _, _, _, _ = env.step(Action("INPUT", value, position))
+        signal = inspect_input(before.screenshot, after.screenshot, position, version="v2")
+        assert signal["status"] == ("text_visible" if variant == "shifted" else "unknown")
+        box = page.locator("#subbtn").bounding_box()
+        submit = ((box["x"] + box["width"] / 2) * scale / after.screenshot.width,
+                  (box["y"] + box["height"] / 2) * scale / after.screenshot.height)
+        _, reward, terminated, truncated, info, _ = env.step(Action("CLICK", position=submit))
+        assert is_success(reward, terminated, truncated, info["task_info"])
     finally:
         env.close()
