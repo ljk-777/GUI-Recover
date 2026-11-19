@@ -11,11 +11,12 @@ from PIL import Image
 
 from .actions import Action, parse_action
 from .verification import TransitionView
-from .verification_env import TransitionExecution, task_request
+from .verification_env import INPUT_REPAIR_PROFILES, TransitionExecution, task_request
 
 
 TASKS = ("click-button", "click-dialog", "click-tab", "enter-text")
 REGIMES = ("none", "drop-input", "deferred-input")
+SUPPORTED_REGIMES = (*REGIMES, "partial-input", "wrong-input")
 FRAME_SIZE = (498, 321)
 FIXED_CROP = (0., 0., .6, .6)
 REWARD_PROFILE = "exact_terminal_v1"
@@ -60,14 +61,17 @@ class RecoveryDecisionEnv(gym.Env):
     """
     metadata = {"render_modes": []}
 
-    def __init__(self, task, grounder, *, regime="none", max_decisions=3):
+    def __init__(self, task, grounder, *, regime="none", max_decisions=3, input_repair="legacy"):
         super().__init__()
-        if task not in TASKS or regime not in REGIMES or (regime != "none" and task != "enter-text"):
+        if task not in TASKS or regime not in SUPPORTED_REGIMES or (regime != "none" and task != "enter-text"):
             raise ValueError("Unsupported task or fault for the recovery environment")
+        if input_repair not in INPUT_REPAIR_PROFILES or (input_repair == "replace" and task != "enter-text"):
+            raise ValueError("Unsupported input repair profile for the task")
         if type(max_decisions) is not int or not 1 <= max_decisions <= 3:
             raise ValueError("The decision budget must be between one and three")
         self.task, self.grounder = task, grounder
         self.regime, self.max_decisions = regime, max_decisions
+        self.input_repair = input_repair
         self.action_space = spaces.Discrete(len(Decision))
         image_shape = (FRAME_SIZE[1], FRAME_SIZE[0], 3)
         self.observation_space = spaces.Dict({
@@ -191,7 +195,7 @@ class RecoveryDecisionEnv(gym.Env):
             if p["point"] is None:
                 reason = self._finish("invalid_repair_prediction")
             else:
-                x.repair(p["point"])
+                x.repair(p["point"], input_profile=self.input_repair)
                 reason = self._browser_outcome() or self._continue_task(predictions)
         if reason is None and self.decisions >= self.max_decisions:
             reason = self._finish("decision_budget", truncated=True)

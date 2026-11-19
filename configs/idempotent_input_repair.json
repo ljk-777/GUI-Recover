@@ -1,0 +1,11 @@
+{
+  "study": "idempotent-enter-text-v1",
+  "model_revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+  "weights_sha256": "68080df785764e98976eb9cc93a07c6c69cf8a6933738496e02aef55b53d2aa3",
+  "miniwob_commit": "7fd85d71a4b60325c6585396ec4f48377d049838",
+  "q_sha256": "54d883540bdd7ad1ceea9e90e0181fa1ea75bbbdbccc408c49cb9d764b9cc6f1",
+  "prior_pre_rl_sha256": "5a13ba7759bcc5088a400465f71266ec7c063a64b9ac18c5a23cd24eeb9c43f7",
+  "prior_rl_sha256": "77be47d4a3a2dee36b384b5918fc97fd1980240cccaabe9596d344d0f8db0a34",
+  "test": {"start": 67000, "reserve": 100, "layouts": 6},
+  "smoke": {"start": 68000, "reserve": 30, "layouts": 1}
+}
