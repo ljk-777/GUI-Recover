@@ -69,7 +69,7 @@ def parse_action(raw: str, mode: str = "strict") -> Action:
     if kind in ("CLICK", "INPUT", "HOVER"):
         if not isinstance(pos, (list, tuple)) or len(pos) != 2:
             raise ActionError("Position must be [x, y]")
-        if any(type(p) not in (int, float) or not math.isfinite(p) or not 0 <= p <= 1 for p in pos):
+        if any(type(p) not in (int, float) or not 0 <= p <= 1 or not math.isfinite(p) for p in pos):
             raise ActionError("Coordinates must be finite numbers in [0, 1]")
         pos = tuple(float(p) for p in pos)
     elif pos is not None:

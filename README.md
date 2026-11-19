@@ -1,18 +1,16 @@
 # GUI-Recover
 
-Reusable visual GUI agent trajectories, evaluation, and (planned) error recovery.
+Fault injection, visual recovery experiments, and traceable evaluation for GUI agents.
 
-**状态：V0.1 最小闭环已在 RTX 4090 D、12032 MiB 显存配额上实测通过。**
-ShowUI 初始 30-episode 基线为 15/30；文本输入任务 0/10，当前策略尚不可靠。诊断策略的成功率不代表模型成绩。
-V0.2 alpha 已实现受控故障、弱视觉反馈和配对审计；恢复收益以对照实验为准。详见 [服务器实测](docs/SERVER_VALIDATION.md)。
-首轮四组各 10 个 episode 的漏点击对照均为 6/10，新增挽救 0/4；详见 [恢复实验结果](docs/RECOVERY_RESULTS.md)。
-后续同 seed 对照中，明确标记的“脚本规划 + ShowUI grounding”达到 25/30，原导航策略为 15/30；差异来自输入任务。
-这不是模型自主规划或恢复成绩，详见 [grounding 诊断](docs/GROUNDING.md)。
-在该脚本基线上的新一轮漏输入实验中，视觉输入检查新增挽救 6/10 个故障任务，正常输入保持 10/10；固定追加重试则在正常输入时为 0/10。
-当前只验证白底空输入框和整段键入丢失，详见 [漏输入恢复报告](docs/INPUT_GUARD.md)。
+**V0.2.0a1 发布候选：实验工具，尚未发布到 PyPI。** 基于 ShowUI + BrowserGym/MiniWoB，保存截图、预测、执行动作和奖励，并核查恢复实验的配对与成本。
 
-目标是回答：视觉 GUI Agent 在哪里出错、能否恢复、恢复增加了多少成本。
-V0.1 先构建可靠的测量基础，不进行训练。
+- **模型与环境接口**：视觉策略只接收任务文字、截图、动作历史和执行错误。
+- **可复现故障**：漏点击、坐标偏移、漏输入、部分输入和错误文字。
+- **有限恢复**：弱视觉反馈，以及脚本规划基线上的输入出现检查与最多一次补输入。
+- **审计证据**：PNG/JSONL/HTML、截图哈希、固定版本、成功率和真实模型调用统计。
+
+输入检查只验证白底、初始为空的输入框里出现了文字笔画；不核对内容正确性。脚本规划只覆盖三种 MiniWoB 指令语法，必须与自主导航成绩分开。
+详见 [发布验证与已知限制](docs/RELEASE_VALIDATION.md)。历史实验及负面结果也保留在 docs/ 中。
 
 ```text
 MiniWoB reset → 任务文本 + 截图 → Policy.predict → 严格动作解析
@@ -43,19 +41,33 @@ MiniWoB reset → 任务文本 + 截图 → Policy.predict → 严格动作解�
 python3.11 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[dev]'
-python -m playwright install chromium
 bash scripts/setup_miniwob.sh
-export MINIWOB_URL="file://$PWD/vendor/miniwob-plusplus/miniwob/html/miniwob/"
-gui-recover doctor
-python -m pytest -q
-gui-recover run --policy oracle-smoke --seeds 0 1 2 --out runs/smoke-001
+python -m playwright install chromium
+bash scripts/demo_cpu.sh
 ```
 
-Linux 若缺系统库，可由有安装权限的用户执行 `python -m playwright install --with-deps chromium`。
+Ubuntu 24.04 若缺系统库，使用 `bash scripts/setup_browser_ubuntu24.sh`；Ubuntu 22.04 使用 `python -m playwright install --with-deps chromium`。
+国内下载可设置 `PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple` 和 `PLAYWRIGHT_DOWNLOAD_HOST=https://registry.npmmirror.com/-/binary/playwright`。
 每次使用新的输出目录，防止覆盖实验。
 
-预期 `runs/smoke-001/summary.json` 显示 3 个诊断 episode 全部成功；每条轨迹包含 reset、prediction、transition、episode_end 和两张截图。
-`runs/smoke-001/click-test-0/replay.html` 可离线打开。这是轨迹查看器，不是恢复浏览器完整状态的确定性重放器。
+CPU 演示使用 DOM 特权 oracle，只验证执行与记录链路，预期 3/3 成功；它不是 ShowUI 模型成绩。
+输出目录的 `click-test-0/replay.html` 可离线打开。这是轨迹查看器，不是恢复浏览器完整状态的确定性重放器。
+不安装浏览器也可查看 [保存的恢复示例](examples/recovered/replay.html) 和 [内容错误反例](examples/wrong-input/replay.html)。
+
+## GPU 最小恢复演示
+
+先选择已分配的一张 CUDA GPU，再执行：
+
+```bash
+python -m pip install -e '.[showui]'
+python scripts/download_showui.py --out models/ShowUI-2B
+export MINIWOB_URL="file://$PWD/vendor/miniwob-plusplus/miniwob/html/miniwob/"
+export CUDA_VISIBLE_DEVICES=0
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 gui-recover run --policy showui-scripted --model models/ShowUI-2B --tasks enter-text --seeds 40 --max-steps 4 --parser mixed --fault drop-input --recovery input-guard --input-guard-version v2 --out runs/recovery-demo
+```
+
+模型不包含在软件包内，下载脚本会核对固定权重 SHA256。完整实验定义为 `configs/release_v0_2.json`，可用 `scripts/run_matrix.py` 执行。
+该演示使用显式脚本规划和视觉输入检查，输出中的 `scripted_planner` 标记必须保留。
 
 ## 单张 RTX 4090
 
@@ -67,7 +79,8 @@ Linux 若缺系统库，可由有安装权限的用户执行 `python -m playwrig
 SELECT、SELECT_TEXT、COPY 暂不支持，出现时计入 invalid_action。只执行一个预测动作，然后重新观察。INPUT 的点击和输入作为同一个逻辑动作。
 
 默认保留初始 prompt 和 strict 解析；`--parser mixed` 可兼容单引号字典中的裸 JSON 常量，仍拒绝代码和多动作。
-`--prompt-profile official-web` / `official-miniwob` 用于上游模板诊断。详见 [失败诊断](docs/DIAGNOSIS.md)，目前没有观测到输入任务成功率改善。
+`--prompt-profile official-web` / `official-miniwob` 用于自主导航模板诊断，历史结果未改善输入任务，详见 [失败诊断](docs/DIAGNOSIS.md)。
+`--input-guard-version v1` 保留原始信号；v2 忽略独立单像素噪声。布局反例通过 `--visual-variant shifted|dark` 启用，它们是修改后的测试夹具，不是原版 MiniWoB 成绩。
 
 ## 评测口径
 
@@ -87,6 +100,7 @@ manifest 记录模型版本、提示词、依赖、seed、步数预算、Git 版
 - [V0.2 首轮配对结果](docs/RECOVERY_RESULTS.md)
 - [Grounding 与脚本规划诊断](docs/GROUNDING.md)
 - [漏输入恢复与固定重试对照](docs/INPUT_GUARD.md)
+- [发布验证、安装验收与已知限制](docs/RELEASE_VALIDATION.md)
 - [贡献约定与 Git 操作](CONTRIBUTING.md)
 
 本项目采用 Apache-2.0；第三方代码、权重和数据仍适用各自条款，见 [第三方说明](THIRD_PARTY.md)。没有把上游源码、模型权重或大数据集放进本仓库。

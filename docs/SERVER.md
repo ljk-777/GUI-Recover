@@ -17,15 +17,15 @@ git log --oneline -2
 ## 1. 环境与权限
 
 确认 Python 3.11、空闲磁盘、可用 RAM、NVIDIA 驱动及允许使用的 GPU。
-若是 `jiakun`，默认仅允许 GPU 0–3；0–3 忙时等待，不能改用 4–7。
+在共享服务器上，只使用管理员或资源平台明确分配的 GPU；已分配的卡忙时等待。
 先选择已获分配且空闲的一张卡；以下 `0` 只作示例，不代表已确认它空闲。
 
 ```bash
 python3.11 --version
 df -h .
 free -h
-# 仅查询已允许的 GPU（jiakun 默认允许 0–3）
-nvidia-smi --id=0,1,2,3 --query-gpu=index,name,memory.total,memory.used,utilization.gpu --format=csv
+# 此处假设资源平台已分配 GPU 0
+nvidia-smi --id=0 --query-gpu=index,name,memory.total,memory.used,utilization.gpu --format=csv
 export CUDA_VISIBLE_DEVICES=0
 ```
 

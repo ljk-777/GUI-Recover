@@ -7,6 +7,8 @@ from pathlib import Path
 import subprocess
 from urllib.parse import unquote, urlparse
 
+from . import __version__
+
 from .environment import MiniwobEnvironment
 from .policies import MODEL_ID, MODEL_REVISION, OracleSmokePolicy, ShowUIPolicy
 from .runner import aggregate, render_replay, run_episode, write_json
@@ -42,7 +44,8 @@ def fingerprint():
 
 
 def main(argv=None, backend=None):
-    parser = argparse.ArgumentParser(description="GUI-Recover visual GUI evaluation and recovery")
+    parser = argparse.ArgumentParser(prog="gui-recover", description="GUI-Recover visual GUI evaluation and recovery")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
     doctor = sub.add_parser("doctor")
     doctor.add_argument("--cuda", action="store_true", help="Probe CUDA only when explicitly requested")

@@ -1,0 +1,12 @@
+{
+  "source_code_commit": "1fe56f1",
+  "model": "showlab/ShowUI-2B",
+  "model_revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+  "task": "enter-text",
+  "seed": 40,
+  "policy": "showui-scripted",
+  "fault": "drop-input",
+  "recovery": "input-guard",
+  "input_guard_version": "v2",
+  "notice": "Scripted planner; model provides coordinates. Synthetic MiniWoB screenshots; see ../MINIWOB_LICENSE.txt."
+}

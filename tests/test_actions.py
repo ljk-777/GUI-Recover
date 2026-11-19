@@ -11,6 +11,7 @@ from gui_recover.actions import Action, ActionError, compile_action, parse_actio
     '{"action":"CLICK","value":null,"position":[1.1,0.5]}',
     '{"action":"CLICK","value":null,"position":[true,0.5]}',
     '{"action":"CLICK","value":null,"position":[NaN,0.5]}',
+    '{"action":"CLICK","value":null,"position":[' + '1' + '0' * 400 + ',0.5]}',
     "[{'action':'CLICK','value':None,'position':[0.5,0.5]}]",
     "{'action':'SELECT','value':None,'position':[0.5,0.5]}",
     "{'action':'ENTER','value':None,'position':[0,0]}",

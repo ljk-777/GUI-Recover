@@ -1,0 +1,271 @@
+<!doctype html><meta charset="utf-8"><title>GUI-Recover trajectory</title><style>body{font:15px system-ui;max-width:1000px;margin:30px auto}section{border-top:1px solid #ccc;padding:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere}img{max-width:100%}</style><h1>GUI-Recover trajectory</h1><section><img src="0000.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;reset&quot;,
+  &quot;task&quot;: &quot;enter-text&quot;,
+  &quot;seed&quot;: 40,
+  &quot;goal&quot;: &quot;Enter \&quot;Marcella\&quot; into the text field and press Submit.&quot;,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: 0,
+    &quot;RAW_REWARD_GLOBAL&quot;: 0,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: false,
+    &quot;EPISODE_ID&quot;: 0,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;screenshot&quot;: &quot;0000.png&quot;,
+  &quot;sha256&quot;: &quot;82b172607389a6f56a8fd986cff6a80968d8bfdaa2865e65d5cac29c6ee2e888&quot;,
+  &quot;size&quot;: [
+    498,
+    321
+  ]
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;prediction&quot;,
+  &quot;step&quot;: 0,
+  &quot;raw&quot;: &quot;{\&quot;action\&quot;: \&quot;INPUT\&quot;, \&quot;value\&quot;: \&quot;Marcella\&quot;, \&quot;position\&quot;: [0.24, 0.27]}&quot;,
+  &quot;inference_seconds&quot;: 0.43552628345787525,
+  &quot;metrics&quot;: {
+    &quot;input_tokens&quot;: 324,
+    &quot;model_invocations&quot;: 1,
+    &quot;generated_tokens&quot;: 13,
+    &quot;peak_cuda_allocated_bytes&quot;: 4637332992,
+    &quot;peak_cuda_reserved_bytes&quot;: 5075107840,
+    &quot;grounding_raw&quot;: &quot;[0.24, 0.27]&quot;,
+    &quot;subgoal&quot;: &quot;text field&quot;,
+    &quot;scripted_step&quot;: 0
+  }
+}</pre></section><section><img src="0001.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;transition&quot;,
+  &quot;step&quot;: 0,
+  &quot;action&quot;: {
+    &quot;action&quot;: &quot;INPUT&quot;,
+    &quot;value&quot;: &quot;Marcella!&quot;,
+    &quot;position&quot;: [
+      0.24,
+      0.27
+    ]
+  },
+  &quot;proposed_action&quot;: {
+    &quot;action&quot;: &quot;INPUT&quot;,
+    &quot;value&quot;: &quot;Marcella&quot;,
+    &quot;position&quot;: [
+      0.24,
+      0.27
+    ]
+  },
+  &quot;executed_code&quot;: &quot;mouse_click(119.52, 86.67)\nkeyboard_type(&#x27;Marcella!&#x27;)&quot;,
+  &quot;reward&quot;: 0.0,
+  &quot;terminated&quot;: false,
+  &quot;truncated&quot;: false,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: 0,
+    &quot;RAW_REWARD_GLOBAL&quot;: 0,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: false,
+    &quot;EPISODE_ID&quot;: 0,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;execution_error&quot;: &quot;&quot;,
+  &quot;screenshot&quot;: &quot;0001.png&quot;,
+  &quot;sha256&quot;: &quot;cc90a378e0aed5c0b7e0a7f1d66a5218e4b7717c563f733c82c2864577cd1901&quot;,
+  &quot;size&quot;: [
+    498,
+    321
+  ]
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;diagnostic&quot;,
+  &quot;step&quot;: 0,
+  &quot;proposed_action&quot;: {
+    &quot;action&quot;: &quot;INPUT&quot;,
+    &quot;value&quot;: &quot;Marcella&quot;,
+    &quot;position&quot;: [
+      0.24,
+      0.27
+    ]
+  },
+  &quot;executed_action&quot;: {
+    &quot;action&quot;: &quot;INPUT&quot;,
+    &quot;value&quot;: &quot;Marcella!&quot;,
+    &quot;position&quot;: [
+      0.24,
+      0.27
+    ]
+  },
+  &quot;fault&quot;: {
+    &quot;kind&quot;: &quot;wrong-input&quot;,
+    &quot;seed&quot;: 20261119,
+    &quot;proposed&quot;: {
+      &quot;action&quot;: &quot;INPUT&quot;,
+      &quot;value&quot;: &quot;Marcella&quot;,
+      &quot;position&quot;: [
+        0.24,
+        0.27
+      ]
+    },
+    &quot;executed&quot;: {
+      &quot;action&quot;: &quot;INPUT&quot;,
+      &quot;value&quot;: &quot;Marcella!&quot;,
+      &quot;position&quot;: [
+        0.24,
+        0.27
+      ]
+    }
+  },
+  &quot;unchanged_after_click&quot;: false,
+  &quot;mean_pixel_difference&quot;: 0.0073203532956540585
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;policy_observation&quot;,
+  &quot;step&quot;: 0,
+  &quot;kind&quot;: &quot;input_guard&quot;,
+  &quot;signal&quot;: {
+    &quot;status&quot;: &quot;text_visible&quot;,
+    &quot;region&quot;: [
+      23,
+      83,
+      212,
+      111
+    ],
+    &quot;ink_before&quot;: 0,
+    &quot;ink_after&quot;: 410,
+    &quot;ignored_caret_pixels&quot;: 60,
+    &quot;reason&quot;: &quot;appearance_only_not_text_correctness&quot;,
+    &quot;ignored_speckle_pixels&quot;: 0
+  },
+  &quot;decision&quot;: &quot;advance&quot;,
+  &quot;input_attempts&quot;: 1
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;prediction&quot;,
+  &quot;step&quot;: 1,
+  &quot;raw&quot;: &quot;{\&quot;action\&quot;: \&quot;CLICK\&quot;, \&quot;value\&quot;: null, \&quot;position\&quot;: [0.19, 0.42]}&quot;,
+  &quot;inference_seconds&quot;: 0.41234973445534706,
+  &quot;metrics&quot;: {
+    &quot;input_tokens&quot;: 324,
+    &quot;model_invocations&quot;: 1,
+    &quot;generated_tokens&quot;: 13,
+    &quot;peak_cuda_allocated_bytes&quot;: 4637332992,
+    &quot;peak_cuda_reserved_bytes&quot;: 5075107840,
+    &quot;grounding_raw&quot;: &quot;[0.19, 0.42]&quot;,
+    &quot;subgoal&quot;: &quot;Submit button&quot;,
+    &quot;scripted_step&quot;: 1
+  }
+}</pre></section><section><img src="0002.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;transition&quot;,
+  &quot;step&quot;: 1,
+  &quot;action&quot;: {
+    &quot;action&quot;: &quot;CLICK&quot;,
+    &quot;value&quot;: null,
+    &quot;position&quot;: [
+      0.19,
+      0.42
+    ]
+  },
+  &quot;proposed_action&quot;: {
+    &quot;action&quot;: &quot;CLICK&quot;,
+    &quot;value&quot;: null,
+    &quot;position&quot;: [
+      0.19,
+      0.42
+    ]
+  },
+  &quot;executed_code&quot;: &quot;mouse_click(94.62, 134.82)&quot;,
+  &quot;reward&quot;: 0.0,
+  &quot;terminated&quot;: true,
+  &quot;truncated&quot;: false,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: -1,
+    &quot;RAW_REWARD_GLOBAL&quot;: -1,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: true,
+    &quot;EPISODE_ID&quot;: 1,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;execution_error&quot;: &quot;&quot;,
+  &quot;screenshot&quot;: &quot;0002.png&quot;,
+  &quot;sha256&quot;: &quot;5ae272bc5262c0b1d7af58c8509c43b9b1d4541074547ce2a82a2a2c0c700928&quot;,
+  &quot;size&quot;: [
+    498,
+    321
+  ]
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;diagnostic&quot;,
+  &quot;step&quot;: 1,
+  &quot;proposed_action&quot;: {
+    &quot;action&quot;: &quot;CLICK&quot;,
+    &quot;value&quot;: null,
+    &quot;position&quot;: [
+      0.19,
+      0.42
+    ]
+  },
+  &quot;executed_action&quot;: {
+    &quot;action&quot;: &quot;CLICK&quot;,
+    &quot;value&quot;: null,
+    &quot;position&quot;: [
+      0.19,
+      0.42
+    ]
+  },
+  &quot;fault&quot;: null,
+  &quot;unchanged_after_click&quot;: false,
+  &quot;mean_pixel_difference&quot;: 0.0069794380106031895
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;episode_end&quot;,
+  &quot;task&quot;: &quot;enter-text&quot;,
+  &quot;seed&quot;: 40,
+  &quot;success&quot;: false,
+  &quot;reason&quot;: &quot;task_failure&quot;,
+  &quot;steps&quot;: 2,
+  &quot;predictions&quot;: 2,
+  &quot;execution_errors&quot;: 0,
+  &quot;reward&quot;: 0.0,
+  &quot;terminated&quot;: true,
+  &quot;truncated&quot;: false,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: -1,
+    &quot;RAW_REWARD_GLOBAL&quot;: -1,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: true,
+    &quot;EPISODE_ID&quot;: 1,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;inference_seconds&quot;: 0.8478760179132223,
+  &quot;elapsed_seconds&quot;: 3.7759480830281973,
+  &quot;environment&quot;: {
+    &quot;browser_version&quot;: &quot;125.0.6422.26&quot;,
+    &quot;visual_variant&quot;: &quot;default&quot;,
+    &quot;viewport&quot;: {
+      &quot;width&quot;: 332,
+      &quot;height&quot;: 214
+    },
+    &quot;screenshot_size&quot;: [
+      498,
+      321
+    ],
+    &quot;screenshot_scale&quot;: 1.5
+  },
+  &quot;metrics&quot;: {
+    &quot;input_tokens&quot;: 324,
+    &quot;model_invocations&quot;: 1,
+    &quot;generated_tokens&quot;: 13,
+    &quot;peak_cuda_allocated_bytes&quot;: 4637332992,
+    &quot;peak_cuda_reserved_bytes&quot;: 5075107840,
+    &quot;grounding_raw&quot;: &quot;[0.19, 0.42]&quot;,
+    &quot;subgoal&quot;: &quot;Submit button&quot;,
+    &quot;scripted_step&quot;: 1
+  },
+  &quot;normalized_outputs&quot;: 0,
+  &quot;model_calls&quot;: 2,
+  &quot;input_guard&quot;: {
+    &quot;checks&quot;: 1,
+    &quot;empty&quot;: 0,
+    &quot;text_visible&quot;: 1,
+    &quot;unknown&quot;: 0,
+    &quot;retries&quot;: 0,
+    &quot;blocked&quot;: 0,
+    &quot;blind_retries&quot;: 0
+  },
+  &quot;fault_kind&quot;: &quot;wrong-input&quot;,
+  &quot;fault_seed&quot;: 20261119,
+  &quot;injected&quot;: true,
+  &quot;recovery&quot;: &quot;input-guard&quot;,
+  &quot;recovery_feedbacks&quot;: 0,
+  &quot;detection_signals&quot;: 0
+}</pre></section>
