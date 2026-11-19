@@ -64,6 +64,7 @@ def main(argv=None, backend=None):
     run.add_argument("--max-steps", type=int, default=10)
     run.add_argument("--out", required=True)
     run.add_argument("--model", default=MODEL_ID)
+    run.add_argument("--adapter", help="Local SFT adapter that passed training and reload acceptance")
     run.add_argument("--revision", default=MODEL_REVISION)
     run.add_argument("--prompt-profile", choices=["baseline", "official-web", "official-miniwob"], default="baseline")
     run.add_argument("--parser", choices=["strict", "mixed"], default="strict")
@@ -102,6 +103,8 @@ def main(argv=None, backend=None):
         parser.error("Invalid MiniWoB task name")
     if args.policy == "oracle-smoke" and args.tasks != ["click-test"]:
         parser.error("oracle-smoke supports only click-test")
+    if args.policy == "oracle-smoke" and args.adapter:
+        parser.error("oracle-smoke does not use model adapters")
     if args.policy != "showui" and args.recovery == "feedback":
         parser.error("Feedback recovery requires a model policy")
     if args.recovery in ("input-guard", "input-retry") and args.policy != "showui-scripted":
@@ -124,10 +127,15 @@ def main(argv=None, backend=None):
             for key, value in (("model", args.model), ("revision", args.revision), ("prompt_profile", args.prompt_profile)):
                 if backend.config.get(key) != value:
                     raise ValueError(f"Reused backend has different {key}")
+            actual_adapter = (backend.config.get("adapter") or {}).get("path")
+            expected_path = str(Path(args.adapter).resolve()) if args.adapter else None
+            actual_path = str(Path(actual_adapter).resolve()) if actual_adapter else None
+            if actual_path != expected_path:
+                raise ValueError("Reused backend has different adapter")
             model = backend
         else:
             model = ShowUIPolicy(model=args.model, revision=args.revision,
-                                 prompt_profile=args.prompt_profile) if args.policy != "oracle-smoke" else None
+                                 prompt_profile=args.prompt_profile, adapter=args.adapter) if args.policy != "oracle-smoke" else None
         manifest["reused_model_backend"] = backend is not None
         if args.policy == "showui-scripted":
             model = ScriptedGroundingPolicy(model, input_guard=args.recovery == "input-guard",

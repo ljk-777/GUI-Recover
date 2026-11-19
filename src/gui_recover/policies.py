@@ -9,6 +9,20 @@ from .prompts import GROUNDING, OFFICIAL_MINIWOB, OFFICIAL_WEB
 
 MODEL_ID = "showlab/ShowUI-2B"
 MODEL_REVISION = "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60"
+
+
+def sft_adapter_metadata(directory, revision):
+    from .sft import file_sha256
+    path = Path(directory)
+    training = json.loads((path / "training.json").read_text())
+    if training.get("status") != "complete" or training.get("base_revision") != revision:
+        raise ValueError("SFT adapter has not passed reload acceptance for this base revision")
+    sha = file_sha256(path / "adapter_model.safetensors")
+    if sha != training["adapter_sha256"]:
+        raise ValueError("SFT adapter checksum differs")
+    return {"path": str(path), "sha256": sha, "base_revision": revision,
+            "base_weights_sha256": training["base_weights_sha256"],
+            "training_code": training["runtime"]["git_commit"], "updates": training["completed_updates"]}
 NAV_PROMPT = """Navigate the web screen using the task, screenshot and previous actions.
 Return exactly ONE dictionary with keys action, value, position. No prose or action list.
 Position is [x,y] in normalized screenshot coordinates, each between 0 and 1.
@@ -40,9 +54,15 @@ class OracleSmokePolicy:
 
 class ShowUIPolicy:
     def __init__(self, model=MODEL_ID, revision=MODEL_REVISION, max_pixels=784 * 784,
-                 max_new_tokens=128, prompt_profile="baseline"):
+                 max_new_tokens=128, prompt_profile="baseline", adapter=None):
         import torch
         from transformers import AutoProcessor, Qwen2VLForConditionalGeneration
+
+        adapter_config = sft_adapter_metadata(adapter, revision) if adapter else None
+        if adapter_config:
+            from .sft import file_sha256
+            if file_sha256(Path(model) / "pytorch_model.bin") != adapter_config["base_weights_sha256"]:
+                raise ValueError("Adapter requires the exact local training base weights")
 
         if not torch.cuda.is_available():
             raise RuntimeError("This inference profile requires CUDA; run oracle-smoke on the Mac")
@@ -58,11 +78,16 @@ class ShowUIPolicy:
         self.model = Qwen2VLForConditionalGeneration.from_pretrained(model, revision=revision,
                 torch_dtype=torch.bfloat16, attn_implementation="sdpa",
                 trust_remote_code=False).to("cuda:0").eval()
+        if adapter_config:
+            from peft import PeftModel
+            self.model = PeftModel.from_pretrained(self.model, adapter, is_trainable=False).eval()
         self.config = {"model": model, "revision": revision, "dtype": "bfloat16",
                        "attention": "sdpa", "min_pixels": 256 * 28 * 28,
                        "max_pixels": max_pixels, "max_new_tokens": max_new_tokens,
                        "do_sample": False, "history_limit": 8, "prompt": self.prompt,
                        "prompt_profile": prompt_profile}
+        if adapter_config:
+            self.config["adapter"] = adapter_config
         provenance = Path(model) / "download_manifest.json"
         if provenance.is_file():
             self.config["asset_provenance"] = json.loads(provenance.read_text())

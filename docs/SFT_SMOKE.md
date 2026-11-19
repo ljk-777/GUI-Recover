@@ -47,9 +47,13 @@ export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 .venv-sft/bin/python scripts/collect_sft_grounding.py --config configs/sft_smoke.json --out runs/sft-data-001
 .venv-sft/bin/python scripts/train_grounding_sft.py --config configs/sft_smoke.json --data runs/sft-data-001 --model models/ShowUI-2B --out runs/sft-adapter-001
 .venv-sft/bin/python scripts/eval_grounding_sft.py --data runs/sft-data-001 --model models/ShowUI-2B --adapter runs/sft-adapter-001 --out runs/sft-eval-001
+.venv-sft/bin/python -m gui_recover run --policy showui-scripted --model models/ShowUI-2B --adapter runs/sft-adapter-001 --tasks click-test enter-text --seeds 3000 3001 --max-steps 4 --parser mixed --out runs/sft-online-001
 ```
 
 `.venv-sft` 是独立叠加环境，只读复用已有 `.venv` 的固定包，新增 peft 0.14.0、accelerate 1.4.0、bitsandbytes 0.45.3、psutil 6.1.1。它依赖原 `.venv` 保留，不是可搬移的独立环境；不升级原推理环境。
 新机器可按 `.[sft]` 安装独立完整环境，但仍需匹配已验证的 CUDA PyTorch 安装和浏览器。训练命令要求干净 Git 版本和新输出目录。
+
+`run --adapter` 仅加载本工具已通过训练和重载验收的本地 adapter，核对 adapter SHA256、base revision 和原始底座文件哈希。manifest 记录训练提交和更新次数；默认不加载 adapter。
+端到端链路验证沿用测试 seed，仅确认训练结果可进入 BrowserGym 执行和记录，不作为额外独立泛化样本。baseline 与 adapter 的模型不同，不能使用要求同一模型的故障 `compare` 来宣称配对恢复收益。
 
 参考：[PEFT 0.14 量化训练](https://huggingface.co/docs/peft/v0.14.0/en/developer_guides/quantization)、[Transformers 4.49 Qwen2-VL](https://huggingface.co/docs/transformers/v4.49.0/model_doc/qwen2_vl)。本轮不发布模型权重或启动 RL。

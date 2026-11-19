@@ -5,6 +5,7 @@ import pytest
 from PIL import Image
 
 from gui_recover.sft import audit_dataset, completion_labels, grounding_messages, load_records
+from gui_recover.policies import sft_adapter_metadata
 
 
 def test_only_assistant_tokens_are_supervised_and_boundary_is_verified():
@@ -55,3 +56,18 @@ def test_identical_images_cannot_cross_splits(tmp_path):
     file.write_text(json.dumps(row)+"\n")
     with pytest.raises(ValueError, match="leaks"):
         audit_dataset(tmp_path)
+
+
+def test_adapter_identity_and_reload_gate_are_checked_without_loading_model(tmp_path):
+    weight = tmp_path/"adapter_model.safetensors"
+    weight.write_bytes(b"test adapter")
+    manifest = {"status": "complete", "base_revision": "fixed", "base_weights_sha256": "base",
+                "runtime": {"git_commit": "trained"}, "completed_updates": 32,
+                "adapter_sha256": hashlib.sha256(weight.read_bytes()).hexdigest()}
+    (tmp_path/"training.json").write_text(json.dumps(manifest))
+    assert sft_adapter_metadata(tmp_path, "fixed")["updates"] == 32
+    with pytest.raises(ValueError, match="reload acceptance"):
+        sft_adapter_metadata(tmp_path, "other revision")
+    weight.write_bytes(b"changed adapter")
+    with pytest.raises(ValueError, match="checksum"):
+        sft_adapter_metadata(tmp_path, "fixed")

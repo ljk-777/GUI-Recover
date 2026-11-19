@@ -39,7 +39,8 @@ def main():
     write_json(directory / "matrix.json", {"config": config, "runtime": fingerprint(),
         "cache_policy": "reuse frozen weights; clear unused CUDA cache before each arm; reset policy/seed per episode"})
     backend = ShowUIPolicy(model=args.model, revision=config["common"].get("revision", MODEL_REVISION),
-                           prompt_profile=config["common"].get("prompt-profile", "baseline"))
+                           prompt_profile=config["common"].get("prompt-profile", "baseline"),
+                           adapter=config["common"].get("adapter"))
     summaries = {}
     for arm in config["arms"]:
         settings = {**config["common"], **arm["settings"]}
