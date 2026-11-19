@@ -5,8 +5,33 @@ injection labels enter this API. Unsupported layouts return unknown.
 """
 
 from collections import deque
+import math
+from numbers import Real
 
 import numpy as np
+
+
+def inspect_input_target(image, position):
+    """Pre-action appearance check; a blank rectangle is not proof of editability."""
+    if (not isinstance(position, (list, tuple)) or len(position) != 2
+            or any(isinstance(p, bool) or not isinstance(p, Real)
+                   or not math.isfinite(p) or not 0 <= p <= 1 for p in position)):
+        return {"status": "unknown", "reason": "invalid_position"}
+    pixels = np.asarray(image.convert("RGB"), dtype=np.int16)
+    found = _uniform_region(pixels, position)
+    if found is None:
+        return {"status": "unknown", "reason": "no_enclosed_uniform_input_region"}
+    bounds, background = found
+    x0, y0, x1, y1 = bounds
+    x, y = position[0] * image.width, position[1] * image.height
+    if not (x0 + 2 <= x < x1 - 2 and y0 + 2 <= y < y1 - 2):
+        return {"status": "unknown", "reason": "point_outside_region_interior", "region": bounds}
+    ink, _, _, _ = _contrast_ink(pixels, bounds, background)
+    if ink:
+        return {"status": "unknown", "reason": "region_was_not_empty", "region": bounds}
+    return {"status": "empty_region", "region": bounds,
+            "background_rgb": background.astype(int).tolist(),
+            "reason": "appearance_only_not_element_identity"}
 
 
 def _component(mask, start):

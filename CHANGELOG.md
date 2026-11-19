@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added opt-in pre-action input target checks with one bounded reground, explicit decision/model/action accounting, offline audits, and paired precheck comparisons.
 - Added opt-in v3 input appearance guard based on local background contrast, retaining v1/v2 behavior and v2 as default.
 - Added theme/focus/background-change regressions, real-browser layout tests, and a separate frozen ShowUI comparison matrix.
 

@@ -1,0 +1,21 @@
+{
+  "common": {
+    "policy": "showui-scripted", "tasks": ["enter-text"],
+    "seeds": [70,71,72,73,74], "max-steps": 4,
+    "parser": "mixed", "input-guard-version": "v3", "recovery": "input-guard", "fault-seed": 20261119
+  },
+  "arms": [
+    {"name":"clean-off", "settings":{"fault":"none","input-precheck":"off"}},
+    {"name":"clean-on", "settings":{"fault":"none","input-precheck":"visual"}},
+    {"name":"drop-off", "settings":{"fault":"drop-input","input-precheck":"off"}},
+    {"name":"drop-on", "settings":{"fault":"drop-input","input-precheck":"visual"}},
+    {"name":"dark-clean-off", "settings":{"visual-variant":"dark","fault":"none","input-precheck":"off"}},
+    {"name":"dark-clean-on", "settings":{"visual-variant":"dark","fault":"none","input-precheck":"visual"}},
+    {"name":"dark-drop-off", "settings":{"visual-variant":"dark","fault":"drop-input","input-precheck":"off"}},
+    {"name":"dark-drop-on", "settings":{"visual-variant":"dark","fault":"drop-input","input-precheck":"visual"}},
+    {"name":"regression-clean-off", "settings":{"visual-variant":"dark","fault":"none","input-precheck":"off","seeds":[60]}},
+    {"name":"regression-clean-on", "settings":{"visual-variant":"dark","fault":"none","input-precheck":"visual","seeds":[60]}},
+    {"name":"regression-drop-off", "settings":{"visual-variant":"dark","fault":"drop-input","input-precheck":"off","seeds":[60]}},
+    {"name":"regression-drop-on", "settings":{"visual-variant":"dark","fault":"drop-input","input-precheck":"visual","seeds":[60]}}
+  ]
+}

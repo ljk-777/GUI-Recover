@@ -40,7 +40,7 @@ def compare_runs(clean, faulted, recovered, clean_recovered=None):
             guard["enabled"] = False
         return config
     shared = ("policy", "tasks", "seeds", "max_steps", "model", "revision", "prompt_profile", "parser", "fault_seed",
-              "input_guard_version", "visual_variant")
+              "input_guard_version", "visual_variant", "input_precheck")
     for directory, manifest, rows in runs:
         if set(rows) != set(identifiers):
             raise ValueError("Mismatched task/seed sets")
@@ -122,3 +122,64 @@ def compare_runs(clean, faulted, recovered, clean_recovered=None):
             "degraded": degraded, "faulted_successes": len(b_succeeded),
             "degradation_fraction": degraded / len(b_succeeded) if b_succeeded else None,
             "pairs": pairs}
+
+
+def compare_precheck_runs(baseline, checked):
+    """Paired pre-action intervention; altered coordinates need not share fault prefixes."""
+    runs = [_load(baseline), _load(checked)]
+    reference = runs[0][1]
+    if [r[1]["config"].get("input_precheck", "off") for r in runs] != ["off", "visual"]:
+        raise ValueError("Expected input-precheck=off baseline and visual checked run")
+    for _, manifest, rows in runs:
+        if manifest["policy"] != "showui-scripted" or manifest["diagnostic_only"]:
+            raise ValueError("Precheck comparisons require nonprivileged scripted model runs")
+        if set(rows) != set(runs[0][2]):
+            raise ValueError("Mismatched task/seed sets")
+        def config(m):
+            return {k: v for k, v in m["config"].items() if k not in ("out", "input_precheck")}
+        if config(manifest) != config(reference):
+            raise ValueError("Different precheck comparison configuration")
+        def model(m):
+            value = copy.deepcopy(m["model_config"])
+            gate = value.get("input_precheck")
+            if not isinstance(gate, dict) or gate.get("enabled") != (m["config"]["input_precheck"] == "visual"):
+                raise ValueError("Input precheck configuration does not match experiment arm")
+            gate["enabled"] = False
+            return value
+        if model(manifest) != model(reference):
+            raise ValueError("Different model configurations")
+        for key in ("git_commit", "packages", "miniwob_commit", "platform"):
+            if manifest["runtime"][key] != reference["runtime"][key]:
+                raise ValueError(f"Different runtime configuration: {key}")
+        if manifest["runtime"]["git_dirty"] is not False or not manifest["runtime"]["git_commit"]:
+            raise ValueError("Comparisons require clean code revisions")
+
+    pairs = []
+    for key, original in runs[0][2].items():
+        def first_state(directory):
+            path = directory / f"{key[0]}-{key[1]}" / "trajectory.jsonl"
+            if not path.exists():
+                return None
+            events = [json.loads(line) for line in path.read_text().splitlines()]
+            reset = next((e["sha256"] for e in events if e["event"] == "reset"), None)
+            prediction = next((e["raw"] for e in events if e["event"] == "prediction"), None)
+            return (reset, prediction) if reset is not None and prediction is not None else None
+        a, b = (first_state(r[0]) for r in runs)
+        pairs.append({"task": key[0], "seed": key[1],
+                      "baseline_success": original["success"], "checked_success": runs[1][2][key]["success"],
+                      "status": "matched" if a is not None and a == b else "mismatched_initial_state"})
+    matched = [p for p in pairs if p["status"] == "matched"]
+    arms = {}
+    for label, (_, _, rows) in zip(("baseline", "checked"), runs):
+        arms[label] = {"episodes": len(rows), "successes": sum(r["success"] for r in rows.values()),
+            "model_calls": (sum(r["model_calls"] for r in rows.values())
+                            if all(r.get("model_calls") is not None for r in rows.values()) else None),
+            "steps": sum(r.get("steps", 0) for r in rows.values()),
+            "predictions": sum(r.get("predictions", 0) for r in rows.values()),
+            "precheck_rejected": sum((r.get("input_precheck") or {}).get("rejected", 0) for r in rows.values()),
+            "precheck_regrounds": sum((r.get("input_precheck") or {}).get("regrounds", 0) for r in rows.values()),
+            "precheck_blocked": sum((r.get("input_precheck") or {}).get("blocked", 0) for r in rows.values()),
+            "precheck_seconds": sum(r.get("precheck_seconds", 0) for r in rows.values())}
+    return {"arms": arms, "matched_initial_pairs": len(matched), "mismatched_initial_pairs": len(pairs) - len(matched),
+            "rescued": sum(not p["baseline_success"] and p["checked_success"] for p in matched),
+            "degraded": sum(p["baseline_success"] and not p["checked_success"] for p in matched), "pairs": pairs}

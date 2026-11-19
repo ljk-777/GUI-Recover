@@ -16,7 +16,7 @@ from gui_recover.actions import parse_action
 from gui_recover.cli import fingerprint
 from gui_recover.environment import MiniwobEnvironment
 from gui_recover.grounding import plan_from_goal
-from gui_recover.input_guard import inspect_input
+from gui_recover.input_guard import inspect_input, inspect_input_target
 from gui_recover.runner import is_success, write_json
 
 
@@ -29,7 +29,7 @@ def main():
     directory.mkdir(parents=True, exist_ok=False)
     write_json(directory / "manifest.json", {"runtime": fingerprint(), "runs": args.runs,
         "model_calls": 0, "labels": "DOM input value read during offline replay only"})
-    labels, episodes = [], []
+    labels, episodes, prechecks = [], [], []
     for source in args.runs:
         source = Path(source)
         source_manifest = json.loads((source / "manifest.json").read_text())
@@ -51,6 +51,26 @@ def main():
                 replay_success = False
                 previous_screenshot = events[0]["screenshot"]
                 for event in events:
+                    if event["event"] == "pre_execution_check":
+                        before = Image.open(path.parent / previous_screenshot).convert("RGB")
+                        if event["observed_screenshot"] != previous_screenshot:
+                            raise ValueError("Precheck screenshot reference differs")
+                        start = time.perf_counter()
+                        reproduced = inspect_input_target(before, event["proposed_action"]["position"])
+                        detector_seconds = time.perf_counter() - start
+                        if json.loads(json.dumps(reproduced)) != event["signal"]:
+                            raise ValueError("Original precheck could not be reproduced")
+                        page = env.env.unwrapped.page
+                        box = page.locator("#tt").bounding_box()
+                        scale = page._bgym_scale_factor
+                        px, py = event["proposed_action"]["position"]
+                        px, py = px * before.width / scale, py * before.height / scale
+                        inside = (box["x"] <= px < box["x"] + box["width"]
+                                  and box["y"] <= py < box["y"] + box["height"])
+                        prechecks.append({"run": source.name, "seed": result["seed"], "step": event["step"],
+                            "actual_inside_input": inside, "actual_empty": page.locator("#tt").input_value() == "",
+                            "guard_status": event["signal"]["status"], "decision": event["decision"],
+                            "offline_detector_seconds": detector_seconds})
                     if event["event"] != "transition":
                         continue
                     action = parse_action(json.dumps(event["action"]))
@@ -84,6 +104,7 @@ def main():
                 env.close()
             write_json(directory / "labels.json", labels)
             write_json(directory / "episodes.json", episodes)
+            write_json(directory / "prechecks.json", prechecks)
     checked = [r for r in labels if r["guard_status"] is not None]
     tp = sum(r["actual_empty"] and r["guard_status"] == "empty" for r in checked)
     fp = sum(not r["actual_empty"] and r["guard_status"] == "empty" for r in checked)
@@ -96,6 +117,11 @@ def main():
     timings = [r["offline_detector_seconds"] for r in checked]
     totals["offline_detector_mean_seconds"] = statistics.mean(timings) if timings else None
     totals["offline_detector_max_seconds"] = max(timings) if timings else None
+    totals["precheck_checks"] = len(prechecks)
+    totals["precheck_accepted_outside_input"] = sum(
+        r["guard_status"] == "empty_region" and not r["actual_inside_input"] for r in prechecks)
+    totals["precheck_rejected_inside_empty_input"] = sum(
+        r["guard_status"] != "empty_region" and r["actual_inside_input"] and r["actual_empty"] for r in prechecks)
     write_json(directory / "summary.json", totals)
     print(json.dumps(totals, indent=2))
 
