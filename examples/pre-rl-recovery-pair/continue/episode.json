@@ -1,0 +1,18 @@
+{
+  "task": "click-button",
+  "seed": 48001,
+  "split": "test",
+  "regime": "none",
+  "policy": "continue",
+  "success": false,
+  "return": 0.0,
+  "terminated": true,
+  "truncated": false,
+  "outcome": "accepted_incomplete",
+  "decisions": 2,
+  "actor_requests": 1,
+  "waits": 0,
+  "repairs": 0,
+  "initial_sha256": "a42ab44e75dc969ba061348c5572a455f4511fafdee015cf18ef2c643e3d4da4",
+  "trace_sha256": "a733db7fd7aa15c8e0f34edf746d5171588907c11752a49833494a1df63fe07a"
+}

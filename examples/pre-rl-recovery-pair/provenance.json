@@ -1,0 +1,10 @@
+{
+  "task": "click-button",
+  "seed": 48001,
+  "regime": "none",
+  "roles": [
+    "continue",
+    "visual_fixed"
+  ],
+  "scope": "First audited clean gain, or first injected gain when no clean gain. Selected post-evaluation."
+}
