@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added an isolated QLoRA grounding smoke profile, offline DOM teacher collection, assistant-only supervision checks, adapter reload acceptance, and independent baseline/adapter evaluation.
+
 ## 0.2.0a1 — 2026-11-19 (alpha prerelease)
 
 - Added explicit ShowUI grounding and a separately labelled scripted MiniWoB planner.

@@ -13,6 +13,7 @@ dependencies = ["browsergym-core==0.14.3", "browsergym-miniwob==0.14.3", "pillow
 
 [project.optional-dependencies]
 showui = ["torch==2.6.0", "torchvision==0.21.0", "transformers==4.49.0"]
+sft = ["torch==2.6.0", "torchvision==0.21.0", "transformers==4.49.0", "peft==0.14.0", "accelerate==1.4.0", "bitsandbytes==0.45.3", "psutil==6.1.1"]
 dev = ["pytest>=8,<10"]
 
 [project.scripts]
