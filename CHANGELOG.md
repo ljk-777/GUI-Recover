@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Added an isolated QLoRA grounding smoke profile, offline DOM teacher collection, assistant-only supervision checks, adapter reload acceptance, and independent baseline/adapter evaluation.
+- Added a frozen distractor/actually-executed-error dataset, two same-update SFT adapters, six weight/context ablations and paired GUI execution. Conditional repairs improved on a small subset while clean-task performance regressed; adapters remain experimental and are not promoted to defaults. Results and native success/failure examples are preserved in docs/SFT_RECOVERY.md and examples/.
 
 ## 0.2.0a1 — 2026-11-19 (alpha prerelease)
 

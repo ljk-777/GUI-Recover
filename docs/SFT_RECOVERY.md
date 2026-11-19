@@ -69,3 +69,102 @@ export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 
 每个目录必须全新。GPU 0 是本次用户已分配的卡，忙时不切到其他卡。模型底座和原推理环境保持固定，数据继续使用带原始 MIT 通知的 MiniWoB 合成页面。
 原有 `run --adapter` 默认不添加动作历史；本轮历史条件由上述实验执行器显式提供。不启动 RL，也不将 adapter 发布到公共模型仓库。
+
+## 2026-11-19 实测结果
+
+实现、配置、数据挖掘和两组训练均冻结于 `537dddb98434d776c9d38c710af352d68b4e58aa`，运行时 Git 干净。
+底座为 `showlab/ShowUI-2B@cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60`。
+训练后仅补充文档和示例，没有根据 test 修改提示词、训练预算或在线选样规则。
+机器可读结果与哈希见 [sft-recovery-results.json](../examples/sft-recovery-results.json)。
+
+### 数据与训练验收
+
+实际执行 150 个底座首动作，其中 93 个达成首动作后置条件，57 个为已执行的定位错误；这不是 93 个完整任务成功。没有预测前过滤的场景。
+正常查询 168 条、纠错查询 57 条，共 225 条监督对。按场景划分，无跨 split 场景或截图哈希重合。
+
+| split | 场景 | 正常查询 | 原地纠错 | 终止后重启纠错 | 合计 |
+|---|---:|---:|---:|---:|---:|
+| train | 72 | 80 | 22 | 6 | 108 |
+| validation | 24 | 28 | 9 | 1 | 38 |
+| test | 54 | 60 | 17 | 2 | 79 |
+
+两组分别完成 128 次更新，均仅训练 1,089,536 个 decoder q/v LoRA 参数，参数确实发生变化，独立重载后的探针 loss 差均为 0。
+visual 验证 loss 为 4.4338 → 0.7140，history 为 3.8084 → 0.7188；不同上下文的 loss 不作直接优劣比较，也不能用 loss 下降代替任务收益。
+两组数据、顺序和更新数相同；历史提示较长，因此并非严格等 token/FLOPs 实验。
+
+### 六组离线定位
+
+`plain` 不提供上一动作；`history` 在推理时提供上一动作。正常查询包含 54 个初始目标与 6 个后续 Submit；纠错查询为全部 19 条 test 错误。
+下表为目标框命中数，括号内为无效输出数；定位命中不等于完整任务成功。
+
+| 权重 / 推理上下文 | 正常 /60 | 纠错 /19 | 合计 /79 |
+|---|---:|---:|---:|
+| base_plain | 36 (0) | 1 (0) | 37 (0) |
+| base_history | 30 (0) | 0 (1) | 30 (1) |
+| visual_plain | 33 (2) | 1 (5) | 34 (7) |
+| visual_history | 27 (3) | 2 (9) | 29 (12) |
+| history_plain | 38 (0) | 4 (0) | 42 (0) |
+| history_history | 32 (0) | 6 (0) | 38 (0) |
+
+正常的干扰按钮选择和后续 Submit 进一步拆开：
+
+| 权重 / 推理上下文 | 初始干扰按钮 /24 | 正常 Submit /6 |
+|---|---:|---:|
+| base_plain | 3 | 6 |
+| base_history | 3 | 0 |
+| visual_plain | 4 | 6 |
+| visual_history | 4 | 0 |
+| history_plain | 6 | 6 |
+| history_history | 6 | 0 |
+
+history_history 相对 base_plain，在全部纠错上新增命中 5 条、丢失 0 条，但正常查询新增 6 条、丢失 10 条。
+保持历史输入相同，visual_history → history_history 在纠错上新增 5 条、丢失 1 条；保持 history 权重相同，plain → history 则新增 5 条、丢失 3 条。
+这支持继续研究历史条件，却不足以证明模型可靠利用了每个历史字段。
+复制上一坐标为 0/19；由于错误子集本就要求原点未命中，这只是机制下限检查，不能单独证明视觉推理能力。
+
+明显退化出现在正常 Submit：三个提供历史的 head 均为 0/6，不提供历史均为 6/6。
+示例中模型在 Submit 步重复输入框坐标，与历史坐标干扰的假设一致；尚未用新实验验证其原因。
+SFT 留出的 click-tab 也从 base 的 5/6 降为 visual 的 1/6、history 的 3/6，不能宣称跨任务泛化改善。
+history_plain 的离线结果更好，但本轮没有为其安排在线验收；不能据此宣称已验证某种选择性历史策略。
+
+### 真实 GUI 执行
+
+共 72 次执行：三组 head 各 12 个正常控制、12 个条件纠错。无运行异常、无错误前缀不匹配。
+纠错组在训练前按固定规则选定，三组执行完全相同的底座错误动作；不是挑选 adapter 成功样本。
+
+| head | 正常任务 /12 | 原地恢复 /10 | 终止后重启成功 /2 | 条件纠错合计 /12 |
+|---|---:|---:|---:|---:|
+| base_plain | 11 | 1 | 0 | 1 |
+| visual_plain | 8 | 1 | 1 | 2 |
+| history_history | 6 | 3 | 0 | 3 |
+
+history_history 在条件纠错上相对 base 新增成功 2 条、丢失 0 条；正常控制新增 0 条、丢失 5 条。
+visual_plain 在条件纠错上新增 2 条、丢失 1 条；正常控制新增 0 条、丢失 3 条。
+这些是小样本描述，只有一个训练 seed，不能据此宣称统计显著改善。重启成功不算原 episode 内恢复。
+正常与纠错执行复用了离线 test 场景和候选预测，不是额外独立样本。错误选择由离线评测器完成，不代表自主检测错误的成功率。
+
+[原地纠错示例](../examples/sft-recovery/history_history/replay.html) 与 [对应 base 重试](../examples/sft-recovery/base_plain/replay.html) 保留同一实际错误前缀。
+[正常任务退化示例](../examples/sft-history-regression/history_history/replay.html) 与 [对应 base 成功](../examples/sft-history-regression/base_plain/replay.html) 保留 Submit 反例。
+示例在结果后选择，仅用于说明现象；总分母和失败记录完整保留，没有用示例计算成绩。
+
+### 资源、证据与结论
+
+GPU 0 可见配额 12032 MiB；约每 2 秒采样，共 492 点，整轮设备显存采样峰值 5419 MiB。
+这是采样值，不是瞬时峰值保证。两组训练各约 103 秒；评测实际新增神经网络调用 318 次（包括 Submit，重复提示复用另行记账）。
+评测 PyTorch allocated/reserved 峰值分别为 4,646,364,672 / 5,307,891,712 字节，与设备占用分开记录。
+
+本地审计重新核对 309 张 source PNG、474 组点预测和 189 张在线截图的哈希、提示与分数，以及真实前缀、重载和更新记录。
+在线成功在执行时使用核心 MiniWoB 成功规则；本轮轨迹保存奖励和终止标志，未完整保存原始 task_info，离线审计不扩大为对其全部字段的复验。
+Linux 85 项测试、本地 74 项单元测试和 11 项 Chromium 集成测试通过；[冻结实现 CI](https://github.com/ljk-777/GUI-Recover/actions/runs/44469773939) 的 Ubuntu 22.04、24.04 与打包检查通过。
+
+本轮验收结论是：单卡训练、真实错误收集和同预算纠错消融已可运行；部分纠错改善与正常能力退化同时存在。
+两组 adapter 保持实验状态，不替换默认模型，不开启 RL。下一轮可用新的冻结划分研究正确/错误历史混合监督与 Submit 保持；这仍是待验证方案。
+发布 Alpha、默认行为和模型底座均保持原版本，训练权重只保留为用户本地实验产物。
+
+对应 Git 阶段：实现提交 `537dddb` 冻结后运行；结果以独立文档提交保存。可通过以下命令检查范围与版本：
+
+```bash
+git switch feat/sft-distractors-recovery
+git show --stat 537dddb
+git diff 537dddb --name-only  # 之后只补文档与脱敏示例
+```

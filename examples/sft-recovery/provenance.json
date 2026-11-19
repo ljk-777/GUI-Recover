@@ -1,0 +1,19 @@
+{
+  "case_id": "click-button-6004-correction",
+  "purpose": "Illustrative in-place conditional repair: the base retry fails and history adapter succeeds.",
+  "selection": "Post-evaluation illustrative example only; full denominators and selection protocol are in ../sft-recovery-results.json.",
+  "source_code": "537dddb98434d776c9d38c710af352d68b4e58aa",
+  "model": {
+    "repository": "showlab/ShowUI-2B",
+    "revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+    "base_weights_sha256": "68080df785764e98976eb9cc93a07c6c69cf8a6933738496e02aef55b53d2aa3",
+    "evaluation_precision": "bfloat16"
+  },
+  "adapter_sha256": "5f4b578ed4e6e7bfd5e1bc4a5f6da20f6153e3d414f3c6996d2603cbc6c93e44",
+  "scripted_controller": true,
+  "autonomous_error_detection": false,
+  "conditional_failure_selection": "Offline evaluator postcondition and teacher-box miss; no labels in model input.",
+  "recovery_mode": "retry_in_place",
+  "normal_task_regressions_exist": true,
+  "screenshots": "Unmodified native MiniWoB rendering; original MIT notice in ../MINIWOB_LICENSE.txt."
+}

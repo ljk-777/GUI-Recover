@@ -1,0 +1,77 @@
+<!doctype html><meta charset="utf-8"><title>GUI-Recover trajectory</title><style>body{font:15px system-ui;max-width:1000px;margin:30px auto}section{border-top:1px solid #ccc;padding:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere}img{max-width:100%}</style><h1>GUI-Recover trajectory</h1><section><img src="0000.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;reset&quot;,
+  &quot;goal&quot;: &quot;Enter \&quot;Ashlea\&quot; into the text field and press Submit.&quot;,
+  &quot;screenshot&quot;: &quot;0000.png&quot;,
+  &quot;sha256&quot;: &quot;44bac244e4c20bf5c34da78049e90eda0f27b3ac8a1c5a7e1079fab69b187769&quot;
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;candidate_prediction&quot;,
+  &quot;raw&quot;: &quot;[0.21, 0.31]&quot;,
+  &quot;action&quot;: {
+    &quot;action&quot;: &quot;INPUT&quot;,
+    &quot;value&quot;: &quot;Ashlea&quot;,
+    &quot;position&quot;: [
+      0.21,
+      0.31
+    ]
+  },
+  &quot;input_query&quot;: &quot;text field&quot;
+}</pre></section><section><img src="0001.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;candidate_action&quot;,
+  &quot;action&quot;: {
+    &quot;action&quot;: &quot;INPUT&quot;,
+    &quot;value&quot;: &quot;Ashlea&quot;,
+    &quot;position&quot;: [
+      0.21,
+      0.31
+    ]
+  },
+  &quot;reward&quot;: 0.0,
+  &quot;terminated&quot;: false,
+  &quot;truncated&quot;: false,
+  &quot;screenshot&quot;: &quot;0001.png&quot;,
+  &quot;sha256&quot;: &quot;8498074985f6a3b41d3a63af88b82820d01507d09baeeea41289f077541d4946&quot;
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;submit_prediction&quot;,
+  &quot;prediction&quot;: {
+    &quot;raw&quot;: &quot;[0.17, 0.51]&quot;,
+    &quot;point&quot;: [
+      0.17,
+      0.51
+    ],
+    &quot;input_query&quot;: &quot;Submit button&quot;,
+    &quot;inference_seconds&quot;: 0.4225701056420803
+  }
+}</pre></section><section><img src="0002.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;submit_action&quot;,
+  &quot;action&quot;: {
+    &quot;action&quot;: &quot;CLICK&quot;,
+    &quot;value&quot;: null,
+    &quot;position&quot;: [
+      0.17,
+      0.51
+    ]
+  },
+  &quot;reward&quot;: 1.0,
+  &quot;terminated&quot;: true,
+  &quot;truncated&quot;: false,
+  &quot;screenshot&quot;: &quot;0002.png&quot;,
+  &quot;sha256&quot;: &quot;61d653a6faf64ff0b92bf17ea5b9438b9a4adef4aa6d52c28778e484a4c4b394&quot;
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;episode_end&quot;,
+  &quot;id&quot;: &quot;enter-text-6000-normal_entry&quot;,
+  &quot;task&quot;: &quot;enter-text&quot;,
+  &quot;seed&quot;: 6000,
+  &quot;head&quot;: &quot;base_plain&quot;,
+  &quot;conditional&quot;: false,
+  &quot;success&quot;: true,
+  &quot;reason&quot;: &quot;success&quot;,
+  &quot;source_steps&quot;: 0,
+  &quot;repair_steps&quot;: 2,
+  &quot;resets_after_failure&quot;: 0,
+  &quot;source_model_calls_reused&quot;: 0,
+  &quot;candidate_model_calls_reused&quot;: 1,
+  &quot;additional_submit_calls&quot;: 1,
+  &quot;prefix_matched&quot;: true,
+  &quot;total_logical_model_calls&quot;: 2,
+  &quot;recovery_mode&quot;: null
+}</pre></section>
