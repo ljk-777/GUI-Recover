@@ -6,6 +6,8 @@ Reusable visual GUI agent trajectories, evaluation, and (planned) error recovery
 ShowUI 初始 30-episode 基线为 15/30；文本输入任务 0/10，当前策略尚不可靠。诊断策略的成功率不代表模型成绩。
 V0.2 alpha 已实现受控故障、弱视觉反馈和配对审计；恢复收益以对照实验为准。详见 [服务器实测](docs/SERVER_VALIDATION.md)。
 首轮四组各 10 个 episode 的漏点击对照均为 6/10，新增挽救 0/4；详见 [恢复实验结果](docs/RECOVERY_RESULTS.md)。
+后续同 seed 对照中，明确标记的“脚本规划 + ShowUI grounding”达到 25/30，原导航策略为 15/30；差异来自输入任务。
+这不是模型自主规划或恢复成绩，详见 [grounding 诊断](docs/GROUNDING.md)。
 
 目标是回答：视觉 GUI Agent 在哪里出错、能否恢复、恢复增加了多少成本。
 V0.1 先构建可靠的测量基础，不进行训练。
@@ -81,6 +83,7 @@ manifest 记录模型版本、提示词、依赖、seed、步数预算、Git 版
 - [失败诊断与接口对照](docs/DIAGNOSIS.md)
 - [V0.2 实验设计](docs/V0.2.md)
 - [V0.2 首轮配对结果](docs/RECOVERY_RESULTS.md)
+- [Grounding 与脚本规划诊断](docs/GROUNDING.md)
 - [贡献约定与 Git 操作](CONTRIBUTING.md)
 
 本项目采用 Apache-2.0；第三方代码、权重和数据仍适用各自条款，见 [第三方说明](THIRD_PARTY.md)。没有把上游源码、模型权重或大数据集放进本仓库。
