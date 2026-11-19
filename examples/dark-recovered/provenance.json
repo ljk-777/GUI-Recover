@@ -1,0 +1,13 @@
+{
+  "source_code_commit": "6637f65e09621f48d7f1c47853a26bcb4503e237",
+  "model": "showlab/ShowUI-2B",
+  "model_revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+  "task": "enter-text",
+  "seed": 61,
+  "policy": "showui-scripted",
+  "fault": "drop-input",
+  "recovery": "input-guard",
+  "input_guard_version": "v3",
+  "visual_variant": "dark",
+  "notice": "Scripted planner; model provides coordinates. Modified synthetic MiniWoB dark fixture; see ../MINIWOB_LICENSE.txt. Illustrative sample, not the full evaluation set."
+}
