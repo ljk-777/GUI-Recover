@@ -32,13 +32,18 @@ class GroundingCache:
         return self.cache[key]
 
 
-def run_verification_case(row,strategy,grounder,verifier,out):
+def run_verification_case(row,strategy,grounder,verifier,out,*,repairer=None,run_name=None):
     from .actions import parse_action
-    directory=Path(out)/"online"/f"{row['id']}-{strategy}"
+    if run_name is not None:
+        import re
+        if not re.fullmatch(r"[a-z][a-z0-9_]*",run_name):
+            raise ValueError("Invalid experiment run name")
+    label=run_name or strategy
+    directory=Path(out)/"online"/f"{row['id']}-{label}"
     directory.mkdir(parents=True,exist_ok=False)
     trajectory=directory/"trajectory.jsonl"
     result={"id":row["id"],"scene_id":row["scene_id"],"task":row["task"],"seed":row["seed"],
-        "regime":row["regime"],"strategy":strategy,"success":False,"reason":"invalid_source",
+        "regime":row["regime"],"strategy":label,"success":False,"reason":"invalid_source",
         "prefix_matched":False,"waits":0,"repairs":0,"logical_actor_calls":1,
         "invalid_predictions":0,"source_prediction_reused":True,"verifier_calls":0,"verifier_seconds":0.0}
     execution=None
@@ -46,6 +51,8 @@ def run_verification_case(row,strategy,grounder,verifier,out):
     frames=0
     started=time.perf_counter()
     calls_before=grounder.calls
+    if repairer is not None:
+        result.update(trigger_strategy=strategy,repair_policy=repairer.config)
     def emit(event,obs=None):
         nonlocal frames
         if obs is not None:
@@ -112,7 +119,12 @@ def run_verification_case(row,strategy,grounder,verifier,out):
             if trigger and not (execution.done or execution.truncated):
                 result["repairs"]+=1
                 result["logical_actor_calls"]+=1
-                prediction=grounder.ground(execution.obs.screenshot,target)
+                if repairer is None:
+                    prediction=grounder.ground(execution.obs.screenshot,target)
+                else:
+                    prediction=repairer.predict(TransitionView(execution.before.screenshot,
+                        execution.obs.screenshot,execution.proposed,execution.obs.goal,target,
+                        "after_wait" if result["waits"] else "immediate"))
                 emit({"event":"repair_prediction","prediction":prediction})
                 if prediction["point"] is not None:
                     execution.repair(prediction["point"]);events()
