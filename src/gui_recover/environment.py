@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import os
+import sys
 
 from PIL import Image
 
@@ -56,6 +57,18 @@ class MiniwobEnvironment:
 
     def step(self, action: Action):
         code = compile_action(action, *self.obs.screenshot.size)
+        return self._step_code(code)
+
+    def replace_input(self, position, value):
+        # Trusted bounded controller operation; model outputs still cannot emit code.
+        # compile_action validates both the coordinates and original value.
+        action = Action("INPUT", value, tuple(position))
+        original = compile_action(action, *self.obs.screenshot.size)
+        click, typing = original.split("\n", 1)
+        key = "Meta+A" if sys.platform == "darwin" else "Control+A"
+        return self._step_code(click + f"\nkeyboard_press({key!r})\n" + typing)
+
+    def _step_code(self, code):
         obs, reward, terminated, truncated, info = self.env.step(code)
         self.obs = self._visual(obs)
         return self.obs, float(reward), bool(terminated), bool(truncated), info, code
