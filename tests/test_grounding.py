@@ -51,5 +51,7 @@ def test_scripted_policy_never_receives_boxes_or_dom():
     assert action.action == "CLICK"
     history.append({"action": action.to_dict(), "execution_error": ""})
     assert parse_action(policy.predict(obs, history)).action == "ANSWER"
+    assert policy.last_metrics["model_invocations"] == 0
+    assert policy.last_metrics["grounding_raw"] is None
     assert backend.calls == ["text field", "Submit button"]
     assert policy.config["uses_dom"] is False

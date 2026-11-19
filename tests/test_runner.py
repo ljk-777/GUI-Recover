@@ -57,3 +57,13 @@ def test_failures_stay_in_denominator_and_keep_evidence(tmp_path, raw, reason, s
     assert len(list(path.glob("*.png"))) == steps + 1
     render_replay(path)
     assert "<script>bad</script>" not in (path / "replay.html").read_text()
+
+
+def test_policy_stop_does_not_inflate_inference_calls(tmp_path):
+    class ScriptedStop(FixedPolicy):
+        last_metrics = {"model_invocations": 0}
+
+    result = run_episode(FakeEnv(), ScriptedStop('{"action":"ANSWER","value":"done","position":null}'),
+                         "fake", 0, 2, tmp_path / "episode")
+    assert result["predictions"] == 1
+    assert result["model_calls"] == 0

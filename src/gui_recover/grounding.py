@@ -66,10 +66,14 @@ class ScriptedGroundingPolicy:
     def predict(self, obs, history):
         plan = plan_from_goal(obs.goal)
         if len(history) >= len(plan):
+            self.last_metrics = {**self.last_metrics, "model_invocations": 0,
+                                 "grounding_raw": None, "subgoal": None,
+                                 "scripted_plan_exhausted": True}
             return json.dumps(Action("ANSWER", "Scripted plan exhausted").to_dict())
         step = plan[len(history)]
         raw = self.backend.ground(obs.screenshot, step.query)
         self.last_metrics = {**self.backend.last_metrics, "grounding_raw": raw,
+                             "model_invocations": 1,
                              "subgoal": step.query, "scripted_step": len(history)}
         try:
             point = parse_point(raw)

@@ -29,6 +29,8 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
     start = time.perf_counter()
     steps = 0
     predictions = 0
+    model_calls = 0
+    model_calls_known = True
     execution_errors = 0
     inference_seconds = 0.0
     success = terminated = truncated = False
@@ -66,6 +68,11 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
             raw = policy.predict(obs, history)
             latency = time.perf_counter() - before
             predictions += 1
+            invocation_count = getattr(policy, "last_metrics", {}).get("model_invocations")
+            if invocation_count is None:
+                model_calls_known = False
+            else:
+                model_calls += invocation_count
             inference_seconds += latency
             emit({"event": "prediction", "step": index, "raw": raw,
                   "inference_seconds": latency, "metrics": getattr(policy, "last_metrics", {})})
@@ -125,6 +132,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
               "elapsed_seconds": time.perf_counter() - start, "environment": metadata,
               "metrics": getattr(policy, "last_metrics", {})}
     result["normalized_outputs"] = normalized_outputs
+    result["model_calls"] = model_calls if model_calls_known else None
     result.update({"fault_kind": fault_kind, "fault_seed": fault_seed,
                    "injected": injector.injected, "recovery": recovery,
                    "recovery_feedbacks": controller.used, "detection_signals": detection_signals})

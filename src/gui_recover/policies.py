@@ -118,6 +118,7 @@ class ShowUIPolicy:
         result = self.processor.batch_decode(ids[:, inputs.input_ids.shape[1]:],
                     skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
         self.last_metrics = {"input_tokens": int(inputs.input_ids.shape[1]),
+                "model_invocations": 1,
                 "generated_tokens": int(ids.shape[1] - inputs.input_ids.shape[1]),
                 "peak_cuda_allocated_bytes": self.torch.cuda.max_memory_allocated(),
                 "peak_cuda_reserved_bytes": self.torch.cuda.max_memory_reserved()}
