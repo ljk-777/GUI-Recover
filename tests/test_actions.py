@@ -52,6 +52,7 @@ def test_mixed_parser_preserves_string_values():
 @pytest.mark.parametrize("raw", [
     "{'action':'CLICK','value':null,'position':[true,0.2]}",
     "{'action':'CLICK','value':null,'position':[float('nan'),0.2]}",
+    "{['invalid']:'CLICK','value':null,'position':[0,0]}",
     "{'action':'CLICK','value':null,'position':__import__('os').getcwd()}",
     '{"action":"CLICK","action":"ENTER","value":null,"position":null}',
     "{'action':'CLICK','action':'ENTER','value':null,'position':null}",
@@ -65,10 +66,16 @@ def test_mixed_parser_keeps_action_boundary(raw):
 @pytest.mark.parametrize("action", [
     Action("CLICK", position=(0.1, 0.2)), Action("HOVER", position=(0.1, 0.2)),
     Action("INPUT", "quoted ' text\nline two", (0.1, 0.2)),
-    Action("ENTER"), Action("SCROLL", "down"),
+    Action("ENTER"), Action("SCROLL", "down"), Action("TYPE", "abc"),
 ])
 def test_compiled_actions_accepted_by_pinned_browsergym(action):
     from browsergym.core.action.highlevel import HighLevelActionSet
     mapper = HighLevelActionSet(subsets=["coord"], strict=True, multiaction=True)
     executable = mapper.to_python_code(compile_action(action, 498, 321))
     compile(executable, "<browsergym-action>", "exec")
+
+
+def test_type_uses_focused_field_and_requires_no_position():
+    assert compile_action(Action("TYPE", "test"), 498, 321) == "keyboard_type('test')"
+    with pytest.raises(ActionError):
+        parse_action('{"action":"TYPE","value":"test","position":[0,0]}')

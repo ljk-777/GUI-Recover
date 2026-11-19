@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Protocol
 
 from .environment import VisualObservation
-from .prompts import OFFICIAL_WEB
+from .prompts import OFFICIAL_MINIWOB, OFFICIAL_WEB
 
 MODEL_ID = "showlab/ShowUI-2B"
 MODEL_REVISION = "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60"
@@ -50,7 +50,8 @@ class ShowUIPolicy:
             raise RuntimeError("This inference profile requires a BF16-capable GPU")
         self.torch = torch
         self.prompt_profile = prompt_profile
-        self.prompt = {"baseline": NAV_PROMPT, "official-web": OFFICIAL_WEB}[prompt_profile]
+        self.prompt = {"baseline": NAV_PROMPT, "official-web": OFFICIAL_WEB,
+                       "official-miniwob": OFFICIAL_MINIWOB}[prompt_profile]
         self.max_new_tokens = max_new_tokens
         self.processor = AutoProcessor.from_pretrained(model, revision=revision,
                 min_pixels=256 * 28 * 28, max_pixels=max_pixels, trust_remote_code=False)
@@ -82,6 +83,14 @@ class ShowUIPolicy:
             {"type": "text", "text": context},
             {"type": "image", "image": obs.screenshot},
         ]}]
+        if self.prompt_profile == "official-miniwob":
+            # Matches the source template's interleaved text history (tttt).
+            messages[0]["content"] = [
+                {"type": "text", "text": self.prompt},
+                {"type": "text", "text": f"Task: {obs.goal}"},
+                *[{"type": "text", "text": str(item["action"])} for item in history[-8:]],
+                {"type": "image", "image": obs.screenshot},
+            ]
         text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         inputs = self.processor(text=[text], images=[obs.screenshot], padding=True,
                                 return_tensors="pt").to("cuda:0")

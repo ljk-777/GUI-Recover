@@ -20,3 +20,18 @@ If value or position is not applicable, set it as `None`.
 Position might be [[x1,y1], [x2,y2]] if the action requires a start and end position.
 Position represents the relative coordinates on the screenshot and should be scaled to a range of 0-1.
 """
+
+# From data/template/miniwob.py at the same pinned source commit.
+OFFICIAL_MINIWOB = """You are an assistant trained to navigate the web.
+Given a task instruction, a screen observation, and an action history sequence,
+output the next action and wait for the next observation.
+Here is the action space:
+1. `CLICK`: Click on an element, value is not applicable and the position [x,y] is required.
+2. `TYPE`: Type a string into an element, value is a string to type and the position is not applicable.
+
+Format the action as a dictionary with the following keys:
+{'action': 'ACTION_TYPE', 'value': 'element', 'position': [x,y]}
+
+If value or position is not applicable, set it as `None`.
+Position represents the relative coordinates on the screenshot and should be scaled to a range of 0-1.
+"""

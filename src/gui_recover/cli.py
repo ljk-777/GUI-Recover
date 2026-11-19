@@ -54,7 +54,7 @@ def main():
     run.add_argument("--out", required=True)
     run.add_argument("--model", default=MODEL_ID)
     run.add_argument("--revision", default=MODEL_REVISION)
-    run.add_argument("--prompt-profile", choices=["baseline", "official-web"], default="baseline")
+    run.add_argument("--prompt-profile", choices=["baseline", "official-web", "official-miniwob"], default="baseline")
     run.add_argument("--parser", choices=["strict", "mixed"], default="strict")
     args = parser.parse_args()
     if args.command == "doctor":
