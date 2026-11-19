@@ -2,6 +2,10 @@
 # Prompt text adapted from ShowUI, Copyright 2024 Show Lab ShowUI Team.
 # Licensed under Apache-2.0; see LICENSE and THIRD_PARTY.md.
 
+GROUNDING = ("Based on the screenshot of the page, I give a text description and you give its corresponding location. "
+             "The coordinate represents a clickable location [x, y] for an element, which is a relative coordinate "
+             "on the screenshot, scaled from 0 to 1.")
+
 OFFICIAL_WEB = """You are an assistant trained to navigate the web screen.
 Given a task instruction, a screen observation, and an action history sequence,
 output the next action and wait for the next observation.

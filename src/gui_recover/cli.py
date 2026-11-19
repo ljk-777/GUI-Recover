@@ -11,6 +11,7 @@ from .environment import MiniwobEnvironment
 from .policies import MODEL_ID, MODEL_REVISION, OracleSmokePolicy, ShowUIPolicy
 from .runner import aggregate, render_replay, run_episode, write_json
 from .comparison import compare_runs
+from .grounding import ScriptedGroundingPolicy
 
 
 def fingerprint():
@@ -54,7 +55,7 @@ def main():
     compare.add_argument("--clean-recovered")
     compare.add_argument("--out", required=True)
     run = sub.add_parser("run")
-    run.add_argument("--policy", choices=["oracle-smoke", "showui"], required=True)
+    run.add_argument("--policy", choices=["oracle-smoke", "showui", "showui-scripted"], required=True)
     run.add_argument("--tasks", nargs="+", default=["click-test"])
     run.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
     run.add_argument("--max-steps", type=int, default=10)
@@ -98,15 +99,20 @@ def main():
         parser.error("oracle-smoke supports only click-test")
     if args.policy != "showui" and args.recovery != "none":
         parser.error("Feedback recovery requires a model policy")
+    if args.policy == "showui-scripted" and any(t not in ("click-test", "click-button", "enter-text") for t in args.tasks):
+        parser.error("Scripted planner supports click-test, click-button and enter-text only")
     directory = Path(args.out)
     directory.mkdir(parents=True, exist_ok=False)
     manifest = {"schema_version": 1, "policy": args.policy, "diagnostic_only": args.policy == "oracle-smoke",
+                "scripted_planner": args.policy == "showui-scripted",
                 "config": vars(args), "runtime": fingerprint(),
                 "success_rule": "terminated and not truncated and reward==1 and DONE_GLOBAL and RAW_REWARD_GLOBAL>0"}
     write_json(directory / "manifest.json", manifest)
     try:
         model = ShowUIPolicy(model=args.model, revision=args.revision,
-                             prompt_profile=args.prompt_profile) if args.policy == "showui" else None
+                             prompt_profile=args.prompt_profile) if args.policy != "oracle-smoke" else None
+        if args.policy == "showui-scripted":
+            model = ScriptedGroundingPolicy(model)
     except Exception as exc:
         write_json(directory / "startup_error.json", {"error_type": type(exc).__name__, "error": str(exc)})
         raise

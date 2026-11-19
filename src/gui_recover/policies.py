@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Protocol
 
 from .environment import VisualObservation
-from .prompts import OFFICIAL_MINIWOB, OFFICIAL_WEB
+from .prompts import GROUNDING, OFFICIAL_MINIWOB, OFFICIAL_WEB
 
 MODEL_ID = "showlab/ShowUI-2B"
 MODEL_REVISION = "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60"
@@ -98,8 +98,20 @@ class ShowUIPolicy:
             ]
         if self.recovery_feedback:
             messages[0]["content"].insert(-1, {"type": "text", "text": self.recovery_feedback})
+        return self._generate(messages)
+
+    def ground(self, screenshot, query):
+        messages = [{"role": "user", "content": [
+            {"type": "text", "text": GROUNDING},
+            {"type": "image", "image": screenshot},
+            {"type": "text", "text": query},
+        ]}]
+        return self._generate(messages)
+
+    def _generate(self, messages):
         text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        inputs = self.processor(text=[text], images=[obs.screenshot], padding=True,
+        screenshot = next(item["image"] for item in messages[0]["content"] if item["type"] == "image")
+        inputs = self.processor(text=[text], images=[screenshot], padding=True,
                                 return_tensors="pt").to("cuda:0")
         with self.torch.inference_mode():
             ids = self.model.generate(**inputs, max_new_tokens=self.max_new_tokens, do_sample=False)
