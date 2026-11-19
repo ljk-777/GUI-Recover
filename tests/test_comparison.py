@@ -76,3 +76,22 @@ def test_different_budget_or_incomplete_run_is_rejected(tmp_path):
     write_json(path, manifest)
     with pytest.raises(ValueError, match="did not complete"):
         compare_runs(*paths)
+
+
+def test_scripted_comparison_allows_only_guard_enable_switch(tmp_path):
+    paths = make_runs(tmp_path)
+    for index, directory in enumerate(paths):
+        path = directory / "manifest.json"
+        manifest = json.loads(path.read_text())
+        enabled = index in (2, 3)
+        manifest["policy"] = manifest["config"]["policy"] = "showui-scripted"
+        manifest["config"]["recovery"] = "input-guard" if enabled else "none"
+        manifest["model_config"]["input_guard"] = {"enabled": enabled, "retry_limit": 1, "signal": "test"}
+        write_json(path, manifest)
+    assert compare_runs(*paths)["matched_injected_pairs"] == 1
+    path = paths[2] / "manifest.json"
+    manifest = json.loads(path.read_text())
+    manifest["model_config"]["input_guard"]["retry_limit"] = 9
+    write_json(path, manifest)
+    with pytest.raises(ValueError, match="model configurations"):
+        compare_runs(*paths)

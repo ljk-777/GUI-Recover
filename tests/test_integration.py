@@ -1,5 +1,6 @@
 import os
 import re
+import json
 
 import pytest
 
@@ -59,5 +60,40 @@ def test_dropped_click_still_advances_real_environment(tmp_path):
                              tmp_path / "episode", fault_kind="drop-click")
         assert result["success"] and result["injected"]
         assert result["steps"] == 2
+    finally:
+        env.close()
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("fault", ["none", "drop-input"])
+@pytest.mark.skipif(not os.getenv("MINIWOB_URL"), reason="Set MINIWOB_URL to enable real browser tests")
+def test_visual_input_guard_in_real_browser(tmp_path, fault):
+    from gui_recover.grounding import ScriptedGroundingPolicy
+
+    env = MiniwobEnvironment("enter-text")
+
+    class DiagnosticBackend:
+        # DOM lookup is limited to this grounder test double. The guard itself
+        # receives screenshots and the proposed action only.
+        config = {"diagnostic_grounder": True}
+        last_metrics = {}
+
+        def reset(self, seed):
+            pass
+
+        def ground(self, screenshot, query):
+            page = env.env.unwrapped.page
+            box = page.locator("#tt" if query == "text field" else "#subbtn").bounding_box()
+            scale = page._bgym_scale_factor
+            return json.dumps([(box["x"] + box["width"] / 2) * scale / screenshot.width,
+                               (box["y"] + box["height"] / 2) * scale / screenshot.height])
+
+    try:
+        result = run_episode(env, ScriptedGroundingPolicy(DiagnosticBackend(), input_guard=True),
+                             "enter-text", 7, 4, tmp_path / "episode",
+                             fault_kind=fault, recovery="input-guard")
+        assert result["success"], result
+        assert result["input_guard"]["retries"] == int(fault == "drop-input")
+        assert result["steps"] == 2 + int(fault == "drop-input")
     finally:
         env.close()

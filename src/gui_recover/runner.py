@@ -6,7 +6,7 @@ from collections import Counter
 from pathlib import Path
 
 from .actions import ActionError, parse_action
-from .recovery import ClickFault, FeedbackRecovery, detect
+from .recovery import ActionFault, FeedbackRecovery, detect
 
 
 def write_json(path, data):
@@ -40,7 +40,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
     history = []
     metadata = {}
     normalized_outputs = 0
-    injector = ClickFault(fault_kind, fault_seed)
+    injector = ActionFault(fault_kind, fault_seed)
     controller = FeedbackRecovery(enabled=recovery == "feedback")
     detection_signals = 0
 
@@ -110,6 +110,10 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
                   "executed_action": executed.to_dict(), "fault": fault,
                   "unchanged_after_click": signal.unchanged_after_click,
                   "mean_pixel_difference": signal.mean_pixel_difference})
+            if hasattr(policy, "observe_transition"):
+                observation = policy.observe_transition(before_obs, obs, action)
+                if observation:
+                    emit({"event": "policy_observation", "step": index, **observation})
             # Proposed action is what the agent believes it executed. Actual injected
             # actions and labels are audit data only, not passed into policy history.
             history.append({"action": action.to_dict(), "execution_error": obs.last_action_error})
@@ -133,6 +137,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
               "metrics": getattr(policy, "last_metrics", {})}
     result["normalized_outputs"] = normalized_outputs
     result["model_calls"] = model_calls if model_calls_known else None
+    result["input_guard"] = getattr(policy, "guard_metrics", None)
     result.update({"fault_kind": fault_kind, "fault_seed": fault_seed,
                    "injected": injector.injected, "recovery": recovery,
                    "recovery_feedbacks": controller.used, "detection_signals": detection_signals})

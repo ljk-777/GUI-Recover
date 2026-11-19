@@ -64,9 +64,9 @@ def main():
     run.add_argument("--revision", default=MODEL_REVISION)
     run.add_argument("--prompt-profile", choices=["baseline", "official-web", "official-miniwob"], default="baseline")
     run.add_argument("--parser", choices=["strict", "mixed"], default="strict")
-    run.add_argument("--fault", choices=["none", "drop-click", "offset-click"], default="none")
+    run.add_argument("--fault", choices=["none", "drop-click", "offset-click", "drop-input"], default="none")
     run.add_argument("--fault-seed", type=int, default=0)
-    run.add_argument("--recovery", choices=["none", "feedback"], default="none")
+    run.add_argument("--recovery", choices=["none", "feedback", "input-guard"], default="none")
     args = parser.parse_args()
     if args.command == "doctor":
         data = fingerprint()
@@ -97,8 +97,10 @@ def main():
         parser.error("Invalid MiniWoB task name")
     if args.policy == "oracle-smoke" and args.tasks != ["click-test"]:
         parser.error("oracle-smoke supports only click-test")
-    if args.policy != "showui" and args.recovery != "none":
+    if args.policy != "showui" and args.recovery == "feedback":
         parser.error("Feedback recovery requires a model policy")
+    if args.recovery == "input-guard" and args.policy != "showui-scripted":
+        parser.error("Input guard requires the explicitly scripted planner")
     if args.policy == "showui-scripted" and any(t not in ("click-test", "click-button", "enter-text") for t in args.tasks):
         parser.error("Scripted planner supports click-test, click-button and enter-text only")
     directory = Path(args.out)
@@ -112,7 +114,7 @@ def main():
         model = ShowUIPolicy(model=args.model, revision=args.revision,
                              prompt_profile=args.prompt_profile) if args.policy != "oracle-smoke" else None
         if args.policy == "showui-scripted":
-            model = ScriptedGroundingPolicy(model)
+            model = ScriptedGroundingPolicy(model, input_guard=args.recovery == "input-guard")
     except Exception as exc:
         write_json(directory / "startup_error.json", {"error_type": type(exc).__name__, "error": str(exc)})
         raise

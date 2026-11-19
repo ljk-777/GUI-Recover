@@ -12,9 +12,9 @@ import numpy as np
 from .actions import Action
 
 
-class ClickFault:
+class ActionFault:
     def __init__(self, kind="none", seed=0):
-        if kind not in ("none", "drop-click", "offset-click"):
+        if kind not in ("none", "drop-click", "offset-click", "drop-input"):
             raise ValueError("Unknown fault kind")
         self.kind = kind
         self.seed = seed
@@ -22,10 +22,14 @@ class ClickFault:
         self.injected = False
 
     def apply(self, action):
-        if self.kind == "none" or self.injected or action.action != "CLICK":
+        eligible = "INPUT" if self.kind == "drop-input" else "CLICK"
+        if self.kind == "none" or self.injected or action.action != eligible:
             return action, None
         self.injected = True
-        if self.kind == "drop-click":
+        if self.kind == "drop-input":
+            # Focus/click succeeds, but the text keystrokes are lost entirely.
+            executed = Action("CLICK", position=action.position)
+        elif self.kind == "drop-click":
             # A missed press with the pointer still moving to the intended target.
             executed = Action("HOVER", position=action.position)
         else:
@@ -35,6 +39,10 @@ class ClickFault:
                 min(1.0, max(0.0, p + d)) for p, d in zip(action.position, (dx, dy))))
         return executed, {"kind": self.kind, "seed": self.seed,
                           "proposed": action.to_dict(), "executed": executed.to_dict()}
+
+
+# Backward-compatible name for earlier experiment clients.
+ClickFault = ActionFault
 
 
 @dataclass(frozen=True)

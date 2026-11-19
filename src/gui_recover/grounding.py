@@ -7,6 +7,7 @@ import re
 
 from .actions import Action, ActionError, parse_action
 from .prompts import GROUNDING
+from .input_guard import inspect_input
 
 
 @dataclass(frozen=True)
@@ -52,30 +53,66 @@ def point_hits_boxes(point, boxes):
 class ScriptedGroundingPolicy:
     """Text-derived two-step plan; ShowUI supplies every coordinate."""
 
-    def __init__(self, backend):
+    def __init__(self, backend, input_guard=False):
         self.backend = backend
+        self.input_guard = input_guard
         self.last_metrics = {}
         self.config = {**backend.config, "planner": "scripted_miniwob_goal_patterns_v1",
                        "grounding_prompt": GROUNDING, "uses_dom": False,
-                       "advances_plan": "after each executed logical action; no visual completion verifier"}
+                       "advances_plan": "history order by default; visual input check when input_guard enabled",
+                       "input_guard": {"enabled": input_guard, "retry_limit": 1,
+                                       "signal": "enclosed_white_input_ink_v1"}}
+        self._clear_state()
+
+    def _clear_state(self):
+        self.last_metrics = {}
+        self.step_index = 0
+        self.input_attempts = 0
+        self.block_reason = None
+        self.guard_metrics = {"checks": 0, "empty": 0, "text_visible": 0, "unknown": 0, "retries": 0, "blocked": 0}
 
     def reset(self, seed):
-        self.last_metrics = {}
+        self._clear_state()
         self.backend.reset(seed)
+
+    def observe_transition(self, before, after, proposed):
+        if not self.input_guard:
+            return None
+        if proposed.action != "INPUT":
+            self.step_index += 1
+            return None
+        signal = inspect_input(before.screenshot, after.screenshot, proposed.position)
+        status = signal["status"]
+        self.input_attempts += 1
+        self.guard_metrics["checks"] += 1
+        self.guard_metrics[status] += 1
+        if status == "text_visible":
+            self.step_index += 1
+            decision = "advance"
+        elif status == "empty" and self.input_attempts < 2:
+            self.guard_metrics["retries"] += 1
+            decision = "reground_and_retry"
+        else:
+            self.block_reason = "Input completion could not be verified; submission blocked"
+            self.guard_metrics["blocked"] += 1
+            decision = "block_submission"
+        return {"kind": "input_guard", "signal": signal, "decision": decision,
+                "input_attempts": self.input_attempts}
 
     def predict(self, obs, history):
         plan = plan_from_goal(obs.goal)
-        if len(history) >= len(plan):
+        index = self.step_index if self.input_guard else len(history)
+        if self.block_reason or index >= len(plan):
             peaks = {key: value for key, value in self.last_metrics.items() if key.startswith("peak_cuda_")}
             self.last_metrics = {**peaks, "model_invocations": 0, "input_tokens": 0, "generated_tokens": 0,
                                  "grounding_raw": None, "subgoal": None,
                                  "scripted_plan_exhausted": True}
-            return json.dumps(Action("ANSWER", "Scripted plan exhausted").to_dict())
-        step = plan[len(history)]
+            return json.dumps(Action("ANSWER", self.block_reason or "Scripted plan exhausted").to_dict())
+        step = plan[index]
         raw = self.backend.ground(obs.screenshot, step.query)
         self.last_metrics = {**self.backend.last_metrics, "grounding_raw": raw,
                              "model_invocations": 1,
-                             "subgoal": step.query, "scripted_step": len(history)}
+                             "subgoal": step.query, "scripted_step": index}
         try:
             point = parse_point(raw)
         except ActionError:

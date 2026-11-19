@@ -1,6 +1,7 @@
 """Validate matched injection experiments before reporting any recovery result."""
 
 import json
+import copy
 from pathlib import Path
 
 
@@ -24,8 +25,20 @@ def compare_runs(clean, faulted, recovered, clean_recovered=None):
         directories.append(clean_recovered)
     runs = [_load(d) for d in directories]
     _, reference, identifiers = runs[0]
-    if reference["policy"] != "showui" or reference["diagnostic_only"]:
+    if reference["policy"] not in ("showui", "showui-scripted") or reference["diagnostic_only"]:
         raise ValueError("Recovery comparisons require nonprivileged model runs")
+    recovery_mode = "input-guard" if reference["policy"] == "showui-scripted" else "feedback"
+
+    def model_config(manifest):
+        config = copy.deepcopy(manifest["model_config"])
+        if reference["policy"] == "showui-scripted":
+            guard = config.get("input_guard")
+            if not isinstance(guard, dict) or guard.get("enabled") != (manifest["config"]["recovery"] == "input-guard"):
+                raise ValueError("Input guard configuration does not match experiment arm")
+            # This enable switch is the intervention; all other guard parameters
+            # and the entire base model/planner configuration must remain identical.
+            guard["enabled"] = False
+        return config
     shared = ("policy", "tasks", "seeds", "max_steps", "model", "revision", "prompt_profile", "parser", "fault_seed")
     for directory, manifest, rows in runs:
         if set(rows) != set(identifiers):
@@ -35,17 +48,17 @@ def compare_runs(clean, faulted, recovered, clean_recovered=None):
                 raise ValueError(f"Different comparison configuration: {key}")
         if manifest["runtime"]["git_commit"] != reference["runtime"]["git_commit"] or manifest["runtime"]["git_dirty"]:
             raise ValueError("Comparisons require identical, clean code revisions")
-        if manifest["model_config"] != reference["model_config"]:
+        if model_config(manifest) != model_config(reference):
             raise ValueError("Different model configurations")
         for key in ("packages", "miniwob_commit", "platform"):
             if manifest["runtime"][key] != reference["runtime"][key]:
                 raise ValueError(f"Different runtime configuration: {key}")
     expected_modes = [("none", "none"), (runs[1][1]["config"]["fault"], "none"),
-                      (runs[1][1]["config"]["fault"], "feedback")]
+                      (runs[1][1]["config"]["fault"], recovery_mode)]
     if expected_modes[1][0] == "none":
         raise ValueError("Faulted run must enable injection")
     if clean_recovered is not None:
-        expected_modes.append(("none", "feedback"))
+        expected_modes.append(("none", recovery_mode))
     for (_, manifest, _), modes in zip(runs, expected_modes):
         if (manifest["config"]["fault"], manifest["config"]["recovery"]) != modes:
             raise ValueError("Unexpected experiment arm")
@@ -95,6 +108,10 @@ def compare_runs(clean, faulted, recovered, clean_recovered=None):
             "predictions": sum(r["predictions"] for r in rows.values()),
             "steps": sum(r["steps"] for r in rows.values()),
             "feedbacks": sum(r["recovery_feedbacks"] for r in rows.values()),
+            "model_calls": (sum(r["model_calls"] for r in rows.values())
+                            if all(r.get("model_calls") is not None for r in rows.values()) else None),
+            "input_guard_checks": sum((r.get("input_guard") or {}).get("checks", 0) for r in rows.values()),
+            "input_guard_retries": sum((r.get("input_guard") or {}).get("retries", 0) for r in rows.values()),
             "inference_seconds": sum(r["inference_seconds"] for r in rows.values())}
     return {"arms": summaries, "matched_injected_pairs": len(matched),
             "not_injected": sum(p["status"] == "not_injected" for p in pairs),
