@@ -1,0 +1,165 @@
+{
+  "runtime": {
+    "python": "3.11.18",
+    "platform": "Linux-5.15.0-156-generic-x86_64-with-glibc2.39",
+    "packages": {
+      "gui-recover": "0.2.0a1",
+      "browsergym-core": "0.14.3",
+      "browsergym-miniwob": "0.14.3",
+      "gymnasium": "1.4.0",
+      "playwright": "1.44.0",
+      "torch": "2.6.0",
+      "transformers": "4.49.0",
+      "pillow": "13.0.0",
+      "numpy": "2.4.6"
+    },
+    "git_commit": "42aa8791b28377b2823dcab58839419c1fd2e26f",
+    "git_dirty": false,
+    "miniwob_commit": "7fd85d71a4b60325c6585396ec4f48377d049838",
+    "cuda_visible_devices": ""
+  },
+  "registered_config_sha256": "a23b7a44b16aedf555de61e89a50344722c84f6bae1dc2c4dc52900abb70738d",
+  "summary": {
+    "profile": "test",
+    "plan_sha256": "1e941cd2dabef4e7fb8df3277fe688f43b4eefc6e6aa69e7beadcf15676de9c4",
+    "fresh": {
+      "roles": {
+        "blank": {
+          "traces": 20,
+          "initial_correct": 0,
+          "final_correct": 19,
+          "regressions": 0,
+          "repair_clicks": 19,
+          "completed_with_oracle_continuation": 19,
+          "legacy": {
+            "triggers": 20,
+            "unknown_after_routing": 0
+          },
+          "target_state": {
+            "triggers": 19,
+            "unknown_after_routing": 1
+          }
+        },
+        "correct": {
+          "traces": 20,
+          "initial_correct": 20,
+          "final_correct": 20,
+          "regressions": 0,
+          "repair_clicks": 0,
+          "completed_with_oracle_continuation": 20,
+          "legacy": {
+            "triggers": 0,
+            "unknown_after_routing": 0
+          },
+          "target_state": {
+            "triggers": 0,
+            "unknown_after_routing": 1
+          }
+        },
+        "wrong_control": {
+          "traces": 16,
+          "initial_correct": 0,
+          "final_correct": 15,
+          "regressions": 0,
+          "repair_clicks": 30,
+          "completed_with_oracle_continuation": 15,
+          "legacy": {
+            "triggers": 16,
+            "unknown_after_routing": 0
+          },
+          "target_state": {
+            "triggers": 15,
+            "unknown_after_routing": 1
+          }
+        }
+      },
+      "absent_label_probes": {
+        "count": 18,
+        "legacy": {
+          "not_achieved": 10,
+          "unknown": 8
+        },
+        "target_state": {
+          "not_achieved": 7,
+          "unknown": 11
+        }
+      }
+    },
+    "historical_natural": {
+      "roles": {
+        "natural": {
+          "traces": 2,
+          "initial_correct": 0,
+          "final_correct": 2,
+          "regressions": 0,
+          "repair_clicks": 2,
+          "completed_with_oracle_continuation": 2,
+          "legacy": {
+            "triggers": 0,
+            "unknown_after_routing": 2
+          },
+          "target_state": {
+            "triggers": 2,
+            "unknown_after_routing": 0
+          }
+        }
+      },
+      "absent_label_probes": {
+        "count": 0,
+        "legacy": {},
+        "target_state": {}
+      }
+    },
+    "historical_seeds": [
+      43009,
+      43013
+    ],
+    "new_model_generations": 0,
+    "near_absent_scope": "Offline malformed-goal challenge on unaltered screenshots; no actions executed"
+  },
+  "layout_rejections": [
+    "goal_requires_no_checkbox"
+  ],
+  "matching_profiles": {
+    "old": "RAQM",
+    "new": "BASIC",
+    "freetype": "2.14.3",
+    "raqm": "0.11.0"
+  },
+  "cross_platform_evidence": {
+    "linux": {
+      "status": "passed",
+      "rechecked_models": [
+        "target_state",
+        "legacy"
+      ],
+      "fresh_layouts": 20,
+      "branches": {
+        "fresh": 56,
+        "historical": 2
+      },
+      "native_frames": 352,
+      "physical_repair_clicks": 51,
+      "offline_absent_label_probes": 18,
+      "maximum_score_difference": 0.0,
+      "freetype_version": "2.14.3"
+    },
+    "macOS": {
+      "status": "passed",
+      "rechecked_models": [
+        "target_state"
+      ],
+      "fresh_layouts": 20,
+      "branches": {
+        "fresh": 56,
+        "historical": 2
+      },
+      "native_frames": 352,
+      "physical_repair_clicks": 51,
+      "offline_absent_label_probes": 18,
+      "maximum_score_difference": 7.771561172376096e-16,
+      "freetype_version": "2.14.3"
+    }
+  },
+  "frozen_ci": "https://github.com/ljk-777/GUI-Recover/actions/runs/44543315857"
+}
