@@ -15,6 +15,7 @@ from .verification_env import TransitionExecution, task_request
 
 
 TASKS = ("click-button", "click-dialog", "click-tab", "enter-text")
+REGIMES = ("none", "drop-input", "deferred-input")
 FRAME_SIZE = (498, 321)
 FIXED_CROP = (0., 0., .6, .6)
 REWARD_PROFILE = "exact_terminal_v1"
@@ -61,7 +62,7 @@ class RecoveryDecisionEnv(gym.Env):
 
     def __init__(self, task, grounder, *, regime="none", max_decisions=3):
         super().__init__()
-        if task not in TASKS or regime not in ("none", "drop-input") or (regime != "none" and task != "enter-text"):
+        if task not in TASKS or regime not in REGIMES or (regime != "none" and task != "enter-text"):
             raise ValueError("Unsupported task or fault for the recovery environment")
         if type(max_decisions) is not int or not 1 <= max_decisions <= 3:
             raise ValueError("The decision budget must be between one and three")
@@ -140,6 +141,8 @@ class RecoveryDecisionEnv(gym.Env):
 
     def _continue_task(self, predictions):
         if self.task == "enter-text":
+            # Submitting before observing queued input runs against the
+            # current field. Only a wait or the repair fixture delivers it.
             p = predictions["continuation"] = self._ground("Submit button")
             if p["point"] is None:
                 return self._finish("invalid_continuation_prediction")
