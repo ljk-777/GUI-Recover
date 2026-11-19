@@ -86,7 +86,7 @@ SELECT、SELECT_TEXT、COPY 暂不支持，出现时计入 invalid_action。只�
 
 开发版增加可选 `--input-guard-version v3`，按区域自身底色检测笔画，面向均匀深色输入框；默认仍为 v2。新的 5 个 seed 中，深色漏输入恢复从 v2 的 0/5 到 v3 的 4/5，正常组也从 0/5 到 4/5；定位失败保留在分母。实现、完整 50 个 episode 对照和边界见 [v3 主题适应实验](docs/INPUT_GUARD_V3.md)。
 
-后续开发增加 `--input-precheck visual`：INPUT 执行前检查空白区域，无法确认时最多重新定位一次，仍失败则停止；该功能默认关闭，不能证明控件可编辑。预算、记录和独立对照见 [执行前检查](docs/INPUT_PRECHECK.md)。
+实验分支增加 `--input-precheck visual`：INPUT 执行前检查空白区域，无法确认时最多重新定位一次，仍失败则停止。两轮模型验收仍有正常任务误拦，因此默认关闭，暂不推荐作为恢复策略；代码测试通过不代表成功率提升。预算、完整负面结果和独立对照见 [执行前检查](docs/INPUT_PRECHECK.md)。
 
 ## 评测口径
 

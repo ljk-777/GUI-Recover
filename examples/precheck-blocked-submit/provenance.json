@@ -1,0 +1,15 @@
+{
+  "source_code_commit": "01a28d75c166e20ea73cbca3f577388565c541ca",
+  "model": "showlab/ShowUI-2B",
+  "model_revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+  "task": "enter-text",
+  "seed": 60,
+  "policy": "showui-scripted",
+  "fault": "none",
+  "recovery": "input-guard",
+  "input_guard_version": "v3",
+  "input_precheck": "visual",
+  "input_precheck_version": "v2",
+  "visual_variant": "dark",
+  "notice": "Experimental precheck; failed episode retained. Scripted planner, ShowUI coordinates. Synthetic MiniWoB screenshots; see ../MINIWOB_LICENSE.txt."
+}
