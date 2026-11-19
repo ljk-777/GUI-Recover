@@ -87,6 +87,6 @@
     "logical_actor_call_limit": 3
   },
   "fit_scope": "Healthy references and their injection/deferred variants only; natural actor errors excluded from fitting and selection",
-  "delay_fixture": "Queued INPUT delivered on fixed 150ms wait, otherwise flushed after any repair before normal continuation; explicit simulator, not network latency",
+  "delay_fixture": "FIFO queued INPUT delivered on 150ms wait or before next physical operation; repair plan uses its prior screenshot; explicit event-order simulator, not network latency",
   "purpose": "Engineering smoke on previously seen seeds; excluded from held-out research results"
 }

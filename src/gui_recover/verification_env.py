@@ -4,9 +4,11 @@ import re
 from copy import deepcopy
 
 from .actions import Action
-from .environment import MiniwobEnvironment
+from .environment import MiniwobEnvironment,VisualObservation
+from .input_guard import inspect_input
 from .recovery import ActionFault
 from .runner import is_success
+from .verification_capture import capture_after_repaint
 
 
 def task_request(task, goal):
@@ -51,14 +53,15 @@ class TransitionExecution:
     """Fixture knows interventions; the verifier receives only a TransitionView.
 
     deferred-input is a queued-delivery simulator, not a claim of real network
-    latency. Pending delivery is flushed after a controller repair, or on wait,
-    before normal continuation. A premature retry can therefore duplicate input.
+    latency. Pending delivery uses FIFO before the next physical operation.
+    A retry planned from a stale empty screenshot can therefore append twice.
     """
     def __init__(self, task, seed, proposed, regime="none"):
         self.env = MiniwobEnvironment(task)
         self.seed, self.proposed, self.regime = seed, proposed, regime
         self.pending = None
         self.events = []
+        self.snapshots = []
         self.obs, self.info = self.env.reset(seed)
         # CDP screenshots capture a blinking caret on Linux. Make the new
         # verification fixture deterministic before any data collection; raw
@@ -68,8 +71,14 @@ class TransitionExecution:
             "button{appearance:none!important;border:2px solid #777!important;border-radius:2px!important}"))
         self.env.obs=self.env._visual(self.env.env.unwrapped._get_obs())
         self.obs=self.env.obs
+        self._capture()
         self.before = self.obs
         self.reward, self.done, self.truncated = 0.0, False, False
+
+    def _capture(self):
+        self.obs=VisualObservation(self.obs.goal,capture_after_repaint(self.env.env.unwrapped.page),
+                                   self.obs.last_action_error)
+        self.env.obs=self.obs
 
     def first(self):
         if self.regime == "deferred-input":
@@ -84,9 +93,11 @@ class TransitionExecution:
 
     def _step(self, actual, event):
         self.obs,self.reward,self.done,self.truncated,self.info,code = self.env.step(actual)
+        self._capture()
         self.events.append({"event":event,"executed_action":actual.to_dict(),"executed_code":code,
             "reward":self.reward,"terminated":self.done,"truncated":self.truncated,
             "task_info":deepcopy(self.info.get("task_info",{})),"execution_error":self.obs.last_action_error})
+        self.snapshots.append(self.obs)
 
     def wait_once(self):
         if self.done or self.truncated:
@@ -107,11 +118,20 @@ class TransitionExecution:
     def repair(self, point):
         if self.proposed.action == "INPUT":
             _,_,value = task_request(self.env.task,self.obs.goal)
+            signal=inspect_input(self.before.screenshot,self.obs.screenshot,point,version="v2")
+            append=signal["status"]=="empty"
+            self.flush_pending()
+            if append:
+                self._step(Action("INPUT",value,tuple(point)),"append_input_repair")
+                return
             self.obs,self.reward,self.done,self.truncated,self.info,code = self.env.replace_input(point,value)
+            self._capture()
             self.events.append({"event":"replace_input","position":list(point),"value":value,
                 "executed_code":code,"reward":self.reward,"terminated":self.done,"truncated":self.truncated,
                 "task_info":deepcopy(self.info.get("task_info",{})),"execution_error":self.obs.last_action_error})
+            self.snapshots.append(self.obs)
         else:
+            self.flush_pending()
             self._step(Action("CLICK",position=tuple(point)),"retry_click")
 
     def close(self):

@@ -100,6 +100,11 @@ def main():
             "repairs":sum(r["repairs"] for r in rows if r["strategy"]==s),
             "waits":sum(r["waits"] for r in rows if r["strategy"]==s),
             "logical_actor_calls":sum(r["logical_actor_calls"] for r in rows if r["strategy"]==s),
+            "environment_steps":sum(r.get("environment_steps",0) for r in rows if r["strategy"]==s),
+            "verifier_calls":sum(r["verifier_calls"] for r in rows if r["strategy"]==s),
+            "verifier_seconds":sum(r["verifier_seconds"] for r in rows if r["strategy"]==s),
+            "elapsed_seconds_with_shared_caches":sum(r["elapsed_seconds"] for r in rows if r["strategy"]==s),
+            "invalid_predictions":sum(r["invalid_predictions"] for r in rows if r["strategy"]==s),
             "runtime_errors":sum(r["reason"]=="runtime_error" for r in rows if r["strategy"]==s),
             "prefix_mismatches":sum(r["reason"]=="prefix_mismatch" for r in rows if r["strategy"]==s)} for s in config["online"]["strategies"]}
     summary={"offline":offline,"online_all":aggregate(episodes),

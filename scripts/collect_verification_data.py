@@ -40,7 +40,7 @@ def main():
     encoder = FrozenFeatures(actor)
     manifest = {"runtime":runtime,"config":config,"actor":actor.config,"source_scenes":[],
         "scope":"Teacher labels offline only; queued input is an explicit synthetic delivery fixture",
-        "render_fixture":"CSS caret hidden and solid button borders for deterministic screenshots; raw PNGs unedited; not stock benchmark rendering"}
+        "render_fixture":"CSS caret hidden, solid button borders, double-RAF native CDP capture; raw PNGs unedited; not stock benchmark rendering"}
     def frame(obs,name):
         path=out/"images"/f"{name}.png"
         obs.screenshot.save(path)
@@ -129,6 +129,7 @@ def main():
             "records":len(records),"views":len(views),"statuses":dict(Counter(r["status"] for r in records))})
     manifest["audit"]=audit_transition_splits(out)
     manifest["feature_counters"]=encoder.counters()
+    manifest["source_actor_generations"]=len(manifest["source_scenes"])
     manifest["split_sha256"]={s:file_sha256(out/f"{s}.jsonl") for s in config["splits"]}
     manifest["features_sha256"]={s:{b:file_sha256(out/f"{s}-{b}.npz") for b in ("pixels","frozen")} for s in config["splits"]}
     manifest["views_sha256"]={s:file_sha256(out/f"{s}-views.json") for s in config["splits"]}

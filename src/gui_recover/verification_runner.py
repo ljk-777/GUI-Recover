@@ -59,7 +59,7 @@ def run_verification_case(row,strategy,grounder,verifier,out):
     def events():
         nonlocal emitted
         while emitted<len(execution.events):
-            emit(execution.events[emitted],execution.obs if emitted==len(execution.events)-1 else None)
+            emit(execution.events[emitted],execution.snapshots[emitted])
             emitted+=1
     def decide(phase):
         view=TransitionView(execution.before.screenshot,execution.obs.screenshot,execution.proposed,
@@ -118,13 +118,12 @@ def run_verification_case(row,strategy,grounder,verifier,out):
                     execution.repair(prediction["point"]);events()
                 else:
                     result["invalid_predictions"]+=1
-            # Fixture delivery is independent of verifier output and uses no teacher labels.
-            execution.flush_pending();events()
             if row["task"]=="enter-text" and not (execution.done or execution.truncated):
                 result["logical_actor_calls"]+=1
                 prediction=grounder.ground(execution.obs.screenshot,"Submit button")
                 emit({"event":"submit_prediction","prediction":prediction})
                 if prediction["point"] is not None:
+                    execution.flush_pending();events()
                     execution._step(Action("CLICK",position=tuple(prediction["point"])),"submit");events()
                 else:
                     result["invalid_predictions"]+=1
