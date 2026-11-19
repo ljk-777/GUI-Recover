@@ -1,0 +1,18 @@
+{
+  "task": "enter-text",
+  "seed": 63000,
+  "split": "test",
+  "regime": "deferred-input",
+  "policy": "learned",
+  "success": true,
+  "return": 1.0,
+  "terminated": true,
+  "truncated": false,
+  "outcome": "success",
+  "decisions": 3,
+  "actor_requests": 2,
+  "waits": 1,
+  "repairs": 0,
+  "initial_sha256": "780376bb79115f84b0e795fa8ab86d2d3b49903ff0805fc25eddec121181b193",
+  "trace_sha256": "d3ac01405fde4b4fd8881457e2d16fbd431db963e5392b6df42f354e618003bc"
+}

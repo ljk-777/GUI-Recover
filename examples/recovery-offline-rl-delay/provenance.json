@@ -1,0 +1,10 @@
+{
+  "task": "enter-text",
+  "seed": 63000,
+  "regime": "deferred-input",
+  "policies": [
+    "visual_fixed",
+    "learned"
+  ],
+  "scope": "First paired delayed-input gain after evaluation. Both native executions were recorded."
+}
