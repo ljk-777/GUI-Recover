@@ -13,7 +13,7 @@ import time
 from gui_recover.cli import fingerprint
 from gui_recover.policies import MODEL_ID, MODEL_REVISION
 from gui_recover.runner import write_json
-from gui_recover.sft import encode_record, file_sha256, load_records
+from gui_recover.sft import HISTORY_PROFILES, encode_record, file_sha256, load_records
 
 
 def main():
@@ -22,9 +22,15 @@ def main():
     parser.add_argument("--data", required=True)
     parser.add_argument("--model", required=True)
     parser.add_argument("--out", required=True)
-    parser.add_argument("--context-mode", choices=["none", "previous-action"], default="none")
+    parser.add_argument("--context-mode", choices=["none", "previous-action", "record-action"], default="none")
+    parser.add_argument("--history-profile", choices=HISTORY_PROFILES, default="legacy")
+    parser.add_argument("--seed", type=int, help="Predeclared replicate seed, recorded in the effective config")
     args = parser.parse_args()
     config = json.loads(Path(args.config).read_text())
+    if args.seed is not None:
+        if args.seed not in config.get("balanced_training", {}).get("seeds", []):
+            raise ValueError("Replicate seed was not predeclared")
+        config["seed"] = args.seed
     if config["base_revision"] != MODEL_REVISION:
         raise ValueError("Base revision differs from frozen ShowUI")
     base_sha = file_sha256(Path(args.model)/"pytorch_model.bin")
@@ -53,6 +59,7 @@ def main():
         "dataset_manifest_sha256": hashlib.sha256((Path(args.data)/"manifest.json").read_bytes()).hexdigest(),
         "train_records": len(train), "validation_records": len(validation),
         "context_mode": args.context_mode,
+        "history_profile": args.history_profile,
         "packages": {p: importlib.metadata.version(p) for p in ("peft", "accelerate", "bitsandbytes", "psutil")},
         "precision": "NF4 double quantized base; BF16 compute; decoder q/v LoRA only",
         "loss": "assistant answer and end token only; all image/user tokens masked"}
@@ -83,7 +90,8 @@ def main():
     torch.cuda.reset_peak_memory_stats()
 
     def batch(row):
-        return encode_record(processor, args.data, row, context_mode=args.context_mode).to("cuda:0")
+        return encode_record(processor, args.data, row, context_mode=args.context_mode,
+                             history_profile=args.history_profile).to("cuda:0")
 
     def mean_loss(current, rows):
         current.eval()

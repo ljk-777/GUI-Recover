@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added validation-only history-prompt selection, fresh-scene execution, explicit context-paired Submit balancing and three fixed SFT seed replicates. Target ordering repairs a Submit regression, while balanced retraining fails the preservation gate; all negative outcomes and native paired examples are retained without changing defaults.
+
 - Added an isolated QLoRA grounding smoke profile, offline DOM teacher collection, assistant-only supervision checks, adapter reload acceptance, and independent baseline/adapter evaluation.
 - Added a frozen distractor/actually-executed-error dataset, two same-update SFT adapters, six weight/context ablations and paired GUI execution. Conditional repairs improved on a small subset while clean-task performance regressed; adapters remain experimental and are not promoted to defaults. Results and native success/failure examples are preserved in docs/SFT_RECOVERY.md and examples/.
 

@@ -1,0 +1,97 @@
+<!doctype html><meta charset="utf-8"><title>GUI-Recover trajectory</title><style>body{font:15px system-ui;max-width:1000px;margin:30px auto}section{border-top:1px solid #ccc;padding:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere}img{max-width:100%}</style><h1>GUI-Recover trajectory</h1><section><img src="0000.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;reset&quot;,
+  &quot;goal&quot;: &quot;Enter \&quot;Dolores\&quot; into the text field and press Submit.&quot;,
+  &quot;screenshot&quot;: &quot;0000.png&quot;,
+  &quot;sha256&quot;: &quot;385483ce340ce304c912891d7ca3a6a1415e19f0aa16bdf6e94938447c3ff631&quot;
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;candidate_prediction&quot;,
+  &quot;prediction&quot;: {
+    &quot;raw&quot;: &quot;[0.21, 0.3]&quot;,
+    &quot;point&quot;: [
+      0.21,
+      0.3
+    ],
+    &quot;input_query&quot;: &quot;text field&quot;,
+    &quot;inference_seconds&quot;: 0.3107634000480175,
+    &quot;hit&quot;: true
+  }
+}</pre></section><section><img src="0001.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;candidate_action&quot;,
+  &quot;action&quot;: {
+    &quot;action&quot;: &quot;INPUT&quot;,
+    &quot;value&quot;: &quot;Dolores&quot;,
+    &quot;position&quot;: [
+      0.21,
+      0.3
+    ]
+  },
+  &quot;reward&quot;: 0.0,
+  &quot;terminated&quot;: false,
+  &quot;truncated&quot;: false,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: 0,
+    &quot;RAW_REWARD_GLOBAL&quot;: 0,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: false,
+    &quot;EPISODE_ID&quot;: 0,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;executed_code&quot;: &quot;mouse_click(104.58, 96.3)\nkeyboard_type(&#x27;Dolores&#x27;)&quot;,
+  &quot;execution_error&quot;: &quot;&quot;,
+  &quot;screenshot&quot;: &quot;0001.png&quot;,
+  &quot;sha256&quot;: &quot;782ba5754a99d264bce3ef36ed0741696abf75060fa0b149ea48cfa708e8af9b&quot;
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;submit_prediction&quot;,
+  &quot;prediction&quot;: {
+    &quot;raw&quot;: &quot;[0.19, 0.39]&quot;,
+    &quot;point&quot;: [
+      0.19,
+      0.39
+    ],
+    &quot;input_query&quot;: &quot;Submit button&quot;,
+    &quot;inference_seconds&quot;: 0.43645234778523445
+  }
+}</pre></section><section><img src="0002.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;submit_action&quot;,
+  &quot;action&quot;: {
+    &quot;action&quot;: &quot;CLICK&quot;,
+    &quot;value&quot;: null,
+    &quot;position&quot;: [
+      0.19,
+      0.39
+    ]
+  },
+  &quot;reward&quot;: 1.0,
+  &quot;terminated&quot;: true,
+  &quot;truncated&quot;: false,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: 0.998088,
+    &quot;RAW_REWARD_GLOBAL&quot;: 1,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: true,
+    &quot;EPISODE_ID&quot;: 1,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;executed_code&quot;: &quot;mouse_click(94.62, 125.19)&quot;,
+  &quot;execution_error&quot;: &quot;&quot;,
+  &quot;screenshot&quot;: &quot;0002.png&quot;,
+  &quot;sha256&quot;: &quot;b6a5679bf3b899a1ade81327a7df321353dded025d175877464397ab9953aecf&quot;
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;episode_end&quot;,
+  &quot;id&quot;: &quot;enter-text-8000-normal_entry&quot;,
+  &quot;task&quot;: &quot;enter-text&quot;,
+  &quot;seed&quot;: 8000,
+  &quot;head&quot;: &quot;base_plain&quot;,
+  &quot;conditional&quot;: false,
+  &quot;success&quot;: true,
+  &quot;reason&quot;: &quot;success&quot;,
+  &quot;source_steps&quot;: 0,
+  &quot;repair_steps&quot;: 2,
+  &quot;resets_after_failure&quot;: 0,
+  &quot;source_model_calls_reused&quot;: 0,
+  &quot;candidate_model_calls_reused&quot;: 1,
+  &quot;additional_submit_calls&quot;: 1,
+  &quot;prefix_matched&quot;: true,
+  &quot;total_logical_model_calls&quot;: 2,
+  &quot;recovery_mode&quot;: null
+}</pre></section>

@@ -1,0 +1,18 @@
+{
+  "id": "enter-text-8000-normal_entry",
+  "task": "enter-text",
+  "seed": 8000,
+  "head": "history_target_last",
+  "conditional": false,
+  "success": true,
+  "reason": "success",
+  "source_steps": 0,
+  "repair_steps": 2,
+  "resets_after_failure": 0,
+  "source_model_calls_reused": 0,
+  "candidate_model_calls_reused": 1,
+  "additional_submit_calls": 1,
+  "prefix_matched": true,
+  "total_logical_model_calls": 2,
+  "recovery_mode": null
+}

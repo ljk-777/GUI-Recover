@@ -12,6 +12,7 @@ from .prompts import GROUNDING
 
 
 REQUERY = "Locate the center of the empty editable text input box."
+HISTORY_PROFILES = ("legacy", "target-last", "current-target", "action-only")
 
 
 def file_sha256(path):
@@ -22,20 +23,32 @@ def file_sha256(path):
     return result.hexdigest()
 
 
-def grounding_query(query, previous_action=None):
+def grounding_query(query, previous_action=None, *, history_profile="legacy"):
+    if history_profile not in HISTORY_PROFILES:
+        raise ValueError("Unknown grounding history profile")
     if previous_action is None:
         return query
     # The previous PROPOSED action is the only admitted prefix. Rewards,
     # teacher boxes, fault labels and executed-code strings are not accepted.
     action = parse_action(json.dumps(previous_action)).to_dict()
-    return (query + "\nPrevious proposed action: " + json.dumps(action, separators=(",", ":"))
-            + "\nRecheck the current screenshot and return the target location.")
+    previous = "Previous proposed action: " + json.dumps(action, separators=(",", ":"))
+    recheck = "Recheck the current screenshot and return the target location."
+    if history_profile == "legacy":
+        return query + "\n" + previous + "\n" + recheck
+    if history_profile == "target-last":
+        # Same text/information as legacy; only the three lines are reordered.
+        return previous + "\n" + recheck + "\n" + query
+    if history_profile == "action-only":
+        # Explicit information-removal diagnostic, not an equal-information ablation.
+        action = {key: action[key] for key in ("action", "value")}
+    return ("Historical action context: " + json.dumps(action, separators=(",", ":"))
+            + "\nLocate the CURRENT target in the current screenshot: " + query)
 
 
-def grounding_messages(picture, query, answer=None, previous_action=None):
+def grounding_messages(picture, query, answer=None, previous_action=None, *, history_profile="legacy"):
     messages = [{"role": "user", "content": [
         {"type": "text", "text": GROUNDING}, {"type": "image", "image": picture},
-        {"type": "text", "text": grounding_query(query, previous_action)}]}]
+        {"type": "text", "text": grounding_query(query, previous_action, history_profile=history_profile)}]}]
     if answer is not None:
         messages.append({"role": "assistant", "content": [{"type": "text", "text": answer}]})
     return messages
@@ -92,16 +105,21 @@ def audit_dataset(directory):
             "cross_split_scene_and_image_overlap": 0}
 
 
-def encode_record(processor, directory, row, context_mode="none"):
+def encode_record(processor, directory, row, context_mode="none", history_profile="legacy"):
     # Only query/image/answer are consumed. DOM boxes, task_info and labels
     # remain evaluator/teacher metadata even if a record contains more fields.
     picture = Image.open(Path(directory) / row["image"]).convert("RGB")
-    if context_mode not in ("none", "previous-action"):
+    if context_mode not in ("none", "previous-action", "record-action"):
         raise ValueError("Unknown grounding context mode")
-    previous = row.get("previous_action") if context_mode == "previous-action" else None
-    prompt = processor.apply_chat_template(grounding_messages(picture, row["query"], previous_action=previous),
+    if context_mode == "record-action" and type(row.get("history_input")) is not bool:
+        raise ValueError("Record-action requires an explicit boolean history_input")
+    include = context_mode == "previous-action" or (context_mode == "record-action" and row["history_input"])
+    previous = row.get("previous_action") if include else None
+    prompt = processor.apply_chat_template(grounding_messages(picture, row["query"], previous_action=previous,
+                                                            history_profile=history_profile),
                                            tokenize=False, add_generation_prompt=True)
-    full = processor.apply_chat_template(grounding_messages(picture, row["query"], row["answer"], previous),
+    full = processor.apply_chat_template(grounding_messages(picture, row["query"], row["answer"], previous,
+                                                          history_profile=history_profile),
                                          tokenize=False, add_generation_prompt=False)
     prefix = processor(text=[prompt], images=[picture], return_tensors="pt")
     encoded = processor(text=[full], images=[picture], return_tensors="pt")

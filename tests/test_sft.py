@@ -4,7 +4,7 @@ import json
 import pytest
 from PIL import Image
 
-from gui_recover.sft import audit_dataset, completion_labels, grounding_messages, load_records
+from gui_recover.sft import audit_dataset, completion_labels, encode_record, grounding_messages, load_records
 from gui_recover.policies import sft_adapter_metadata
 
 
@@ -56,6 +56,14 @@ def test_identical_images_cannot_cross_splits(tmp_path):
     file.write_text(json.dumps(row)+"\n")
     with pytest.raises(ValueError, match="leaks"):
         audit_dataset(tmp_path)
+
+
+def test_paired_context_requires_a_real_boolean_without_consuming_teacher_labels(tmp_path):
+    make_dataset(tmp_path)
+    row = load_records(tmp_path, "train")[0]
+    for value in (None, "false", 0):
+        with pytest.raises(ValueError, match="boolean history_input"):
+            encode_record(None, tmp_path, {**row, "history_input": value}, context_mode="record-action")
 
 
 def test_adapter_identity_and_reload_gate_are_checked_without_loading_model(tmp_path):
