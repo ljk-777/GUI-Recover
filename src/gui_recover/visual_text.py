@@ -21,6 +21,9 @@ _RENDER_SCALE = 1.5
 _MATCH = .995
 _MISMATCH = .965
 _PIXELS = 160
+# The focused outline can leave a dark corner three pixels into the
+# initially blank interior at 1.5x on Linux Chromium.
+_FIELD_INSET = 3
 
 
 def _crop_ink(picture, bounds, margin):
@@ -132,7 +135,7 @@ class VisualTextVerifier:
         if guard["status"]=="empty":
             return {"status":"empty","reason":"no_visible_ink","region":guard["region"]}
         region = guard["region"]
-        observed = _crop_ink(view.after,region,2)
+        observed = _crop_ink(view.after,region,_FIELD_INSET)
         if observed is None:
             return {"status":"unknown","reason":"clipped_or_unreadable_ink","region":region}
         score = max(_iou(template,observed) for template in templates)
