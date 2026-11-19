@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Protocol
 
 from .environment import VisualObservation
+from .prompts import OFFICIAL_WEB
 
 MODEL_ID = "showlab/ShowUI-2B"
 MODEL_REVISION = "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60"
@@ -39,7 +40,7 @@ class OracleSmokePolicy:
 
 class ShowUIPolicy:
     def __init__(self, model=MODEL_ID, revision=MODEL_REVISION, max_pixels=784 * 784,
-                 max_new_tokens=128):
+                 max_new_tokens=128, prompt_profile="baseline"):
         import torch
         from transformers import AutoProcessor, Qwen2VLForConditionalGeneration
 
@@ -48,6 +49,8 @@ class ShowUIPolicy:
         if not torch.cuda.is_bf16_supported():
             raise RuntimeError("This inference profile requires a BF16-capable GPU")
         self.torch = torch
+        self.prompt_profile = prompt_profile
+        self.prompt = {"baseline": NAV_PROMPT, "official-web": OFFICIAL_WEB}[prompt_profile]
         self.max_new_tokens = max_new_tokens
         self.processor = AutoProcessor.from_pretrained(model, revision=revision,
                 min_pixels=256 * 28 * 28, max_pixels=max_pixels, trust_remote_code=False)
@@ -57,7 +60,8 @@ class ShowUIPolicy:
         self.config = {"model": model, "revision": revision, "dtype": "bfloat16",
                        "attention": "sdpa", "min_pixels": 256 * 28 * 28,
                        "max_pixels": max_pixels, "max_new_tokens": max_new_tokens,
-                       "do_sample": False, "history_limit": 8, "prompt": NAV_PROMPT}
+                       "do_sample": False, "history_limit": 8, "prompt": self.prompt,
+                       "prompt_profile": prompt_profile}
         provenance = Path(model) / "download_manifest.json"
         if provenance.is_file():
             self.config["asset_provenance"] = json.loads(provenance.read_text())
@@ -68,9 +72,14 @@ class ShowUIPolicy:
         self.torch.cuda.reset_peak_memory_stats()
 
     def predict(self, obs, history):
+        context = f"Task: {obs.goal}"
+        if self.prompt_profile == "baseline" or history:
+            context += f"\nHistory: {json.dumps(history[-8:])}"
+        if self.prompt_profile == "baseline" or obs.last_action_error:
+            context += f"\nExecution error: {obs.last_action_error}"
         messages = [{"role": "user", "content": [
-            {"type": "text", "text": NAV_PROMPT},
-            {"type": "text", "text": f"Task: {obs.goal}\nHistory: {json.dumps(history[-8:])}\nExecution error: {obs.last_action_error}"},
+            {"type": "text", "text": self.prompt},
+            {"type": "text", "text": context},
             {"type": "image", "image": obs.screenshot},
         ]}]
         text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)

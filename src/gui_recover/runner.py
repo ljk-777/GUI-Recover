@@ -20,7 +20,7 @@ def is_success(reward, terminated, truncated, task_info):
                 and task_info.get("RAW_REWARD_GLOBAL", 0) > 0)
 
 
-def run_episode(env, policy, task, seed, max_steps, out_dir):
+def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict"):
     directory = Path(out_dir)
     directory.mkdir(parents=True, exist_ok=False)
     trajectory = directory / "trajectory.jsonl"
@@ -35,6 +35,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir):
     reason = "environment_error"
     history = []
     metadata = {}
+    normalized_outputs = 0
 
     def emit(event):
         with trajectory.open("a", encoding="utf-8") as file:
@@ -64,7 +65,14 @@ def run_episode(env, policy, task, seed, max_steps, out_dir):
             emit({"event": "prediction", "step": index, "raw": raw,
                   "inference_seconds": latency, "metrics": getattr(policy, "last_metrics", {})})
             try:
-                action = parse_action(raw)
+                action = parse_action(raw, mode=parser_mode)
+                if parser_mode == "mixed":
+                    try:
+                        parse_action(raw)
+                    except ActionError:
+                        normalized_outputs += 1
+                        emit({"event": "format_normalized", "step": index,
+                              "action": action.to_dict(), "parser": "mixed"})
             except ActionError as exc:
                 reason = "invalid_action"
                 emit({"event": "error", "step": index, "error": str(exc)})
@@ -95,6 +103,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir):
               "task_info": task_info, "inference_seconds": inference_seconds,
               "elapsed_seconds": time.perf_counter() - start, "environment": metadata,
               "metrics": getattr(policy, "last_metrics", {})}
+    result["normalized_outputs"] = normalized_outputs
     write_json(directory / "episode.json", result)
     emit({"event": "episode_end", **result})
     return result

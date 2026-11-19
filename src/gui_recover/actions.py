@@ -20,7 +20,28 @@ class Action:
         return asdict(self)
 
 
-def parse_action(raw: str) -> Action:
+class _JsonNames(ast.NodeTransformer):
+    """Map only bare JSON constants, never strings or executable expressions."""
+
+    def visit_Name(self, node):
+        values = {"null": None, "true": True, "false": False}
+        if node.id not in values:
+            raise ActionError(f"Unexpected name: {node.id}")
+        return ast.copy_location(ast.Constant(values[node.id]), node)
+
+
+def _unique_dict(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ActionError(f"Duplicate key: {key}")
+        result[key] = value
+    return result
+
+
+def parse_action(raw: str, mode: str = "strict") -> Action:
+    if mode not in ("strict", "mixed"):
+        raise ValueError("Unknown parser mode")
     text = raw.strip()
     if len(text) > 8192:
         raise ActionError("Output exceeds 8192 characters")
@@ -28,9 +49,16 @@ def parse_action(raw: str) -> Action:
         text = "\n".join(text.splitlines()[1:-1]).strip()
     try:
         try:
-            data = json.loads(text)
+            data = json.loads(text, object_pairs_hook=_unique_dict)
         except json.JSONDecodeError:
-            data = ast.literal_eval(text)
+            tree = ast.parse(text, mode="eval")
+            if mode == "mixed":
+                tree = _JsonNames().visit(tree)
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Dict):
+                    keys = [ast.literal_eval(key) for key in node.keys]
+                    _unique_dict((key, None) for key in keys)
+            data = ast.literal_eval(tree)
     except (ValueError, SyntaxError, RecursionError) as exc:
         raise ActionError("Expected exactly one action dictionary") from exc
     if not isinstance(data, dict) or set(data) != {"action", "value", "position"}:

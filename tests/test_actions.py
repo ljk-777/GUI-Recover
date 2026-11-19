@@ -40,6 +40,28 @@ def test_code_fence():
     assert parse_action('```json\n{"action":"ENTER","value":null,"position":null}\n```').action == "ENTER"
 
 
+def test_mixed_parser_preserves_string_values():
+    raw = "{'action':'INPUT','value':'null true false None','position':[0.1,0.2]}"
+    assert parse_action(raw, mode="mixed").value == "null true false None"
+    raw = "{'action':'CLICK','value':null,'position':[0.1,0.2]}"
+    with pytest.raises(ActionError):
+        parse_action(raw)
+    assert parse_action(raw, mode="mixed").action == "CLICK"
+
+
+@pytest.mark.parametrize("raw", [
+    "{'action':'CLICK','value':null,'position':[true,0.2]}",
+    "{'action':'CLICK','value':null,'position':[float('nan'),0.2]}",
+    "{'action':'CLICK','value':null,'position':__import__('os').getcwd()}",
+    '{"action":"CLICK","action":"ENTER","value":null,"position":null}',
+    "{'action':'CLICK','action':'ENTER','value':null,'position':null}",
+    "{'action':'CLICK','value':null,'position':[0,0]}, {'action':'ENTER','value':null,'position':null}",
+])
+def test_mixed_parser_keeps_action_boundary(raw):
+    with pytest.raises(ActionError):
+        parse_action(raw, mode="mixed")
+
+
 @pytest.mark.parametrize("action", [
     Action("CLICK", position=(0.1, 0.2)), Action("HOVER", position=(0.1, 0.2)),
     Action("INPUT", "quoted ' text\nline two", (0.1, 0.2)),

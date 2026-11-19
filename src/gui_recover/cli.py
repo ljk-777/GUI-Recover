@@ -54,6 +54,8 @@ def main():
     run.add_argument("--out", required=True)
     run.add_argument("--model", default=MODEL_ID)
     run.add_argument("--revision", default=MODEL_REVISION)
+    run.add_argument("--prompt-profile", choices=["baseline", "official-web"], default="baseline")
+    run.add_argument("--parser", choices=["strict", "mixed"], default="strict")
     args = parser.parse_args()
     if args.command == "doctor":
         data = fingerprint()
@@ -84,7 +86,8 @@ def main():
                 "success_rule": "terminated and not truncated and reward==1 and DONE_GLOBAL and RAW_REWARD_GLOBAL>0"}
     write_json(directory / "manifest.json", manifest)
     try:
-        model = ShowUIPolicy(model=args.model, revision=args.revision) if args.policy == "showui" else None
+        model = ShowUIPolicy(model=args.model, revision=args.revision,
+                             prompt_profile=args.prompt_profile) if args.policy == "showui" else None
     except Exception as exc:
         write_json(directory / "startup_error.json", {"error_type": type(exc).__name__, "error": str(exc)})
         raise
@@ -98,7 +101,8 @@ def main():
             try:
                 env = MiniwobEnvironment(task)
                 policy = model if model is not None else OracleSmokePolicy(env)
-                result = run_episode(env, policy, task, seed, args.max_steps, directory / f"{task}-{seed}")
+                result = run_episode(env, policy, task, seed, args.max_steps,
+                                     directory / f"{task}-{seed}", parser_mode=args.parser)
                 render_replay(directory / f"{task}-{seed}")
             except Exception as exc:
                 result = {"task": task, "seed": seed, "success": False, "reason": "setup_error",
