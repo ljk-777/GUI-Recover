@@ -94,6 +94,7 @@ manifest 记录模型版本、提示词、依赖、seed、步数预算、Git 版
 
 ## 开源与后续
 
+- [延迟输入的替换恢复](docs/IDEMPOTENT_INPUT_REPAIR.md)：在相同触发和坐标下，替换执行器使延迟输入从 0/6 提升到 6/6；正常与漏输入保持 6/6。
 - [小规模离线强化学习](docs/RECOVERY_OFFLINE_RL.md)：CPU 拟合恢复决策，延迟输入的测试从旧视觉规则 0/4 提高到 4/4，与人工先等规则持平。
 - [强化学习前的恢复底座](docs/PRE_RL_RECOVERY.md)：Gymnasium 接口、精确终局奖励和分区轨迹；视觉方案在未注入故障组 15/16 对继续 10/16，漏输入组 4/4 对 0/4。
 - [双尺度复选框标签匹配](docs/PORTABLE_CHECKBOX_LABELS.md)：修复两例历史漏判，Linux 和 macOS 的离线判断一致；新布局正常点击 0/20 误触发，相似缺失标签仍有误触发。

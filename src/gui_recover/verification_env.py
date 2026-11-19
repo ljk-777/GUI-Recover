@@ -11,6 +11,9 @@ from .runner import is_success
 from .verification_capture import capture_after_repaint
 
 
+INPUT_REPAIR_PROFILES = ("legacy", "replace")
+
+
 def task_request(task, goal):
     if task == "enter-text":
         value = re.fullmatch(r'Enter "(.*)" into the text field and press Submit\.',goal).group(1)
@@ -120,18 +123,25 @@ class TransitionExecution:
             actual,self.pending = self.pending,None
             self._step(actual,"pending_delivered_before_continuation")
 
-    def repair(self, point):
+    def repair(self, point, *, input_profile="legacy"):
+        if input_profile not in INPUT_REPAIR_PROFILES:
+            raise ValueError("Unknown input repair profile")
+        if input_profile == "replace" and (self.env.task != "enter-text" or self.proposed.action != "INPUT"):
+            raise ValueError("Replacement profile requires the fixed Enter Text input task")
         if self.proposed.action == "INPUT":
             _,_,value = task_request(self.env.task,self.obs.goal)
-            signal=inspect_input(self.before.screenshot,self.obs.screenshot,point,version="v2")
-            append=signal["status"]=="empty"
+            append = input_profile == "legacy" and (
+                inspect_input(self.before.screenshot,self.obs.screenshot,point,version="v2")["status"] == "empty")
             self.flush_pending()
+            if self.done or self.truncated:
+                return
             if append:
                 self._step(Action("INPUT",value,tuple(point)),"append_input_repair")
                 return
             self.obs,self.reward,self.done,self.truncated,self.info,code = self.env.replace_input(point,value)
             self._capture()
-            self.events.append({"event":"replace_input","position":list(point),"value":value,
+            event = "idempotent_input_repair" if input_profile == "replace" else "replace_input"
+            self.events.append({"event":event,"position":list(point),"value":value,
                 "executed_code":code,"reward":self.reward,"terminated":self.done,"truncated":self.truncated,
                 "task_info":deepcopy(self.info.get("task_info",{})),"execution_error":self.obs.last_action_error})
             self.snapshots.append(self.obs)

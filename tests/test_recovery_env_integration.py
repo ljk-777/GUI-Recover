@@ -77,3 +77,27 @@ def test_wait_distinguishes_delayed_input_from_a_retry_that_duplicates_it():
         assert (reward, terminated, truncated, info["outcome"]) == (1., True, False, "success")
     finally:
         env.close()
+
+
+def test_replacement_after_delayed_delivery_is_idempotent():
+    from gui_recover.actions import Action
+    from gui_recover.verification_env import task_request, teacher_evidence
+
+    execution = TransitionExecution("enter-text", 4001, None, "deferred-input")
+    try:
+        field = center(visible_target_boxes(execution.env, execution.obs)[1][0])
+        submit = center(visible_target_boxes(execution.env, execution.obs, "submit")[1][0])
+        _, _, value = task_request("enter-text", execution.obs.goal)
+        execution.proposed = Action("INPUT", value, tuple(field))
+        execution.first()
+        assert teacher_evidence(execution)["observed"] == ""
+        execution.repair(field, input_profile="replace")
+        assert teacher_evidence(execution)["observed"] == value
+        execution.repair(field, input_profile="replace")
+        assert teacher_evidence(execution)["observed"] == value
+        assert [event["event"] for event in execution.events] == [
+            "first", "pending_delivered_before_continuation", "idempotent_input_repair", "idempotent_input_repair"]
+        execution._step(Action("CLICK", position=tuple(submit)), "submit")
+        assert execution.done and execution.reward == 1.0 and execution.info["task_info"]["RAW_REWARD_GLOBAL"] == 1
+    finally:
+        execution.close()
