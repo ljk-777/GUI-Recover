@@ -1,0 +1,26 @@
+{
+  "case_id": "click-button-20002-none",
+  "source_code": "23ba80b5b8882a86d0fbdf1773e65cf63fc7967c",
+  "selection": "Post-evaluation illustration, never used for candidate/model/score selection",
+  "description": "First sorted natural-error rescue; illustrated mode feedback_zoom; predeclared primary mode remains feedback_zoom",
+  "native_images": "Unedited native captures; see ../MINIWOB_LICENSE.txt",
+  "derived_images": "repair-input.png is a declared model-input crop/resize, not native environment evidence",
+  "success_evidence": "Original reward, termination and task_info; a successful action can leave the visible scene unchanged",
+  "scope": "Conditional natural-error cohort, privileged trigger; model receives only visual/action/goal information",
+  "trials": {
+    "oracle_plain": {
+      "success": false,
+      "reason": "task_not_completed",
+      "repairs": 1,
+      "waits": 0,
+      "logical_actor_calls": 2
+    },
+    "oracle_feedback_zoom": {
+      "success": true,
+      "reason": "success",
+      "repairs": 1,
+      "waits": 0,
+      "logical_actor_calls": 2
+    }
+  }
+}

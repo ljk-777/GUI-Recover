@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "study": "contextual-repair-v1",
+  "smoke": true,
+  "base_revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+  "base_weights_sha256": "68080df785764e98976eb9cc93a07c6c69cf8a6933738496e02aef55b53d2aa3",
+  "reference_manifest_sha256": "ee21e3402bd74b37daa81249537b0a5a1415107e4f0e8c7a06b85a348a827437",
+  "inherited_frozen_classifier_sha256": "8ef9aaeedb0a481af1063648f46d958c3f1a57d187ad0ac8655e92d87ba97d0b",
+  "crop_fraction": 0.6,
+  "modes": [
+    "plain",
+    "feedback",
+    "zoom",
+    "feedback_zoom"
+  ],
+  "candidate_order": [
+    "feedback",
+    "zoom",
+    "feedback_zoom"
+  ],
+  "development_healthy_probes": 4,
+  "development_submit_probes": 2,
+  "online_scenes_per_task": 1,
+  "test_tasks": [
+    {
+      "task": "click-button",
+      "count": 1,
+      "candidate_seeds": [
+        40000,
+        40001,
+        40002,
+        40003,
+        40004
+      ]
+    },
+    {
+      "task": "click-dialog",
+      "count": 1,
+      "candidate_seeds": [
+        40000,
+        40001,
+        40002,
+        40003,
+        40004
+      ]
+    },
+    {
+      "task": "click-tab",
+      "count": 1,
+      "candidate_seeds": [
+        40000,
+        40001,
+        40002,
+        40003,
+        40004
+      ]
+    },
+    {
+      "task": "enter-text",
+      "count": 1,
+      "candidate_seeds": [
+        40000,
+        40001,
+        40002,
+        40003,
+        40004
+      ]
+    },
+    {
+      "task": "click-test",
+      "count": 1,
+      "candidate_seeds": [
+        40000,
+        40001,
+        40002,
+        40003,
+        40004
+      ]
+    },
+    {
+      "task": "focus-text",
+      "count": 1,
+      "candidate_seeds": [
+        40000,
+        40001,
+        40002,
+        40003,
+        40004
+      ]
+    }
+  ],
+  "budgets": {
+    "repairs": 1,
+    "waits": 1,
+    "restarts": 0,
+    "logical_actor_calls": 3
+  },
+  "scope": "Original frozen actor, natural errors only; privileged conditional diagnostic and unselected mixed cohort reported separately; no action-model training",
+  "healthy_probe_scope": "Offline counterfactual rechecks of successful source states, including terminal states; they are not executed healthy episodes",
+  "test_selection": "First declared count of layouts not matching either registered prior data or earlier accepted test images; reserve order frozen before reset-only preflight; no outcomes used",
+  "smoke_development": {
+    "train": [
+      {
+        "task": "click-button",
+        "seeds": [
+          9000,
+          9001,
+          9002,
+          9003
+        ]
+      },
+      {
+        "task": "enter-text",
+        "seeds": [
+          9000,
+          9001
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "task": "click-button",
+        "seeds": [
+          10000,
+          10001,
+          10002,
+          10003
+        ]
+      },
+      {
+        "task": "enter-text",
+        "seeds": [
+          10000,
+          10001
+        ]
+      }
+    ]
+  },
+  "inherited_detector_selections_sha256": {
+    "pixels": "2c287b279d4fba6b412eeef7c6d56c54829a488edcca65fe3df5c21e7b201da1",
+    "frozen": "9665c7a92475a8303c2064b29ed8cd64e617c5ba1092d50d3ec5b05a6d55c8dc"
+  }
+}

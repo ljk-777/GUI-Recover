@@ -28,3 +28,6 @@ These examples are post-evaluation illustrations, not the denominators. All PNGs
 
 
 `visual-verification-results.json` records the fresh 300-scene/630-variant outcome-verification study, validation-only injection-transfer fitting and six fixed recovery controls. The primary visual verifier actually decides from screenshots/action/goal at runtime; only oracle accesses task labels/pending state. Deterministic control rendering and FIFO delayed input are explicit fixtures, not stock MiniWoB or real-network claims. Rejects, live/terminal state denominators, natural errors, caches and all failures are retained. Native illustrative cases are labelled post-evaluation and do not determine the score. Classifier/base weights are not committed.
+
+
+`contextual-repair-results.json` records the fixed feedback/zoom repair study, validation-only selection, untouched natural-error test, privileged conditional repair and unselected mixed runtime. Native screenshots and declared derived model inputs are distinct. Counterfactual healthy rechecks are geometric probes, not executed healthy episodes. The no-image action/phase detector ablation and termination-gating limitations are reported. All examples are post-evaluation illustrations; no actor weights or default-model promotion.

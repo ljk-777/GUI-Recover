@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added frozen-actor feedback/zoom repair controls, validation guardrails, fresh natural-error evaluation and an action/phase-only detector ablation, retaining native/derived input provenance and all failures.
+
 - Added visual action-outcome verification with reject/wait, train-only frozen-feature classifiers, injection-to-natural-error evaluation, six bounded recovery controls, deterministic screenshot fixtures and full trace/cost auditing. No actor finetuning or default-model promotion.
 
 - Added validation-only history-prompt selection, fresh-scene execution, explicit context-paired Submit balancing and three fixed SFT seed replicates. Target ordering repairs a Submit regression, while balanced retraining fails the preservation gate; all negative outcomes and native paired examples are retained without changing defaults.
