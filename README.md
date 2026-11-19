@@ -11,7 +11,7 @@ Fault injection, visual recovery experiments, and traceable evaluation for GUI a
 - **有限恢复**：弱视觉反馈，以及脚本规划基线上的输入出现检查与最多一次补输入。
 - **审计证据**：PNG/JSONL/HTML、截图哈希、固定版本、成功率和真实模型调用统计。
 
-输入检查只验证白底、初始为空的输入框里出现了文字笔画；不核对内容正确性。脚本规划只覆盖三种 MiniWoB 指令语法，必须与自主导航成绩分开。
+已发布 Alpha 的默认 v2 输入检查只验证白底、初始为空的输入框里出现了文字笔画；不核对内容正确性。脚本规划只覆盖三种 MiniWoB 指令语法，必须与自主导航成绩分开。
 详见 [发布验证与已知限制](docs/RELEASE_VALIDATION.md)。历史实验及负面结果也保留在 docs/ 中。
 
 ```text
@@ -83,6 +83,8 @@ SELECT、SELECT_TEXT、COPY 暂不支持，出现时计入 invalid_action。只�
 默认保留初始 prompt 和 strict 解析；`--parser mixed` 可兼容单引号字典中的裸 JSON 常量，仍拒绝代码和多动作。
 `--prompt-profile official-web` / `official-miniwob` 用于自主导航模板诊断，历史结果未改善输入任务，详见 [失败诊断](docs/DIAGNOSIS.md)。
 `--input-guard-version v1` 保留原始信号；v2 忽略独立单像素噪声。布局反例通过 `--visual-variant shifted|dark` 启用，它们是修改后的测试夹具，不是原版 MiniWoB 成绩。
+
+开发版增加可选 `--input-guard-version v3`，按区域自身底色检测笔画，面向均匀深色输入框；默认仍为 v2。新的 5 个 seed 中，深色漏输入恢复从 v2 的 0/5 到 v3 的 4/5，正常组也从 0/5 到 4/5；定位失败保留在分母。实现、完整 50 个 episode 对照和边界见 [v3 主题适应实验](docs/INPUT_GUARD_V3.md)。
 
 ## 评测口径
 

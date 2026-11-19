@@ -1,0 +1,19 @@
+{
+  "common": {
+    "policy": "showui-scripted", "tasks": ["enter-text"],
+    "seeds": [60,61,62,63,64], "max-steps": 4,
+    "parser": "mixed", "input-guard-version": "v3", "fault-seed": 20261119
+  },
+  "arms": [
+    {"name":"clean", "settings":{"fault":"none","recovery":"none"}},
+    {"name":"faulted", "settings":{"fault":"drop-input","recovery":"none"}},
+    {"name":"recovered", "settings":{"fault":"drop-input","recovery":"input-guard"}},
+    {"name":"clean-recovered", "settings":{"fault":"none","recovery":"input-guard"}},
+    {"name":"dark-clean", "settings":{"visual-variant":"dark","fault":"none","recovery":"none"}},
+    {"name":"dark-faulted", "settings":{"visual-variant":"dark","fault":"drop-input","recovery":"none"}},
+    {"name":"dark-recovered", "settings":{"visual-variant":"dark","fault":"drop-input","recovery":"input-guard"}},
+    {"name":"dark-clean-recovered", "settings":{"visual-variant":"dark","fault":"none","recovery":"input-guard"}},
+    {"name":"dark-v2-recovered", "settings":{"visual-variant":"dark","fault":"drop-input","recovery":"input-guard","input-guard-version":"v2"}},
+    {"name":"dark-v2-clean-recovered", "settings":{"visual-variant":"dark","fault":"none","recovery":"input-guard","input-guard-version":"v2"}}
+  ]
+}

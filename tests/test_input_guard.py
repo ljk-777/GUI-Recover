@@ -1,6 +1,7 @@
 import json
 
 import numpy as np
+import pytest
 from PIL import Image
 
 from gui_recover.actions import Action, parse_action
@@ -49,6 +50,72 @@ def test_speckle_fix_is_versioned_and_preserves_v1_result():
     assert inspect_input(field(), field("speckle"), (0.5, 0.5), version="v1")["status"] == "unknown"
     fixed = inspect_input(field(), field("speckle"), (0.5, 0.5), version="v2")
     assert fixed["status"] == "empty" and fixed["ignored_speckle_pixels"] == 1
+
+
+def themed_field(kind, background, foreground):
+    pixels = np.asarray(field(kind)).copy()
+    interior = pixels[30:52, 20:180]
+    is_background = (interior == 255).all(axis=2)
+    interior[is_background] = background
+    interior[~is_background] = foreground
+    return Image.fromarray(pixels)
+
+
+@pytest.mark.parametrize("background,foreground", [
+    ((255, 255, 255), (0, 0, 0)),
+    ((51, 51, 51), (255, 255, 255)),
+    ((25, 50, 90), (230, 240, 255)),
+    ((230, 220, 205), (30, 40, 50)),
+])
+@pytest.mark.parametrize("kind,expected", [
+    ("empty", "empty"), ("caret", "empty"), ("focus", "empty"),
+    ("speckle", "empty"), ("text", "text_visible"),
+])
+def test_v3_uses_field_color_and_ignores_focus_caret_and_speckle(background, foreground, kind, expected):
+    result = inspect_input(themed_field("empty", background, foreground),
+                           themed_field(kind, background, foreground), (0.5, 0.5), version="v3")
+    assert result["status"] == expected
+    assert result["background_rgb"] == list(background)
+
+
+def test_v3_rejects_changed_fill_moved_outline_and_preexisting_text():
+    before = themed_field("empty", (51, 51, 51), (255, 255, 255))
+    changed = themed_field("empty", (75, 75, 75), (255, 255, 255))
+    assert inspect_input(before, changed, (0.5, 0.5), version="v3")["reason"] == "region_background_changed"
+    assert inspect_input(before, before.resize((400, 160)), (0.5, 0.5), version="v3")["status"] == "unknown"
+    assert inspect_input(before, Image.new("RGB", before.size, (51, 51, 51)),
+                         (0.5, 0.5), version="v3")["reason"] == "input_outline_moved_or_changed"
+    text = themed_field("text", (51, 51, 51), (255, 255, 255))
+    assert inspect_input(text, text, (0.5, 0.5), version="v3")["status"] == "unknown"
+
+
+def test_v3_requires_a_contrasting_enclosed_region_and_nontrivial_ink():
+    blank = Image.new("RGB", (200, 80), (51, 51, 51))
+    assert inspect_input(blank, blank, (0.5, 0.5), version="v3")["status"] == "unknown"
+    pixels = np.asarray(field()).copy()
+    pixels[36:38, 40:42] = 0
+    assert inspect_input(field(), Image.fromarray(pixels), (0.5, 0.5), version="v3")["status"] == "unknown"
+
+
+def test_v3_does_not_change_legacy_dark_theme_results():
+    before = themed_field("empty", (51, 51, 51), (255, 255, 255))
+    after = themed_field("text", (51, 51, 51), (255, 255, 255))
+    for version in ("v1", "v2"):
+        assert inspect_input(before, after, (0.5, 0.5), version=version)["status"] == "unknown"
+    assert inspect_input(before, after, (0.5, 0.5), version="v3")["status"] == "text_visible"
+
+
+def test_v3_reidentifies_focused_field_with_antialiased_inner_border():
+    # Linux Chromium's focused dark field has one low-contrast row just inside
+    # the stronger outline. A retry must recognize this already-focused field.
+    blank = np.asarray(themed_field("empty", (51, 51, 51), (255, 255, 255))).copy()
+    blank[51, 20:180] = 33
+    typed = blank.copy()
+    typed[35:46, 40:55] = 255
+    assert inspect_input(Image.fromarray(blank), Image.fromarray(blank),
+                         (0.5, 0.5), version="v3")["status"] == "empty"
+    assert inspect_input(Image.fromarray(blank), Image.fromarray(typed),
+                         (0.5, 0.5), version="v3")["status"] == "text_visible"
 
 
 def test_input_fault_focuses_but_does_not_type_and_is_once():

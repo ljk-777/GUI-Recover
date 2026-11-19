@@ -58,7 +58,7 @@ class ScriptedGroundingPolicy:
             raise ValueError("Choose visual guard or blind retry, not both")
         self.backend = backend
         self.input_guard = input_guard
-        if input_guard_version not in ("v1", "v2"):
+        if input_guard_version not in ("v1", "v2", "v3"):
             raise ValueError("Unknown input guard version")
         self.input_guard_version = input_guard_version
         self.blind_input_retry = blind_input_retry
@@ -68,7 +68,8 @@ class ScriptedGroundingPolicy:
                        "advances_plan": "history order by default; visual input check when input_guard enabled",
                        "input_guard": {"enabled": input_guard, "retry_limit": 1,
                                        "blind_retry": blind_input_retry,
-                                       "signal": f"enclosed_white_input_ink_{input_guard_version}"}}
+                                       "signal": ("enclosed_uniform_input_contrast_v3" if input_guard_version == "v3"
+                                                  else f"enclosed_white_input_ink_{input_guard_version}")}}
         self._clear_state()
 
     def _clear_state(self):

@@ -1,0 +1,470 @@
+{
+  "arms": {
+    "clean": {
+      "successes": 5,
+      "episodes": 5,
+      "model_calls": 10,
+      "steps": 10,
+      "retries": 0,
+      "guard_statuses": {},
+      "reasons": {
+        "success": 5
+      },
+      "peak_cuda_reserved_bytes": 5075107840
+    },
+    "faulted": {
+      "successes": 0,
+      "episodes": 5,
+      "model_calls": 10,
+      "steps": 10,
+      "retries": 0,
+      "guard_statuses": {},
+      "reasons": {
+        "task_failure": 5
+      },
+      "peak_cuda_reserved_bytes": 5075107840
+    },
+    "recovered": {
+      "successes": 5,
+      "episodes": 5,
+      "model_calls": 15,
+      "steps": 15,
+      "retries": 5,
+      "guard_statuses": {
+        "empty": 5,
+        "text_visible": 5
+      },
+      "reasons": {
+        "success": 5
+      },
+      "peak_cuda_reserved_bytes": 5075107840
+    },
+    "clean-recovered": {
+      "successes": 5,
+      "episodes": 5,
+      "model_calls": 10,
+      "steps": 10,
+      "retries": 0,
+      "guard_statuses": {
+        "text_visible": 5
+      },
+      "reasons": {
+        "success": 5
+      },
+      "peak_cuda_reserved_bytes": 5075107840
+    },
+    "dark-clean": {
+      "successes": 4,
+      "episodes": 5,
+      "model_calls": 9,
+      "steps": 9,
+      "retries": 0,
+      "guard_statuses": {},
+      "reasons": {
+        "task_failure": 1,
+        "success": 4
+      },
+      "peak_cuda_reserved_bytes": 5075107840
+    },
+    "dark-faulted": {
+      "successes": 0,
+      "episodes": 5,
+      "model_calls": 9,
+      "steps": 9,
+      "retries": 0,
+      "guard_statuses": {},
+      "reasons": {
+        "task_failure": 5
+      },
+      "peak_cuda_reserved_bytes": 5075107840
+    },
+    "dark-recovered": {
+      "successes": 4,
+      "episodes": 5,
+      "model_calls": 13,
+      "steps": 13,
+      "retries": 4,
+      "guard_statuses": {
+        "unknown": 1,
+        "empty": 4,
+        "text_visible": 4
+      },
+      "reasons": {
+        "task_failure": 1,
+        "success": 4
+      },
+      "peak_cuda_reserved_bytes": 5075107840
+    },
+    "dark-clean-recovered": {
+      "successes": 4,
+      "episodes": 5,
+      "model_calls": 9,
+      "steps": 9,
+      "retries": 0,
+      "guard_statuses": {
+        "unknown": 1,
+        "text_visible": 4
+      },
+      "reasons": {
+        "task_failure": 1,
+        "success": 4
+      },
+      "peak_cuda_reserved_bytes": 5075107840
+    },
+    "dark-v2-recovered": {
+      "successes": 0,
+      "episodes": 5,
+      "model_calls": 5,
+      "steps": 5,
+      "retries": 0,
+      "guard_statuses": {
+        "unknown": 5
+      },
+      "reasons": {
+        "task_failure": 1,
+        "policy_stop": 4
+      },
+      "peak_cuda_reserved_bytes": 5075107840
+    },
+    "dark-v2-clean-recovered": {
+      "successes": 0,
+      "episodes": 5,
+      "model_calls": 5,
+      "steps": 5,
+      "retries": 0,
+      "guard_statuses": {
+        "unknown": 5
+      },
+      "reasons": {
+        "task_failure": 1,
+        "policy_stop": 4
+      },
+      "peak_cuda_reserved_bytes": 5075107840
+    }
+  },
+  "verified_screenshots": 145,
+  "version_pairs": [
+    {
+      "old": "dark-v2-recovered",
+      "new": "dark-recovered",
+      "seed": 60,
+      "matched": true
+    },
+    {
+      "old": "dark-v2-recovered",
+      "new": "dark-recovered",
+      "seed": 61,
+      "matched": true
+    },
+    {
+      "old": "dark-v2-recovered",
+      "new": "dark-recovered",
+      "seed": 62,
+      "matched": true
+    },
+    {
+      "old": "dark-v2-recovered",
+      "new": "dark-recovered",
+      "seed": 63,
+      "matched": true
+    },
+    {
+      "old": "dark-v2-recovered",
+      "new": "dark-recovered",
+      "seed": 64,
+      "matched": true
+    },
+    {
+      "old": "dark-v2-clean-recovered",
+      "new": "dark-clean-recovered",
+      "seed": 60,
+      "matched": true
+    },
+    {
+      "old": "dark-v2-clean-recovered",
+      "new": "dark-clean-recovered",
+      "seed": 61,
+      "matched": true
+    },
+    {
+      "old": "dark-v2-clean-recovered",
+      "new": "dark-clean-recovered",
+      "seed": 62,
+      "matched": true
+    },
+    {
+      "old": "dark-v2-clean-recovered",
+      "new": "dark-clean-recovered",
+      "seed": 63,
+      "matched": true
+    },
+    {
+      "old": "dark-v2-clean-recovered",
+      "new": "dark-clean-recovered",
+      "seed": 64,
+      "matched": true
+    }
+  ],
+  "default_paired_comparison": {
+    "arms": {
+      "clean": {
+        "episodes": 5,
+        "successes": 5,
+        "success_rate": 1.0,
+        "predictions": 10,
+        "steps": 10,
+        "feedbacks": 0,
+        "model_calls": 10,
+        "input_guard_checks": 0,
+        "input_guard_retries": 0,
+        "inference_seconds": 5.26693794503808
+      },
+      "faulted": {
+        "episodes": 5,
+        "successes": 0,
+        "success_rate": 0.0,
+        "predictions": 10,
+        "steps": 10,
+        "feedbacks": 0,
+        "model_calls": 10,
+        "input_guard_checks": 0,
+        "input_guard_retries": 0,
+        "inference_seconds": 4.5420740488916636
+      },
+      "recovered": {
+        "episodes": 5,
+        "successes": 5,
+        "success_rate": 1.0,
+        "predictions": 15,
+        "steps": 15,
+        "feedbacks": 0,
+        "model_calls": 15,
+        "input_guard_checks": 10,
+        "input_guard_retries": 5,
+        "inference_seconds": 6.624068856239319
+      },
+      "clean_recovered": {
+        "episodes": 5,
+        "successes": 5,
+        "success_rate": 1.0,
+        "predictions": 10,
+        "steps": 10,
+        "feedbacks": 0,
+        "model_calls": 10,
+        "input_guard_checks": 5,
+        "input_guard_retries": 0,
+        "inference_seconds": 4.425427354872227
+      }
+    },
+    "matched_injected_pairs": 5,
+    "not_injected": 0,
+    "mismatched_prefixes": 0,
+    "rescued": 5,
+    "faulted_failures": 5,
+    "rescue_fraction": 1.0,
+    "degraded": 0,
+    "faulted_successes": 0,
+    "degradation_fraction": null,
+    "pairs": [
+      {
+        "task": "enter-text",
+        "seed": 60,
+        "clean_success": true,
+        "faulted_success": false,
+        "recovered_success": true,
+        "status": "matched"
+      },
+      {
+        "task": "enter-text",
+        "seed": 61,
+        "clean_success": true,
+        "faulted_success": false,
+        "recovered_success": true,
+        "status": "matched"
+      },
+      {
+        "task": "enter-text",
+        "seed": 62,
+        "clean_success": true,
+        "faulted_success": false,
+        "recovered_success": true,
+        "status": "matched"
+      },
+      {
+        "task": "enter-text",
+        "seed": 63,
+        "clean_success": true,
+        "faulted_success": false,
+        "recovered_success": true,
+        "status": "matched"
+      },
+      {
+        "task": "enter-text",
+        "seed": 64,
+        "clean_success": true,
+        "faulted_success": false,
+        "recovered_success": true,
+        "status": "matched"
+      }
+    ]
+  },
+  "dark_paired_comparison": {
+    "arms": {
+      "clean": {
+        "episodes": 5,
+        "successes": 4,
+        "success_rate": 0.8,
+        "predictions": 9,
+        "steps": 9,
+        "feedbacks": 0,
+        "model_calls": 9,
+        "input_guard_checks": 0,
+        "input_guard_retries": 0,
+        "inference_seconds": 4.147881470620632
+      },
+      "faulted": {
+        "episodes": 5,
+        "successes": 0,
+        "success_rate": 0.0,
+        "predictions": 9,
+        "steps": 9,
+        "feedbacks": 0,
+        "model_calls": 9,
+        "input_guard_checks": 0,
+        "input_guard_retries": 0,
+        "inference_seconds": 4.564393633976579
+      },
+      "recovered": {
+        "episodes": 5,
+        "successes": 4,
+        "success_rate": 0.8,
+        "predictions": 13,
+        "steps": 13,
+        "feedbacks": 0,
+        "model_calls": 13,
+        "input_guard_checks": 9,
+        "input_guard_retries": 4,
+        "inference_seconds": 5.839035762473941
+      },
+      "clean_recovered": {
+        "episodes": 5,
+        "successes": 4,
+        "success_rate": 0.8,
+        "predictions": 9,
+        "steps": 9,
+        "feedbacks": 0,
+        "model_calls": 9,
+        "input_guard_checks": 5,
+        "input_guard_retries": 0,
+        "inference_seconds": 4.05974786914885
+      }
+    },
+    "matched_injected_pairs": 5,
+    "not_injected": 0,
+    "mismatched_prefixes": 0,
+    "rescued": 4,
+    "faulted_failures": 5,
+    "rescue_fraction": 0.8,
+    "degraded": 0,
+    "faulted_successes": 0,
+    "degradation_fraction": null,
+    "pairs": [
+      {
+        "task": "enter-text",
+        "seed": 60,
+        "clean_success": false,
+        "faulted_success": false,
+        "recovered_success": false,
+        "status": "matched"
+      },
+      {
+        "task": "enter-text",
+        "seed": 61,
+        "clean_success": true,
+        "faulted_success": false,
+        "recovered_success": true,
+        "status": "matched"
+      },
+      {
+        "task": "enter-text",
+        "seed": 62,
+        "clean_success": true,
+        "faulted_success": false,
+        "recovered_success": true,
+        "status": "matched"
+      },
+      {
+        "task": "enter-text",
+        "seed": 63,
+        "clean_success": true,
+        "faulted_success": false,
+        "recovered_success": true,
+        "status": "matched"
+      },
+      {
+        "task": "enter-text",
+        "seed": 64,
+        "clean_success": true,
+        "faulted_success": false,
+        "recovered_success": true,
+        "status": "matched"
+      }
+    ]
+  },
+  "schema_version": 1,
+  "date": "2026-11-19",
+  "source_code_commit": "6637f65e09621f48d7f1c47853a26bcb4503e237",
+  "model": "showlab/ShowUI-2B",
+  "model_revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+  "task": "enter-text",
+  "seeds": [
+    60,
+    61,
+    62,
+    63,
+    64
+  ],
+  "config": "configs/input_guard_v3.json",
+  "scripted_planner": true,
+  "modified_theme_fixture": true,
+  "offline_audit": {
+    "replayed_episodes": 20,
+    "input_states": 29,
+    "guard_checks": 29,
+    "empty_detection_tp": 9,
+    "empty_detection_fp": 0,
+    "empty_detection_fn": 2,
+    "unknown": 2,
+    "precision": 1.0,
+    "recall": 0.8181818181818182,
+    "offline_detector_mean_seconds": 0.10587044002424026,
+    "offline_detector_max_seconds": 0.2108253724873066
+  },
+  "failure_diagnosis": {
+    "seed": 60,
+    "point": [
+      0.21,
+      0.38
+    ],
+    "normalized_boxes": {
+      "input": [
+        0.02108433734939759,
+        0.2757009345794392,
+        0.4006024096385542,
+        0.3644859813084112
+      ],
+      "submit": [
+        0.02108433734939759,
+        0.3644859813084112,
+        0.3086878765060241,
+        0.5093457943925234
+      ]
+    },
+    "hits_input": false,
+    "hits_submit": true,
+    "diagnostic_only": true,
+    "model_calls": 0
+  },
+  "gpu_sampled_peak_mib": 5197,
+  "scope": "50 controlled episodes, not a full MiniWoB benchmark. DOM labels are evaluator-only. Both seed-60 dark failures remain included."
+}

@@ -70,7 +70,7 @@ def main(argv=None, backend=None):
     run.add_argument("--fault", choices=["none", "drop-click", "offset-click", "drop-input", "partial-input", "wrong-input"], default="none")
     run.add_argument("--fault-seed", type=int, default=0)
     run.add_argument("--recovery", choices=["none", "feedback", "input-guard", "input-retry"], default="none")
-    run.add_argument("--input-guard-version", choices=["v1", "v2"], default="v2")
+    run.add_argument("--input-guard-version", choices=["v1", "v2", "v3"], default="v2")
     run.add_argument("--visual-variant", choices=["default", "shifted", "dark"], default="default")
     args = parser.parse_args(argv)
     if args.command == "doctor":

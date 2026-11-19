@@ -1,0 +1,62 @@
+{
+  "task": "enter-text",
+  "seed": 60,
+  "success": false,
+  "reason": "task_failure",
+  "steps": 1,
+  "predictions": 1,
+  "execution_errors": 0,
+  "reward": 0.0,
+  "terminated": true,
+  "truncated": false,
+  "task_info": {
+    "REWARD_GLOBAL": -1,
+    "RAW_REWARD_GLOBAL": -1,
+    "REWARD_REASON": null,
+    "DONE_GLOBAL": true,
+    "EPISODE_ID": 1,
+    "TASK_READY": true
+  },
+  "inference_seconds": 0.4596451371908188,
+  "elapsed_seconds": 2.4744502902030945,
+  "environment": {
+    "browser_version": "125.0.6422.26",
+    "visual_variant": "dark",
+    "viewport": {
+      "width": 332,
+      "height": 214
+    },
+    "screenshot_size": [
+      498,
+      321
+    ],
+    "screenshot_scale": 1.5
+  },
+  "metrics": {
+    "input_tokens": 324,
+    "model_invocations": 1,
+    "generated_tokens": 13,
+    "peak_cuda_allocated_bytes": 4637332992,
+    "peak_cuda_reserved_bytes": 5075107840,
+    "grounding_raw": "[0.21, 0.38]",
+    "subgoal": "text field",
+    "scripted_step": 0
+  },
+  "normalized_outputs": 0,
+  "model_calls": 1,
+  "input_guard": {
+    "checks": 1,
+    "empty": 0,
+    "text_visible": 0,
+    "unknown": 1,
+    "retries": 0,
+    "blocked": 1,
+    "blind_retries": 0
+  },
+  "fault_kind": "drop-input",
+  "fault_seed": 20261119,
+  "injected": true,
+  "recovery": "input-guard",
+  "recovery_feedbacks": 0,
+  "detection_signals": 0
+}
