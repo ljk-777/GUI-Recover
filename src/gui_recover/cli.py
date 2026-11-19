@@ -41,8 +41,8 @@ def fingerprint():
             "cuda_visible_devices": os.getenv("CUDA_VISIBLE_DEVICES")}
 
 
-def main():
-    parser = argparse.ArgumentParser(description="GUI-Recover V0.1 development preview")
+def main(argv=None, backend=None):
+    parser = argparse.ArgumentParser(description="GUI-Recover visual GUI evaluation and recovery")
     sub = parser.add_subparsers(dest="command", required=True)
     doctor = sub.add_parser("doctor")
     doctor.add_argument("--cuda", action="store_true", help="Probe CUDA only when explicitly requested")
@@ -69,7 +69,7 @@ def main():
     run.add_argument("--recovery", choices=["none", "feedback", "input-guard", "input-retry"], default="none")
     run.add_argument("--input-guard-version", choices=["v1", "v2"], default="v2")
     run.add_argument("--visual-variant", choices=["default", "shifted", "dark"], default="default")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.command == "doctor":
         data = fingerprint()
         if args.cuda:
@@ -115,8 +115,17 @@ def main():
                 "success_rule": "terminated and not truncated and reward==1 and DONE_GLOBAL and RAW_REWARD_GLOBAL>0"}
     write_json(directory / "manifest.json", manifest)
     try:
-        model = ShowUIPolicy(model=args.model, revision=args.revision,
-                             prompt_profile=args.prompt_profile) if args.policy != "oracle-smoke" else None
+        if backend is not None:
+            if args.policy == "oracle-smoke":
+                raise ValueError("Cannot reuse a VLM backend for the diagnostic oracle")
+            for key, value in (("model", args.model), ("revision", args.revision), ("prompt_profile", args.prompt_profile)):
+                if backend.config.get(key) != value:
+                    raise ValueError(f"Reused backend has different {key}")
+            model = backend
+        else:
+            model = ShowUIPolicy(model=args.model, revision=args.revision,
+                                 prompt_profile=args.prompt_profile) if args.policy != "oracle-smoke" else None
+        manifest["reused_model_backend"] = backend is not None
         if args.policy == "showui-scripted":
             model = ScriptedGroundingPolicy(model, input_guard=args.recovery == "input-guard",
                                             blind_input_retry=args.recovery == "input-retry",
