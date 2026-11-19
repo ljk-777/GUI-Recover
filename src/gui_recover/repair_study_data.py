@@ -129,9 +129,11 @@ def prepare_development(reference, out, config, runtime):
     return manifest
 
 
-def preflight(reference_roots, out, groups):
+def preflight(reference_roots, out, groups, *, prior_scenes=()):
     """Choose the first noncolliding reserved layouts, before actor inference."""
-    known, scenes = set(), set()
+    prior_scenes = list(prior_scenes)
+    known = {row["initial_sha256"] for row in prior_scenes}
+    scenes = {(row["task"], row["seed"]) for row in prior_scenes}
     registry = []
     for directory in map(Path, reference_roots):
         for split in ("train", "validation", "test"):

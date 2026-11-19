@@ -42,3 +42,38 @@ def test_sparse_reward_requires_real_completion_after_a_dropped_input():
         assert proof["actor_requests"]==3 and proof["browser_events"][-1]["task_info"]["RAW_REWARD_GLOBAL"]==1
     finally:
         env.close()
+
+
+def test_wait_distinguishes_delayed_input_from_a_retry_that_duplicates_it():
+    seed = 4001
+    source = TransitionExecution("enter-text", seed, None)
+    try:
+        field = center(visible_target_boxes(source.env, source.obs)[1][0])
+        submit = center(visible_target_boxes(source.env, source.obs, "submit")[1][0])
+    finally:
+        source.close()
+
+    class KnownPoints:
+        def ground(self, picture, target):
+            return {"point": submit if target == "Submit button" else field}
+
+        def repair(self, view, mode):
+            return {"point": field}
+
+    env = RecoveryDecisionEnv("enter-text", KnownPoints(), regime="deferred-input")
+    try:
+        env.reset(seed=seed)
+        env.step(Decision.CONTINUE)
+        _, reward, terminated, truncated, info = env.step(Decision.RETRY_PLAIN)
+        assert (reward, terminated, truncated, info["outcome"]) == (0., True, False, "browser_failure")
+        assert [e["event"] for e in info["browser_events"]] == [
+            "pending_delivered_before_continuation", "append_input_repair", "submit"]
+        env.reset(seed=seed)
+        env.step(Decision.CONTINUE)
+        _, reward, terminated, truncated, info = env.step(Decision.WAIT)
+        assert (reward, terminated, truncated) == (0., False, False)
+        assert info["browser_events"][0]["event"] == "pending_delivered_on_wait"
+        _, reward, terminated, truncated, info = env.step(Decision.CONTINUE)
+        assert (reward, terminated, truncated, info["outcome"]) == (1., True, False, "success")
+    finally:
+        env.close()

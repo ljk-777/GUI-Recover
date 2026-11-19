@@ -45,7 +45,7 @@ def _save_state(directory, index, obs, before):
             "action_mask": obs["action_mask"].tolist(), "before": before, "current": current}
 
 
-def record_rollout(env, scene, policy, directory):
+def record_rollout(env, scene, policy, directory, *, choose=None):
     """Write a sequence of observation/action/reward/next-observation records."""
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=False)
@@ -56,7 +56,9 @@ def record_rollout(env, scene, policy, directory):
     rollout = directory/"transitions.jsonl"
     with rollout.open("x") as stream:
         for step in range(1, env.max_decisions+1):
-            action = baseline_decision(observation, policy)
+            action = baseline_decision(observation, policy) if choose is None else Decision(choose(observation))
+            if not observation["action_mask"][action]:
+                raise ValueError("The rollout policy selected a masked decision")
             observation, reward, terminated, truncated, info = env.step(action)
             following = _save_state(directory, step, observation, state["before"])
             stream.write(json.dumps({"schema_version": 1, "step": step, "observation": state,
@@ -110,8 +112,8 @@ def summarize_rollouts(episodes):
                             "injected_preserved": injected["episodes"] > 0 and injected["losses"] == 0}}
 
 
-def iter_learning_transitions(directory, split="train"):
-    """Yield audited decision-level inputs for learning without evaluator evidence."""
+def iter_learning_episodes(directory, split="train"):
+    """Yield paired-branch identity and audited inputs without evaluator evidence."""
     if split not in ("train", "validation"):
         raise ValueError("The learner reader accepts train and validation only")
     root = Path(directory).resolve()
@@ -143,8 +145,16 @@ def iter_learning_transitions(directory, split="train"):
                 raise ValueError("Trace is outside the requested split")
             if file_sha256(trace) != episode["trace_sha256"]:
                 raise ValueError("Trace checksum changed")
+            transitions = []
             for item in map(json.loads, trace.read_text().splitlines()):
                 if item["schema_version"] != 1:
                     raise ValueError("Unsupported transition schema")
-                yield {**{key: item[key] for key in ("action", "reward", "terminated", "truncated")},
-                       **{key: load_state(item[key], trace) for key in ("observation", "next_observation")}}
+                transitions.append({**{key: item[key] for key in ("action", "reward", "terminated", "truncated")},
+                    **{key: load_state(item[key], trace) for key in ("observation", "next_observation")}})
+            yield (episode["task"], episode["seed"], episode["regime"]), transitions
+
+
+def iter_learning_transitions(directory, split="train"):
+    """Yield learner inputs without branch identity or evaluator evidence."""
+    for _, transitions in iter_learning_episodes(directory, split):
+        yield from transitions
