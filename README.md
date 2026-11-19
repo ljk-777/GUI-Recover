@@ -4,7 +4,8 @@ Reusable visual GUI agent trajectories, evaluation, and (planned) error recovery
 
 **状态：V0.1 最小闭环已在 RTX 4090 D、12032 MiB 显存配额上实测通过。**
 ShowUI 初始 30-episode 基线为 15/30；文本输入任务 0/10，当前策略尚不可靠。诊断策略的成功率不代表模型成绩。
-V0.2 恢复模块尚未实现，不宣称性能提升。详见 [服务器实测](docs/SERVER_VALIDATION.md)。
+V0.2 alpha 已实现受控故障、弱视觉反馈和配对审计；恢复收益以对照实验为准。详见 [服务器实测](docs/SERVER_VALIDATION.md)。
+首轮四组各 10 个 episode 的漏点击对照均为 6/10，新增挽救 0/4；详见 [恢复实验结果](docs/RECOVERY_RESULTS.md)。
 
 目标是回答：视觉 GUI Agent 在哪里出错、能否恢复、恢复增加了多少成本。
 V0.1 先构建可靠的测量基础，不进行训练。
@@ -58,7 +59,11 @@ Linux 若缺系统库，可由有安装权限的用户执行 `python -m playwrig
 这是固定图像/生成预算下的推理实测，不能外推到高分辨率长上下文、训练或并发任务。
 模型固定为 `showlab/ShowUI-2B@cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60`。
 
-已实现 CLICK、INPUT、HOVER、ENTER、SCROLL、ANSWER。INPUT 为点击后追加输入，不隐式清空；SELECT、SELECT_TEXT、COPY 暂不支持，出现时计入 invalid_action。只执行一个预测动作，然后重新观察。INPUT 的点击和输入作为同一个逻辑动作。
+已实现 CLICK、INPUT、TYPE、HOVER、ENTER、SCROLL、ANSWER。INPUT 为点击后追加输入；TYPE 向已聚焦元素追加输入，两者不隐式清空。
+SELECT、SELECT_TEXT、COPY 暂不支持，出现时计入 invalid_action。只执行一个预测动作，然后重新观察。INPUT 的点击和输入作为同一个逻辑动作。
+
+默认保留初始 prompt 和 strict 解析；`--parser mixed` 可兼容单引号字典中的裸 JSON 常量，仍拒绝代码和多动作。
+`--prompt-profile official-web` / `official-miniwob` 用于上游模板诊断。详见 [失败诊断](docs/DIAGNOSIS.md)，目前没有观测到输入任务成功率改善。
 
 ## 评测口径
 
@@ -73,7 +78,9 @@ manifest 记录模型版本、提示词、依赖、seed、步数预算、Git 版
 - [仓库、许可证和数据核查](docs/UPSTREAM_AUDIT.md)
 - [本地实测验收记录](docs/LOCAL_VALIDATION.md)
 - [单卡服务器实测](docs/SERVER_VALIDATION.md)
+- [失败诊断与接口对照](docs/DIAGNOSIS.md)
 - [V0.2 实验设计](docs/V0.2.md)
+- [V0.2 首轮配对结果](docs/RECOVERY_RESULTS.md)
 - [贡献约定与 Git 操作](CONTRIBUTING.md)
 
 本项目采用 Apache-2.0；第三方代码、权重和数据仍适用各自条款，见 [第三方说明](THIRD_PARTY.md)。没有把上游源码、模型权重或大数据集放进本仓库。

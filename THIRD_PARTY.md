@@ -4,7 +4,7 @@ GUI-Recover original code: Apache-2.0, see LICENSE.
 
 | Dependency / asset | Source | Declared license / handling |
 |---|---|---|
-| ShowUI source reference | https://github.com/showlab/ShowUI | Apache-2.0; not vendored |
+| ShowUI source reference | https://github.com/showlab/ShowUI | Apache-2.0; prompt text in prompts.py adapted from QUICK_START.md and data/template/miniwob.py at 21ed7cb; copyright retained |
 | ShowUI-2B weights | https://huggingface.co/showlab/ShowUI-2B | Model card: MIT; downloaded separately, not redistributed |
 | BrowserGym | https://github.com/ServiceNow/BrowserGym | Apache-2.0; installed dependency |
 | MiniWoB++ | https://github.com/Farama-Foundation/MiniWoB-plusplus | MIT; setup script clones upstream with its license intact |
