@@ -179,7 +179,9 @@ def first_click(scene, role, grounder, verifiers, out, *, recovery=None):
                     if not (execution.done or execution.truncated):
                         return execution.obs.screenshot
 
-                evidence["recovery"] = recovery.recover(views[phase], execute_repair) if decision["trigger"] else {
+                # The harness has already captured the shared hover frame.
+                # Check that freshest frame again before issuing a click.
+                evidence["recovery"] = recovery.recover(views["after_wait"], execute_repair) if decision["trigger"] else {
                     "actions": [], "final": decision[phase]}
             evidence["state_after_recovery"] = task_state(execution)
             evidence["achieved_after_recovery"] = evidence["state_after_recovery"] == expected
