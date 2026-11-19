@@ -1,0 +1,241 @@
+{
+  "runtime": {
+    "python": "3.11.18",
+    "platform": "Linux-5.15.0-156-generic-x86_64-with-glibc2.39",
+    "packages": {
+      "gui-recover": "0.2.0a1",
+      "browsergym-core": "0.14.3",
+      "browsergym-miniwob": "0.14.3",
+      "gymnasium": "1.4.0",
+      "playwright": "1.44.0",
+      "torch": "2.6.0",
+      "transformers": "4.49.0",
+      "pillow": "13.0.0",
+      "numpy": "2.4.6"
+    },
+    "git_commit": "241465e103470ea6b907ee2f81efc97a9d28df39",
+    "git_dirty": false,
+    "miniwob_commit": "7fd85d71a4b60325c6585396ec4f48377d049838",
+    "cuda_visible_devices": "0"
+  },
+  "config_sha256": "57e85314e25426394c81b68d0f76cc0e10480a1e4b94feaf932aaaff9c5e087a",
+  "summary": {
+    "test": {
+      "none": {
+        "continue": {
+          "episodes": 16,
+          "successes": 10,
+          "gains": 0,
+          "losses": 0,
+          "decisions": 26,
+          "repairs": 0,
+          "waits": 0,
+          "actor_requests": 20,
+          "outcomes": {
+            "success": 10,
+            "accepted_incomplete": 6
+          }
+        },
+        "plain": {
+          "episodes": 16,
+          "successes": 10,
+          "gains": 0,
+          "losses": 0,
+          "decisions": 26,
+          "repairs": 10,
+          "waits": 0,
+          "actor_requests": 30,
+          "outcomes": {
+            "success": 10,
+            "accepted_incomplete": 6
+          }
+        },
+        "fixed_zoom": {
+          "episodes": 16,
+          "successes": 15,
+          "gains": 5,
+          "losses": 0,
+          "decisions": 26,
+          "repairs": 10,
+          "waits": 0,
+          "actor_requests": 30,
+          "outcomes": {
+            "success": 15,
+            "accepted_incomplete": 1
+          }
+        },
+        "visual_fixed": {
+          "episodes": 16,
+          "successes": 15,
+          "gains": 5,
+          "losses": 0,
+          "decisions": 26,
+          "repairs": 6,
+          "waits": 0,
+          "actor_requests": 26,
+          "outcomes": {
+            "success": 15,
+            "accepted_incomplete": 1
+          }
+        }
+      },
+      "drop-input": {
+        "continue": {
+          "episodes": 4,
+          "successes": 0,
+          "gains": 0,
+          "losses": 0,
+          "decisions": 8,
+          "repairs": 0,
+          "waits": 0,
+          "actor_requests": 8,
+          "outcomes": {
+            "browser_failure": 4
+          }
+        },
+        "plain": {
+          "episodes": 4,
+          "successes": 4,
+          "gains": 4,
+          "losses": 0,
+          "decisions": 8,
+          "repairs": 4,
+          "waits": 0,
+          "actor_requests": 12,
+          "outcomes": {
+            "success": 4
+          }
+        },
+        "fixed_zoom": {
+          "episodes": 4,
+          "successes": 4,
+          "gains": 4,
+          "losses": 0,
+          "decisions": 8,
+          "repairs": 4,
+          "waits": 0,
+          "actor_requests": 12,
+          "outcomes": {
+            "success": 4
+          }
+        },
+        "visual_fixed": {
+          "episodes": 4,
+          "successes": 4,
+          "gains": 4,
+          "losses": 0,
+          "decisions": 8,
+          "repairs": 4,
+          "waits": 0,
+          "actor_requests": 12,
+          "outcomes": {
+            "success": 4
+          }
+        }
+      }
+    },
+    "episodes_by_split": {
+      "train": 20,
+      "validation": 10,
+      "test": 80
+    },
+    "effect_gate": {
+      "primary": "visual_fixed",
+      "clean_preserved": true,
+      "clean_gain": true,
+      "injected_gain": true,
+      "injected_preserved": true
+    },
+    "profile": "test",
+    "splits_sha256": "5a13ba7759bcc5088a400465f71266ec7c063a64b9ac18c5a23cd24eeb9c43f7",
+    "index_sha256": {
+      "train": "d4d100ee03e3fd69b17cdcc8f6def1f6a93002a738987f92ecd41f88afd4d569",
+      "validation": "ed4af177a2a3d902626898080b0a150264e52075c21fe970aa4946695f7e315e",
+      "test": "01059ae79574d3c94ee430698706581c9f352f980dc3eddfeb5bff833959d0f5"
+    },
+    "inference": {
+      "logical_requests": 198,
+      "actual_generations": 71,
+      "actual_input_tokens": 24271,
+      "actual_generated_tokens": 909,
+      "scope": "Actual token totals exclude cached/reused original predictions with unavailable token counts"
+    },
+    "peak_cuda_reserved_bytes": 5316280320
+  },
+  "test_clean_by_task": {
+    "click-button": {
+      "continue": 2,
+      "plain": 2,
+      "fixed_zoom": 4,
+      "visual_fixed": 4
+    },
+    "click-dialog": {
+      "continue": 1,
+      "plain": 1,
+      "fixed_zoom": 3,
+      "visual_fixed": 3
+    },
+    "click-tab": {
+      "continue": 3,
+      "plain": 3,
+      "fixed_zoom": 4,
+      "visual_fixed": 4
+    },
+    "enter-text": {
+      "continue": 4,
+      "plain": 4,
+      "fixed_zoom": 4,
+      "visual_fixed": 4
+    }
+  },
+  "independent_audit": {
+    "status": "passed",
+    "registered_layouts": 28,
+    "rollouts": 110,
+    "observations_verified": 736,
+    "browser_operations_verified": 198,
+    "positive_terminal_labels": 84,
+    "outcomes": {
+      "success": 84,
+      "accepted_incomplete": 19,
+      "browser_failure": 7
+    },
+    "learner_transitions": {
+      "train": 34,
+      "validation": 14
+    },
+    "learner_action_counts": {
+      "train|CONTINUE": 29,
+      "train|RETRY_FIXED_ZOOM": 5,
+      "validation|CONTINUE": 13,
+      "validation|RETRY_FIXED_ZOOM": 1
+    },
+    "train_test_current_image_overlap": 0,
+    "peak_sampled_gpu_mib": 5427,
+    "gpu_samples": 229
+  },
+  "native_browser_truncation": {
+    "1": {
+      "reward": 0.0,
+      "terminated": false,
+      "truncated": true,
+      "actual_browser_events": [
+        "first"
+      ]
+    },
+    "2": {
+      "reward": 0.0,
+      "terminated": false,
+      "truncated": true,
+      "actual_browser_events": [
+        "first",
+        "wait_hover"
+      ]
+    }
+  },
+  "readiness": {
+    "engineering_and_reward_audit_passed": true,
+    "frozen_visual_fixed_effect_gate_passed": true
+  },
+  "ci": "https://github.com/ljk-777/GUI-Recover/actions/runs/44547348242"
+}
