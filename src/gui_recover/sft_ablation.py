@@ -67,6 +67,9 @@ class AblationGrounder:
     def predict(self, picture, query, previous, head, *, history_profile="legacy"):
         weights,with_history = HEADS[head]
         action = previous if with_history else None
+        return self.predict_weights(picture,query,action,weights,history_profile=history_profile)
+
+    def predict_weights(self, picture, query, action, weights, *, history_profile="legacy"):
         messages = grounding_messages(picture,query,previous_action=action,history_profile=history_profile)
         prompt = self.processor.apply_chat_template(messages,tokenize=False,add_generation_prompt=True)
         inputs = self.processor(text=[prompt],images=[picture],return_tensors="pt").to("cuda:0")

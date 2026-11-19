@@ -61,3 +61,36 @@ export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 
 新建分支 `feat/target-first-history` 隔离实验。实现和配置先提交，再运行，之后只提交结果文档与脱敏示例。
 原 Alpha、默认 run 和既有实验记录保持原版本。只有用户已分配 GPU 0 空闲时运行；训练权重不进入 Git。
+
+## 第二阶段：依据原验证集冻结的平衡重训
+
+第一阶段的 5000 系列 validation 显示：三种新提示均将 Submit 从 0/4 恢复至 4/4。
+但旧 history 权重正常总分均为 16/28，低于 base 的 17/28，未通过完整门槛；原选择器诚实回退 history_plain。
+旧权重的纠错在 legacy 下 1/10，新提示或无历史均为 0/10。第一阶段不宣称修复已全面成功。
+
+因此冻结 `configs/sft_history_balanced.json`，只根据上述 validation 设计重训，不参考 8000 系列成绩。
+平衡版本仍只有原来的 72 个训练场景，不挖掘新 test 监督：
+
+- 初始正常目标 72 条，各训练一次无历史上下文。
+- 28 条真实纠错，各配对训练无历史和 target-last，共 56 条。
+- 8 条正常 Submit，各配对训练两种上下文，并重复四次，共 64 条。
+
+合计 192 条训练记录；重复和上下文配对不冒充新增场景。原始上一动作、图片、答案和 trace 不改写，显式 `history_input` 只控制是否把历史送入模型。
+验证仍是原 38 条。训练数据目录故意不含 test；训练器不读取 8000 场景。
+三组 seed 固定为 20261119、20261120、20261121，每组 128 次更新，其他 QLoRA 参数沿用上一轮，历史格式固定 target-last。
+主 seed 在训练前固定为 20261119，不按验证或 test 挑最好 seed；所有三组结果均保留。
+这是训练分布与提示的联合修正，不能将全部差异归因于某个历史字段。
+
+三组的有/无历史正常与 Submit 都要守住原验证门槛，纠错要达到旧历史两种提示的较高值，才标记全组通过。
+无论是否通过，都在原先已经冻结的 8000 系列上报告全部三组；不根据该 test 追加训练或修改配方。
+在线只验收主 seed 的有/无历史、base_plain 和旧权重 target-last，共四组。其他种子只做离线复核。
+
+```bash
+.venv-sft/bin/python scripts/build_balanced_history_data.py --config configs/sft_history_balanced.json --reference-data runs/sft-recovery-data-001 --out runs/history-balanced-data-001
+for seed in 20261119 20261120 20261121; do
+  .venv-sft/bin/python scripts/train_grounding_sft.py --config configs/sft_history_balanced.json --data runs/history-balanced-data-001 --model models/ShowUI-2B --context-mode record-action --history-profile target-last --seed "$seed" --out "runs/history-balanced-$seed"
+done
+```
+
+`scripts/eval_balanced_history.py --stage validation` 先写入带配置、checkpoint 和预测哈希的验证门槛文件；`--stage test --validation-eval ...` 核验后才读取 test。
+完整参数见该脚本 `--help`。本阶段不启动 RL，不自动将任何 checkpoint 设为默认。

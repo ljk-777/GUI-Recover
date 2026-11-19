@@ -105,16 +105,21 @@ def audit_dataset(directory):
             "cross_split_scene_and_image_overlap": 0}
 
 
-def encode_record(processor, directory, row, context_mode="none"):
+def encode_record(processor, directory, row, context_mode="none", history_profile="legacy"):
     # Only query/image/answer are consumed. DOM boxes, task_info and labels
     # remain evaluator/teacher metadata even if a record contains more fields.
     picture = Image.open(Path(directory) / row["image"]).convert("RGB")
-    if context_mode not in ("none", "previous-action"):
+    if context_mode not in ("none", "previous-action", "record-action"):
         raise ValueError("Unknown grounding context mode")
-    previous = row.get("previous_action") if context_mode == "previous-action" else None
-    prompt = processor.apply_chat_template(grounding_messages(picture, row["query"], previous_action=previous),
+    if context_mode == "record-action" and type(row.get("history_input")) is not bool:
+        raise ValueError("Record-action requires an explicit boolean history_input")
+    include = context_mode == "previous-action" or (context_mode == "record-action" and row["history_input"])
+    previous = row.get("previous_action") if include else None
+    prompt = processor.apply_chat_template(grounding_messages(picture, row["query"], previous_action=previous,
+                                                            history_profile=history_profile),
                                            tokenize=False, add_generation_prompt=True)
-    full = processor.apply_chat_template(grounding_messages(picture, row["query"], row["answer"], previous),
+    full = processor.apply_chat_template(grounding_messages(picture, row["query"], row["answer"], previous,
+                                                          history_profile=history_profile),
                                          tokenize=False, add_generation_prompt=False)
     prefix = processor(text=[prompt], images=[picture], return_tensors="pt")
     encoded = processor(text=[full], images=[picture], return_tensors="pt")
