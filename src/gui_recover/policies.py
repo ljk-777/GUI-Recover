@@ -1,6 +1,7 @@
 """Policy implementations receive screenshots, task text and action history."""
 
 import json
+from pathlib import Path
 from typing import Protocol
 
 from .environment import VisualObservation
@@ -57,6 +58,9 @@ class ShowUIPolicy:
                        "attention": "sdpa", "min_pixels": 256 * 28 * 28,
                        "max_pixels": max_pixels, "max_new_tokens": max_new_tokens,
                        "do_sample": False, "history_limit": 8, "prompt": NAV_PROMPT}
+        provenance = Path(model) / "download_manifest.json"
+        if provenance.is_file():
+            self.config["asset_provenance"] = json.loads(provenance.read_text())
         self.last_metrics = {}
 
     def reset(self, seed):

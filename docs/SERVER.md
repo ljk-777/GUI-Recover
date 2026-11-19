@@ -1,6 +1,6 @@
 # 单卡服务器操作单
 
-由用户在服务器执行。当前没有 SSH 连接，也没有在服务器安装或运行任何任务。
+以下命令可由用户手动执行，也可在用户授权的 SSH 会话中执行。
 将整个 GUI-Recover 项目目录复制到服务器，进入该目录。下面仅准备推理和评测，不启动训练。
 
 也可以把交付的 `gui-recover.bundle` 复制到服务器，用 Git 恢复完整本地提交历史：
@@ -47,7 +47,33 @@ gui-recover run --policy oracle-smoke --seeds 0 1 2 --out runs/server-smoke-001
 ```
 
 `doctor` 应显示 CUDA 可用、所选显卡、BF16 支持和依赖版本。Linux 缺浏览器系统库时，由有权限的用户安装 Playwright 所需依赖。
-标准 PyPI PyTorch 安装若与已有驱动不匹配，先解决驱动/运行时兼容，不改模型或评测口径。固定推理依赖是待服务器验证的初始配置，不能把本地 CPU 测试当成兼容性证明。
+标准 PyPI PyTorch 安装若与已有驱动不匹配，先解决驱动/运行时兼容，不改模型或评测口径。
+
+Ubuntu 24.04 上，固定的 Playwright 1.44 安装器会请求旧名 `libasound2`，导致 `install --with-deps` 失败。
+改用本项目的对应库名安装脚本：
+
+```bash
+bash scripts/setup_browser_ubuntu24.sh
+```
+
+## 国内下载路径
+
+Python 包可使用清华镜像；只在当前命令指定，不改系统配置：
+
+```bash
+python -m pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -e '.[dev,showui]'
+```
+
+无法访问 Hugging Face 时，可以使用 ShowUI 官方 README 链接的 ModelScope 镜像：
+
+```bash
+python scripts/download_showui.py --out models/ShowUI-2B
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 gui-recover run --policy showui --model models/ShowUI-2B --tasks click-test --seeds 0 1 2 --max-steps 5 --out runs/showui-first-001
+```
+
+脚本保存每个文件的镜像 revision 和 SHA256、支持断点续传；权重还必须匹配固定 HF checkpoint 的独立 SHA256：
+`68080df785764e98976eb9cc93a07c6c69cf8a6933738496e02aef55b53d2aa3`。
+小文件按镜像快照校验，不能仅凭权重相同声称整个目录逐字节等于 HF 仓库。manifest 会保存完整下载来源。
 
 ## 3. ShowUI 首个闭环
 
