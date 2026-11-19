@@ -1,4 +1,4 @@
-# 视觉动作结果验证与选择性恢复：冻结 V1 协议
+# 视觉动作结果验证与选择性恢复：修订后冻结协议
 
 ## 目标与边界
 
@@ -15,7 +15,7 @@
 |---|---|---:|---|
 | train | 9000 系列 | 150 | click-button/enter-text 各60，click-test/focus-text 各15 |
 | validation | 10000 系列 | 60 | 上述四任务各15 |
-| test | 11000 系列 | 90 | 四个已见任务与 click-dialog/click-tab 各15 |
+| test | 12000 系列（标签审计后全新） | 90 | 四个已见任务与 click-dialog/click-tab 各15 |
 
 每个场景先由冻结 actor 根据截图预测一个真实动作，再同 seed 重置运行 none 和一个固定轮转故障。
 CLICK 在 drop-click/offset-click 间轮转；INPUT 在 drop-input/partial-input/wrong-input 间轮转。wrong-input 仍明确限定为原文字追加 `!`，不代表任意文字错误。
@@ -24,7 +24,7 @@ CLICK 在 drop-click/offset-click 间轮转；INPUT 在 drop-input/partial-input
 
 首次300场景采集在划分审计处停止，尚未拟合分类器或查看test效果：focus-text-9004（train）与focus-text-10001（validation）的初始图像、目标和提案相同。
 按只看图像/任务/故障的规则，把10001移入train，与最低seed、同任务同offset-click且不重合的train场景9001交换。最终train的focus-text含10001而不含9001，validation反之；其余不变。
-全部300场景和630变体保留，test的JSON、标签、特征、PNG和轨迹字节完全不变。训练集中仍有两个seed共享初始图像，不能将150个train seed当作150个独立布局。
+该去重阶段全部300场景和630变体保留，原11000系列test字节完全不变；随后因下述标签问题被整体弃作正式test。训练集中仍有两个seed共享初始图像，不能将150个train seed当作150个独立布局。
 `scripts/regroup_verification_data.py`只重排开发集记录与已有特征，不重新推理、不依据效果挑样本；重新计算开发集内矛盾观察标签，并再次严格检查跨split重合为0。
 原始采集目录保留；新manifest记录原代码、原配置、所有来源文件哈希与两条移动。历史trace.record.split保留采集时划分，当前划分以新JSONL为准。
 这是拟合前的协议修订，不声称最终划分完全未经修改。后续可直接用已修订配置重新收集，或从原始完整失败采集构建：
@@ -34,13 +34,21 @@ git show 68087237da0b2bb3ebf27911d0ec0c6b89dd8571:configs/visual_verification.js
 python scripts/regroup_verification_data.py --source runs/visual-verification-001-data --out runs/visual-verification-002-data --original-config runs/visual-verification-original-config.json --config configs/visual_verification.json --collection-commit 68087237da0b2bb3ebf27911d0ec0c6b89dd8571
 ```
 
+上面的重组命令对应去重修订提交`56b1785`时的配置；最终配置已更换test种子，不能拿它重组旧test。
+第二次审计发现旧教师把focus-text成功后的失焦判为动作失败：上游`focus-text.html`在focus回调中明确先`this.blur()`再`endEpisode(1)`。
+这会把原生任务成功误记为自然错误、错误排除健康训练参考。旧轮次在115次在线执行后停止，检测和恢复成绩均不作为正式结果；已生成的数据、权重与部分轨迹原样保留。
+修正教师并增加真实浏览器回归测试后，只对train/validation的focus记录按原奖励/终止/task_info重新标注，保留旧教师证据、原图、原始trace及特征字节。
+全部开发集参考资格和矛盾视觉标签重新计算。旧test的90个场景整体退出正式分母，改用12000–12014共90个新场景；阈值/L2候选、主方法、故障与预算不变。
+新test先只reset预检布局重合，不执行动作或查看结果；随后按冻结实现采集。`assemble_revised_verification_data.py`验证开发集不变、新test不复用旧seed及特征ID对齐，记录完整谱系。
+最终300个场景中210个开发场景复用，90个test场景全新；含被弃旧test的来源生成累计390次，不把它们计入新的独立研究分母。
+
 none 指没有人为注入，不能直接当作动作成功。必须实际执行后标注效果；模型自然失败与注入故障分别报告。
 主分类器只拟合原始参考动作成功的场景及其变体，排除自然失败及对已失败动作再注入的混杂情况；阈值选择也只用此类 validation。
 自然失败保留作迁移诊断；test 的 click-dialog、click-tab 未参与拟合或阈值选择。
 
 ## 真实效果、不可观察性与等待
 
-离线标签：INPUT 要求输入值与用户目标完全相等，focus 要求实际聚焦目标输入框，其余使用原 MiniWoB 成功规则。保留原始标签证据与 task_info。
+离线标签：INPUT 要求输入值与用户目标完全相等；focus使用原MiniWoB对聚焦事件的成功规则，结束后的activeElement只作诊断；其余使用原MiniWoB成功规则。保留原始标签证据与task_info。
 模型只收到 TransitionView：前图、当前图、发出的原始动作、用户目标、当前目标、自己已观察的阶段。无 DOM、目标框、奖励、故障名、实际被注入动作、scene ID 或正确标签。
 
 deferred-input 是明确的排队送达夹具，不伪装成真实网络延迟：首次只聚焦；等待150ms时送达原输入，或在下一条实际修复/Submit操作前按FIFO送达。
@@ -69,7 +77,7 @@ L2固定候选0.01/0.1/1；600次CPU全批更新。PCA、标准化和权重只�
 
 ## 实际执行验收
 
-test 每任务预定11000–11003四个场景，所有 none、注入与延迟变体都进入，共50个计划case；不按哪组成功选案例。
+test 每任务预定12000–12003四个场景，所有 none、注入与延迟变体都进入，共50个计划case；不按哪组成功选案例。
 比较六种策略：none、不等待固定重试、先等待再固定重试、appearance触发、frozen验证器触发、特权oracle，共300次计划执行。
 oracle 可以读取真实动作效果与待送达标志，明确是特权参考，不视为视觉模型成绩。其他路径不调用教师；集成测试将教师替换为报错函数验证隔离。
 环境终止自然结束episode，不在已终止失败后重启；检测表另报告全部状态和仍可干预状态，避免将不可恢复终止错误当作恢复收益。

@@ -24,6 +24,8 @@ def main():
     parser = argparse.ArgumentParser()
     for name in ("config","model","out"):
         parser.add_argument("--"+name,required=True)
+    parser.add_argument("--only-split", choices=("train","validation","test"),
+                        help="Collect one split for an explicitly audited dataset assembly")
     args = parser.parse_args()
     config = json.loads(Path(args.config).read_text())
     runtime = fingerprint()
@@ -51,6 +53,8 @@ def main():
             "truncated":execution.truncated,"effect_achieved":bool(evidence["effect_achieved"]),"teacher_evidence":evidence,
             "task_info":deepcopy(execution.info.get("task_info",{}))}
     for split,groups in config["splits"].items():
+        if args.only_split is not None and split != args.only_split:
+            continue
         records=[]
         for group in groups:
             task=group["task"]
@@ -127,12 +131,14 @@ def main():
                 ids=np.asarray([r["transition_id"]+":"+r["phase"] for r in views]))
         write_json(out/"progress.json",{"splits_finished":split,"scenes":len(manifest["source_scenes"]),
             "records":len(records),"views":len(views),"statuses":dict(Counter(r["status"] for r in records))})
-    manifest["audit"]=audit_transition_splits(out)
+    collected=[args.only_split] if args.only_split else list(config["splits"])
+    manifest["partial_split"]=args.only_split
+    manifest["audit"]=None if args.only_split else audit_transition_splits(out)
     manifest["feature_counters"]=encoder.counters()
     manifest["source_actor_generations"]=len(manifest["source_scenes"])
-    manifest["split_sha256"]={s:file_sha256(out/f"{s}.jsonl") for s in config["splits"]}
-    manifest["features_sha256"]={s:{b:file_sha256(out/f"{s}-{b}.npz") for b in ("pixels","frozen")} for s in config["splits"]}
-    manifest["views_sha256"]={s:file_sha256(out/f"{s}-views.json") for s in config["splits"]}
+    manifest["split_sha256"]={s:file_sha256(out/f"{s}.jsonl") for s in collected}
+    manifest["features_sha256"]={s:{b:file_sha256(out/f"{s}-{b}.npz") for b in ("pixels","frozen")} for s in collected}
+    manifest["views_sha256"]={s:file_sha256(out/f"{s}-views.json") for s in collected}
     manifest["cuda_peak_allocated_bytes"]=actor.torch.cuda.max_memory_allocated()
     manifest["cuda_peak_reserved_bytes"]=actor.torch.cuda.max_memory_reserved()
     write_json(out/"manifest.json",manifest)

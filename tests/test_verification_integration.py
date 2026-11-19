@@ -19,6 +19,24 @@ def prepared(regime,seed=4000):
     return execution
 
 
+def test_focus_teacher_uses_completed_focus_event_despite_task_blur():
+    from gui_recover.runner import is_success
+    from gui_recover.verification_env import teacher_evidence
+    execution=TransitionExecution("focus-text",4000,None)
+    try:
+        box=execution.env.env.unwrapped.page.locator("#tt").bounding_box()
+        size=execution.env.env.unwrapped.page.viewport_size
+        execution.proposed=Action("CLICK",position=((box['x']+box['width']/2)/size['width'],
+                                                   (box['y']+box['height']/2)/size['height']))
+        execution.first()
+        assert is_success(execution.reward,execution.done,execution.truncated,execution.info['task_info'])
+        evidence=teacher_evidence(execution)
+        assert evidence['focused_after_step'] is False
+        assert evidence['effect_achieved'] is True
+    finally:
+        execution.close()
+
+
 def test_replacement_repairs_wrong_content_without_appending():
     execution=prepared("wrong-input")
     try:

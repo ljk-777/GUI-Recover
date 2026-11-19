@@ -44,7 +44,12 @@ def teacher_evidence(execution):
         return {"kind":"exact_input_value","expected":expected,"observed":observed,"effect_achieved":observed==expected}
     if env.task == "focus-text":
         focused=env.env.unwrapped.page.locator("#tt").evaluate("el => el === document.activeElement")
-        return {"kind":"input_focus","effect_achieved":bool(focused)}
+        # MiniWoB's focus handler calls this.blur() before endEpisode(1).
+        # The terminal task evidence records the focus event; activeElement
+        # after that handler is deliberately no longer the textbox.
+        return {"kind":"focus_event_success","focused_after_step":bool(focused),
+            "effect_achieved":is_success(execution.reward,execution.done,
+                execution.truncated,execution.info.get("task_info",{}))}
     return {"kind":"environment_success","effect_achieved":is_success(execution.reward,execution.done,
         execution.truncated,execution.info.get("task_info",{}))}
 
