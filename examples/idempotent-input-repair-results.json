@@ -1,0 +1,366 @@
+{
+  "runtime": {
+    "python": "3.11.18",
+    "platform": "Linux-5.15.0-156-generic-x86_64-with-glibc2.39",
+    "packages": {
+      "gui-recover": "0.2.0a1",
+      "browsergym-core": "0.14.3",
+      "browsergym-miniwob": "0.14.3",
+      "gymnasium": "1.4.0",
+      "playwright": "1.44.0",
+      "torch": "2.6.0",
+      "transformers": "4.49.0",
+      "pillow": "13.0.0",
+      "numpy": "2.4.6"
+    },
+    "git_commit": "45e60d45d170e5d774e5dda3aa4373f52ea3e3e4",
+    "git_dirty": false,
+    "miniwob_commit": "7fd85d71a4b60325c6585396ec4f48377d049838",
+    "cuda_visible_devices": "0"
+  },
+  "registered_config_sha256": "86ad32bf33e0bcc7490742f3a29e0a4729d5339e96c22f29fae6aba90c607a28",
+  "summary": {
+    "scenarios": {
+      "none": {
+        "legacy_visual": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 12,
+          "browser_events": {
+            "first": 6,
+            "submit": 6
+          },
+          "cost_adjusted_return": 1.0,
+          "versus_learned_wait": {
+            "gains": 0,
+            "losses": 0
+          },
+          "versus_replace_visual": {
+            "gains": 0,
+            "losses": 0
+          }
+        },
+        "learned_wait": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 12,
+          "browser_events": {
+            "first": 6,
+            "submit": 6
+          },
+          "cost_adjusted_return": 1.0,
+          "versus_legacy_visual": {
+            "gains": 0,
+            "losses": 0
+          },
+          "versus_replace_visual": {
+            "gains": 0,
+            "losses": 0
+          }
+        },
+        "replace_visual": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 12,
+          "browser_events": {
+            "first": 6,
+            "submit": 6
+          },
+          "cost_adjusted_return": 1.0,
+          "versus_legacy_visual": {
+            "gains": 0,
+            "losses": 0
+          },
+          "versus_learned_wait": {
+            "gains": 0,
+            "losses": 0
+          }
+        }
+      },
+      "drop-input": {
+        "legacy_visual": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 0,
+          "repairs": 6,
+          "actor_requests": 18,
+          "browser_events": {
+            "first": 6,
+            "append_input_repair": 6,
+            "submit": 6
+          },
+          "cost_adjusted_return": 0.9500000000000001,
+          "versus_learned_wait": {
+            "gains": 0,
+            "losses": 0
+          },
+          "versus_replace_visual": {
+            "gains": 0,
+            "losses": 0
+          }
+        },
+        "learned_wait": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 6,
+          "repairs": 6,
+          "actor_requests": 18,
+          "browser_events": {
+            "first": 6,
+            "wait_hover": 6,
+            "append_input_repair": 6,
+            "submit": 6
+          },
+          "cost_adjusted_return": 0.9299999999999998,
+          "versus_legacy_visual": {
+            "gains": 0,
+            "losses": 0
+          },
+          "versus_replace_visual": {
+            "gains": 0,
+            "losses": 0
+          }
+        },
+        "replace_visual": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 0,
+          "repairs": 6,
+          "actor_requests": 18,
+          "browser_events": {
+            "first": 6,
+            "idempotent_input_repair": 6,
+            "submit": 6
+          },
+          "cost_adjusted_return": 0.9500000000000001,
+          "versus_legacy_visual": {
+            "gains": 0,
+            "losses": 0
+          },
+          "versus_learned_wait": {
+            "gains": 0,
+            "losses": 0
+          }
+        }
+      },
+      "deferred-input": {
+        "legacy_visual": {
+          "episodes": 6,
+          "successes": 0,
+          "waits": 0,
+          "repairs": 6,
+          "actor_requests": 18,
+          "browser_events": {
+            "first": 6,
+            "pending_delivered_before_continuation": 6,
+            "append_input_repair": 6,
+            "submit": 6
+          },
+          "cost_adjusted_return": -0.049999999999999996,
+          "versus_learned_wait": {
+            "gains": 0,
+            "losses": 6
+          },
+          "versus_replace_visual": {
+            "gains": 0,
+            "losses": 6
+          }
+        },
+        "learned_wait": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 6,
+          "repairs": 0,
+          "actor_requests": 12,
+          "browser_events": {
+            "first": 6,
+            "pending_delivered_on_wait": 6,
+            "submit": 6
+          },
+          "cost_adjusted_return": 0.9800000000000001,
+          "versus_legacy_visual": {
+            "gains": 6,
+            "losses": 0
+          },
+          "versus_replace_visual": {
+            "gains": 0,
+            "losses": 0
+          }
+        },
+        "replace_visual": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 0,
+          "repairs": 6,
+          "actor_requests": 18,
+          "browser_events": {
+            "first": 6,
+            "pending_delivered_before_continuation": 6,
+            "idempotent_input_repair": 6,
+            "submit": 6
+          },
+          "cost_adjusted_return": 0.9500000000000001,
+          "versus_legacy_visual": {
+            "gains": 6,
+            "losses": 0
+          },
+          "versus_learned_wait": {
+            "gains": 0,
+            "losses": 0
+          }
+        }
+      },
+      "partial-input": {
+        "legacy_forced": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 0,
+          "repairs": 6,
+          "actor_requests": 18,
+          "browser_events": {
+            "first": 6,
+            "replace_input": 6,
+            "submit": 6
+          },
+          "cost_adjusted_return": 0.9500000000000001,
+          "versus_replace_forced": {
+            "gains": 0,
+            "losses": 0
+          }
+        },
+        "replace_forced": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 0,
+          "repairs": 6,
+          "actor_requests": 18,
+          "browser_events": {
+            "first": 6,
+            "idempotent_input_repair": 6,
+            "submit": 6
+          },
+          "cost_adjusted_return": 0.9500000000000001,
+          "versus_legacy_forced": {
+            "gains": 0,
+            "losses": 0
+          }
+        }
+      },
+      "wrong-input": {
+        "legacy_forced": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 0,
+          "repairs": 6,
+          "actor_requests": 18,
+          "browser_events": {
+            "first": 6,
+            "replace_input": 6,
+            "submit": 6
+          },
+          "cost_adjusted_return": 0.9500000000000001,
+          "versus_replace_forced": {
+            "gains": 0,
+            "losses": 0
+          }
+        },
+        "replace_forced": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 0,
+          "repairs": 6,
+          "actor_requests": 18,
+          "browser_events": {
+            "first": 6,
+            "idempotent_input_repair": 6,
+            "submit": 6
+          },
+          "cost_adjusted_return": 0.9500000000000001,
+          "versus_legacy_forced": {
+            "gains": 0,
+            "losses": 0
+          }
+        }
+      }
+    },
+    "gate": {
+      "normal_preserved": true,
+      "drop_preserved": true,
+      "deferred_gain": true,
+      "deferred_preserved": true,
+      "deferred_without_wait": true,
+      "partial_and_wrong_preserved": true
+    },
+    "profile": "test",
+    "episodes": 78,
+    "index_sha256": "f9795bff5aaf907e9d2fd3b250b9ed15a5f33faf95c8e699e0c1f10b45d083a2",
+    "plan_sha256": "3e015aa24693ed51aaf7bcbfd0b9c4ceae84d819d2a2c039a3421b4864378ece",
+    "q_sha256": "54d883540bdd7ad1ceea9e90e0181fa1ea75bbbdbccc408c49cb9d764b9cc6f1",
+    "learned_routing": {
+      "learned_review": 30
+    },
+    "inference": {
+      "logical_requests": 210,
+      "actual_generations": 42,
+      "actual_input_tokens": 14661,
+      "actual_generated_tokens": 543,
+      "scope": "Actual token totals exclude cached/reused original predictions with unavailable token counts"
+    },
+    "peak_cuda_reserved_bytes": 5192548352
+  },
+  "independent_audit": {
+    "status": "passed",
+    "layouts": 6,
+    "rollouts": 78,
+    "native_operations": 234,
+    "decisions_verified": 168,
+    "frame_references_verified": 672,
+    "identical_drop_delay_initial_post_action_frames": 6,
+    "same_grounded_repair_inputs": 24,
+    "outcomes": {
+      "success": 72,
+      "browser_failure": 6
+    },
+    "delayed_event_sequences": [
+      {
+        "policy": "legacy_visual",
+        "events": [
+          "first",
+          "pending_delivered_before_continuation",
+          "append_input_repair",
+          "submit"
+        ],
+        "count": 6
+      },
+      {
+        "policy": "learned_wait",
+        "events": [
+          "first",
+          "pending_delivered_on_wait",
+          "submit"
+        ],
+        "count": 6
+      },
+      {
+        "policy": "replace_visual",
+        "events": [
+          "first",
+          "pending_delivered_before_continuation",
+          "idempotent_input_repair",
+          "submit"
+        ],
+        "count": 6
+      }
+    ],
+    "peak_sampled_gpu_mib": 5309,
+    "gpu_samples": 207
+  },
+  "effect_gate_passed": true,
+  "implementation_ci": "https://github.com/ljk-777/GUI-Recover/actions/runs/44556083291"
+}
