@@ -64,6 +64,12 @@ Python 包可使用清华镜像；只在当前命令指定，不改系统配置�
 python -m pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -e '.[dev,showui]'
 ```
 
+浏览器下载可使用本次验证通过的国内镜像，仍保留 Playwright 固定的 Chromium build：
+
+```bash
+PLAYWRIGHT_DOWNLOAD_HOST=https://registry.npmmirror.com/-/binary/playwright python -m playwright install chromium
+```
+
 无法访问 Hugging Face 时，可以使用 ShowUI 官方 README 链接的 ModelScope 镜像：
 
 ```bash

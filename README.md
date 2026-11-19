@@ -2,8 +2,9 @@
 
 Reusable visual GUI agent trajectories, evaluation, and (planned) error recovery.
 
-**状态：V0.1 开发预览。本地环境与记录链路可验收；ShowUI 单卡 CUDA 推理待服务器实测。**
-诊断策略的成功率不代表模型成绩。V0.2 恢复模块尚未实现，不宣称性能提升。
+**状态：V0.1 最小闭环已在 RTX 4090 D、12032 MiB 显存配额上实测通过。**
+ShowUI 初始 30-episode 基线为 15/30；文本输入任务 0/10，当前策略尚不可靠。诊断策略的成功率不代表模型成绩。
+V0.2 恢复模块尚未实现，不宣称性能提升。详见 [服务器实测](docs/SERVER_VALIDATION.md)。
 
 目标是回答：视觉 GUI Agent 在哪里出错、能否恢复、恢复增加了多少成本。
 V0.1 先构建可靠的测量基础，不进行训练。
@@ -53,7 +54,8 @@ Linux 若缺系统库，可由有安装权限的用户执行 `python -m playwrig
 
 ## 单张 RTX 4090
 
-详见 [服务器操作单](docs/SERVER.md)。模型约 4.42 GB 权重，24 GB 显存下做 BF16 单样本推理具备可行性；激活、图像 token、KV cache 和驱动占用仍需实测。
+详见 [服务器操作单](docs/SERVER.md)。模型约 4.42 GB 权重；本次 BF16 单样本、三类简单任务的设备采样显存峰值为 6695 MiB，低于 12032 MiB 配额。
+这是固定图像/生成预算下的推理实测，不能外推到高分辨率长上下文、训练或并发任务。
 模型固定为 `showlab/ShowUI-2B@cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60`。
 
 已实现 CLICK、INPUT、HOVER、ENTER、SCROLL、ANSWER。INPUT 为点击后追加输入，不隐式清空；SELECT、SELECT_TEXT、COPY 暂不支持，出现时计入 invalid_action。只执行一个预测动作，然后重新观察。INPUT 的点击和输入作为同一个逻辑动作。
@@ -70,6 +72,7 @@ manifest 记录模型版本、提示词、依赖、seed、步数预算、Git 版
 
 - [仓库、许可证和数据核查](docs/UPSTREAM_AUDIT.md)
 - [本地实测验收记录](docs/LOCAL_VALIDATION.md)
+- [单卡服务器实测](docs/SERVER_VALIDATION.md)
 - [V0.2 实验设计](docs/V0.2.md)
 - [贡献约定与 Git 操作](CONTRIBUTING.md)
 
