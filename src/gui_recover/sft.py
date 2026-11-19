@@ -7,6 +7,7 @@ from pathlib import Path
 from PIL import Image
 
 from .grounding import parse_point, point_hits_boxes
+from .actions import parse_action
 from .prompts import GROUNDING
 
 
@@ -21,10 +22,20 @@ def file_sha256(path):
     return result.hexdigest()
 
 
-def grounding_messages(picture, query, answer=None):
+def grounding_query(query, previous_action=None):
+    if previous_action is None:
+        return query
+    # The previous PROPOSED action is the only admitted prefix. Rewards,
+    # teacher boxes, fault labels and executed-code strings are not accepted.
+    action = parse_action(json.dumps(previous_action)).to_dict()
+    return (query + "\nPrevious proposed action: " + json.dumps(action, separators=(",", ":"))
+            + "\nRecheck the current screenshot and return the target location.")
+
+
+def grounding_messages(picture, query, answer=None, previous_action=None):
     messages = [{"role": "user", "content": [
         {"type": "text", "text": GROUNDING}, {"type": "image", "image": picture},
-        {"type": "text", "text": query}]}]
+        {"type": "text", "text": grounding_query(query, previous_action)}]}]
     if answer is not None:
         messages.append({"role": "assistant", "content": [{"type": "text", "text": answer}]})
     return messages
@@ -48,6 +59,8 @@ def load_records(directory, split):
         if row["split"] != split or row["id"] in ids or not row["query"].strip():
             raise ValueError("Invalid or duplicate supervision record")
         ids.add(row["id"])
+        if row.get("previous_action") is not None:
+            parse_action(json.dumps(row["previous_action"]))
         image = (root / row["image"]).resolve()
         if not image.is_relative_to(root) or not image.is_file():
             raise ValueError("Image must exist inside the dataset")
@@ -79,13 +92,16 @@ def audit_dataset(directory):
             "cross_split_scene_and_image_overlap": 0}
 
 
-def encode_record(processor, directory, row):
+def encode_record(processor, directory, row, context_mode="none"):
     # Only query/image/answer are consumed. DOM boxes, task_info and labels
     # remain evaluator/teacher metadata even if a record contains more fields.
     picture = Image.open(Path(directory) / row["image"]).convert("RGB")
-    prompt = processor.apply_chat_template(grounding_messages(picture, row["query"]),
+    if context_mode not in ("none", "previous-action"):
+        raise ValueError("Unknown grounding context mode")
+    previous = row.get("previous_action") if context_mode == "previous-action" else None
+    prompt = processor.apply_chat_template(grounding_messages(picture, row["query"], previous_action=previous),
                                            tokenize=False, add_generation_prompt=True)
-    full = processor.apply_chat_template(grounding_messages(picture, row["query"], row["answer"]),
+    full = processor.apply_chat_template(grounding_messages(picture, row["query"], row["answer"], previous),
                                          tokenize=False, add_generation_prompt=False)
     prefix = processor(text=[prompt], images=[picture], return_tensors="pt")
     encoded = processor(text=[full], images=[picture], return_tensors="pt")
