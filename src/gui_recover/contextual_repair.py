@@ -40,7 +40,7 @@ class RepairInput:
                 (top + point[1] * (bottom-top))/height)
 
 
-def prepare_repair(view: TransitionView, mode: str, fraction=0.6):
+def prepare_repair(view: TransitionView, mode: str, fraction=0.6, *, fixed_crop=None):
     if mode not in REPAIR_MODES or not 0 < fraction <= 1:
         raise ValueError("Unknown repair mode or invalid crop fraction")
     if view.before.size != view.after.size:
@@ -48,14 +48,22 @@ def prepare_repair(view: TransitionView, mode: str, fraction=0.6):
     picture = view.after.convert("RGB")
     width, height = picture.size
     crop = (0, 0, width, height)
-    if mode in ("zoom", "feedback_zoom"):
+    zoom = mode in ("zoom", "feedback_zoom")
+    if fixed_crop is not None:
+        left, top, right, bottom = fixed_crop
+        if not zoom or not (0 <= left < right <= 1 and 0 <= top < bottom <= 1):
+            raise ValueError("Fixed crop requires normalized bounds and a zoom mode")
+        crop = (round(left*width), round(top*height), round(right*width), round(bottom*height))
+        if crop[0] >= crop[2] or crop[1] >= crop[3]:
+            raise ValueError("Fixed crop must include at least one pixel in each dimension")
+    elif zoom:
         cw, ch = max(1, round(width*fraction)), max(1, round(height*fraction))
         x, y = view.proposed.position or (0.5, 0.5)
         left = min(max(round(x*width-cw/2), 0), width-cw)
         top = min(max(round(y*height-ch/2), 0), height-ch)
         crop = (left, top, left+cw, top+ch)
-        # This is a declared model-input transform, never a replacement for
-        # the native environment evidence. Keep the canvas/pixel budget fixed.
+    if zoom:
+        # Keep the model canvas size fixed and save the native evidence separately.
         picture = picture.crop(crop).resize((width, height), Image.Resampling.BICUBIC)
     query = view.target
     if mode in ("feedback", "feedback_zoom"):
@@ -116,8 +124,8 @@ class RepairGrounder:
             f.write(json.dumps(result, ensure_ascii=False)+"\n")
         return result
 
-    def repair(self, view, mode, fraction=0.6, input_path=None):
-        prepared = prepare_repair(view, mode, fraction)
+    def repair(self, view, mode, fraction=0.6, input_path=None, *, fixed_crop=None):
+        prepared = prepare_repair(view, mode, fraction, fixed_crop=fixed_crop)
         result = self.ground(prepared.picture, prepared.query)
         if input_path is None:
             input_path = self.directory/"model_inputs"/(result["input_pixel_hash"]+".png")
@@ -137,13 +145,18 @@ class RepairGrounder:
 
 
 class ContextualRepairPolicy:
-    def __init__(self, grounder, mode, fraction=0.6, input_path=None):
+    def __init__(self, grounder, mode, fraction=0.6, input_path=None, *, fixed_crop=None):
         if mode not in REPAIR_MODES:
             raise ValueError("Unknown repair policy")
         self.grounder, self.mode, self.fraction, self.input_path = grounder, mode, fraction, input_path
+        self.fixed_crop = tuple(fixed_crop) if fixed_crop is not None else None
         self.config = {"mode": mode, "crop_fraction": fraction,
                        "feedback_sha256": hashlib.sha256(FEEDBACK.encode()).hexdigest(),
                        "uses_teacher": False, "coordinates_in_feedback": False}
+        if self.fixed_crop is not None:
+            self.config["fixed_crop"] = self.fixed_crop
 
     def predict(self, view):
+        if self.fixed_crop is not None:
+            return self.grounder.repair(view, self.mode, self.fraction, self.input_path, fixed_crop=self.fixed_crop)
         return self.grounder.repair(view, self.mode, self.fraction, self.input_path)

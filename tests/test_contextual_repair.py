@@ -67,6 +67,19 @@ def test_zoom_cache_maps_prediction_without_extra_model_calls_and_rejects_confli
         cache.prime(v.after, v.target, '[0.2,0.3]', 'another')
 
 
+def test_fixed_zoom_keeps_the_matched_prompt_and_ignores_the_proposed_location():
+    given = view((0.96, 0.03))
+    fixed = prepare_repair(given, "feedback_zoom", fixed_crop=(0, 0, .6, .6))
+    other = prepare_repair(view((0.1, 0.95)), "feedback_zoom", fixed_crop=(0, 0, .6, .6))
+    adaptive = prepare_repair(given, "feedback_zoom")
+    assert fixed.query == other.query == adaptive.query
+    assert (fixed.crop, pixel_hash(fixed.picture)) == (other.crop, pixel_hash(other.picture))
+    assert fixed.crop == (0, 0, 300, 192) and adaptive.crop != fixed.crop
+    assert fixed.map_point((0.5, 0.5)) == (0.3, 0.3)
+    with pytest.raises(ValueError, match="normalized"):
+        prepare_repair(given, "plain", fixed_crop=(0, 0, .6, .6))
+
+
 def test_selection_requires_actual_recovery_gain_and_both_normal_guards():
     modes = ('plain', 'feedback', 'zoom', 'feedback_zoom')
     def row(kind, values):

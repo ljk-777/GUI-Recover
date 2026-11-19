@@ -1,0 +1,77 @@
+{
+  "task": "click-button-sequence",
+  "seed": 32000,
+  "goal": "Click button ONE, then click button TWO.",
+  "native_before_immediate_and_after_wait": "native.png",
+  "native_sha256": "aba5600c9d8c8a32bcf545b254a8cc609a97cd1090bafd200a0d14e6ce349239",
+  "branches": {
+    "correct": {
+      "executed_action": {
+        "action": "CLICK",
+        "value": null,
+        "position": [
+          0.21084337349397592,
+          0.3364485981308411
+        ]
+      },
+      "first_click_state": [
+        "subbtn"
+      ],
+      "first_click_achieved": true,
+      "still_live": true,
+      "task_completed_with_oracle_continuation": true,
+      "source_record_sha256": "2da266d949721fe9291cfaea0d3bde52ccaeb3286d9875ca05b3ed04c4c98721",
+      "repair_trigger": {
+        "frozen": true,
+        "pixels": true,
+        "action_phase": true,
+        "appearance": true
+      }
+    },
+    "blank": {
+      "executed_action": {
+        "action": "CLICK",
+        "value": null,
+        "position": [
+          0.9,
+          0.9
+        ]
+      },
+      "first_click_state": [],
+      "first_click_achieved": false,
+      "still_live": true,
+      "task_completed_with_oracle_continuation": null,
+      "source_record_sha256": "5b41b485518197c076c22523ef6612eb1c8d5c03bdcc3b1c907f8fb1069e654b",
+      "repair_trigger": {
+        "frozen": true,
+        "pixels": true,
+        "action_phase": true,
+        "appearance": true
+      }
+    },
+    "wrong_control": {
+      "executed_action": {
+        "action": "CLICK",
+        "value": null,
+        "position": [
+          0.06325301204819277,
+          0.6822429906542056
+        ]
+      },
+      "first_click_state": [
+        "subbtn2"
+      ],
+      "first_click_achieved": false,
+      "still_live": true,
+      "task_completed_with_oracle_continuation": null,
+      "source_record_sha256": "580b5630a2efd375ecbba7c693f65c3d228134477eda4346d60bfc34bb6cdedd",
+      "repair_trigger": {
+        "frozen": true,
+        "pixels": true,
+        "action_phase": true,
+        "appearance": true
+      }
+    }
+  },
+  "scope": "First accepted layout shown after evaluation. The position and task-state logs differ between the branches, while the native screenshot bytes match."
+}
