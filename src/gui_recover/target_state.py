@@ -94,6 +94,18 @@ class CheckboxStateVerifier:
         ImageDraw.Draw(image).text((1, 0), label, fill=255, font=self.font)
         return _trim(np.asarray(image, dtype=float)/255)
 
+    def match_label(self, label, rows):
+        template = self.template(label)
+        if template is None:
+            return None, _unknown("target_font_unreadable")
+        scores = [_similarity(template, row.ink) for row in rows]
+        best, runner_up = sorted(range(len(scores)), key=scores.__getitem__, reverse=True)[:2]
+        margin = scores[best]-scores[runner_up]
+        evidence = {"target_score": scores[best], "target_margin": margin}
+        if scores[best] < self.minimum_score or margin < self.minimum_margin:
+            return None, _unknown("ambiguous_target_label", **evidence)
+        return best, evidence
+
     def verify(self, view: TransitionView):
         target, goal = _TARGET.fullmatch(view.target), _GOAL.fullmatch(view.goal)
         if view.proposed.action != "CLICK" or not target or not goal or target[1] not in goal[1].split(", "):
@@ -113,15 +125,9 @@ class CheckboxStateVerifier:
         if changed.any():
             return _unknown("changes_outside_checkbox_controls")
 
-        template = self.template(target[1])
-        if template is None:
-            return _unknown("target_font_unreadable")
-        scores = [_similarity(template, row.ink) for row in old]
-        best, runner_up = sorted(range(len(scores)), key=scores.__getitem__, reverse=True)[:2]
-        margin = scores[best]-scores[runner_up]
-        evidence = {"target_score": scores[best], "target_margin": margin}
-        if scores[best] < self.minimum_score or margin < self.minimum_margin:
-            return _unknown("ambiguous_target_label", **evidence)
+        best, evidence = self.match_label(target[1], old)
+        if best is None:
+            return evidence
 
         other_changes = [i for i, (a, b) in enumerate(zip(old, new))
                          if i != best and a.checked != b.checked]

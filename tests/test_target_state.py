@@ -1,6 +1,7 @@
 from PIL import Image, ImageDraw, ImageFont
 
 from gui_recover.actions import Action
+from gui_recover.portable_labels import PortableCheckboxStateVerifier
 from gui_recover.target_state import CheckboxStateVerifier
 from gui_recover.verification import TransitionView
 
@@ -60,3 +61,22 @@ def test_ambiguous_labels_and_changes_outside_checkbox_area_abstain():
     after = duplicated.copy()
     after.putpixel((255, 210), (0, 0, 0))
     assert policy.verify(view(duplicated, after))["reason"] == "changes_outside_checkbox_controls"
+
+
+def test_two_scale_profile_pins_the_layout_engine_and_rejects_duplicate_rows(monkeypatch):
+    fonts = {size: ImageFont.load_default(size=size) for size in (15, 60)}
+    calls = []
+
+    def truetype(path, size, *, layout_engine):
+        calls.append((path, size, layout_engine))
+        return fonts[size]
+
+    monkeypatch.setattr(ImageFont, "truetype", truetype)
+    policy = PortableCheckboxStateVerifier("test-font.ttf")
+    assert calls == [("test-font.ttf", size, ImageFont.Layout.BASIC) for size in (15, 60)]
+    before = form(fonts[15])
+    correct = form(fonts[15], 0)
+    result = policy.verify(view(before, correct))
+    assert result["status"] == "achieved" and [r["row"] for r in result["label_scales"]] == [0, 0]
+    duplicate = form(fonts[15], labels=("Ab2", "Ab2"))
+    assert policy.verify(view(duplicate, duplicate))["reason"] == "ambiguous_target_label"

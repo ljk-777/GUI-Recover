@@ -63,7 +63,8 @@ def fixture(execution):
         return None, "goal_control_unreachable"
     def normalized(p):
         return None if p is None else (p[0]/raw["width"], p[1]/raw["height"])
-    return {"target": target, "targets": targets, "correct": normalized(by_name[targets[0]]),
+    return {"target": target, "targets": targets, "visible_labels": list(by_name),
+            "correct": normalized(by_name[targets[0]]),
             "blank": (0.9, 0.9), "wrong_control": normalized(by_name[wrong]) if wrong else None,
             "wrong_state": ["subbtn2" if execution.env.task == "click-button-sequence" else wrong] if wrong else None,
             "continuation": [normalized(by_name[n]) for n in targets[1:]]
