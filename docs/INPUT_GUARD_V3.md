@@ -8,7 +8,8 @@ v2 只寻找白底输入框，深色主题即使正常输入也会 unknown 并�
 gui-recover run --policy showui-scripted --model models/ShowUI-2B --tasks enter-text --seeds 60 --max-steps 4 --parser mixed --visual-variant dark --fault drop-input --recovery input-guard --input-guard-version v3 --out runs/dark-v3-demo
 ```
 
-从预测点附近的像素出发，寻找 RGB 各通道差值不超过 12 的连通区域。保留原有面积、长宽比、矩形填充率和封闭条件；四侧边框与底色的通道最大差至少 24，覆盖率至少 65%。
+从预测点附近的像素出发，寻找 RGB 各通道差值不超过 12 的连通区域。保留原有面积、长宽比、矩形填充率和封闭条件；在四侧各两像素邻接带内寻找边框，与底色的通道最大差至少 24，覆盖率至少 65%。
+两像素邻接带覆盖 Linux Chromium 聚焦边框内侧的一行低对比抗锯齿像素；已加入该开发回归案例。
 区域中位颜色作为底色；内部去掉两像素焦点边框，再以至少 45 的通道最大色差寻找笔画。沿用光标和孤立单像素的排除规则，至少 8 个有效像素才认为文字出现。
 输入后中位底色改变超过 12、边框移位、笔画像素超过内部面积的 40% 或截图尺寸改变均返回 unknown。
 

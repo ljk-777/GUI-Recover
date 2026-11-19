@@ -105,6 +105,19 @@ def test_v3_does_not_change_legacy_dark_theme_results():
     assert inspect_input(before, after, (0.5, 0.5), version="v3")["status"] == "text_visible"
 
 
+def test_v3_reidentifies_focused_field_with_antialiased_inner_border():
+    # Linux Chromium's focused dark field has one low-contrast row just inside
+    # the stronger outline. A retry must recognize this already-focused field.
+    blank = np.asarray(themed_field("empty", (51, 51, 51), (255, 255, 255))).copy()
+    blank[51, 20:180] = 33
+    typed = blank.copy()
+    typed[35:46, 40:55] = 255
+    assert inspect_input(Image.fromarray(blank), Image.fromarray(blank),
+                         (0.5, 0.5), version="v3")["status"] == "empty"
+    assert inspect_input(Image.fromarray(blank), Image.fromarray(typed),
+                         (0.5, 0.5), version="v3")["status"] == "text_visible"
+
+
 def test_input_fault_focuses_but_does_not_type_and_is_once():
     injector = ActionFault("drop-input", 7)
     assert injector.apply(Action("CLICK", position=(0.3, 0.3)))[1] is None

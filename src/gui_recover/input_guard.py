@@ -140,8 +140,12 @@ def _uniform_region(pixels, position):
 def _has_outline(pixels, bounds, background):
     x0, y0, x1, y1 = bounds
     contrast = np.abs(pixels - background).max(axis=2) >= 24
-    borders = [contrast[y0 - 1, x0:x1], contrast[y1, x0:x1],
-               contrast[y0:y1, x0 - 1], contrast[y0:y1, x1]]
+    # Chromium on Linux can insert a low-contrast antialias row between the
+    # solid fill and focused outline. Require a boundary within two pixels.
+    borders = [contrast[max(0, y0 - 2):y0, x0:x1].any(axis=0),
+               contrast[y1:y1 + 2, x0:x1].any(axis=0),
+               contrast[y0:y1, max(0, x0 - 2):x0].any(axis=1),
+               contrast[y0:y1, x1:x1 + 2].any(axis=1)]
     return all(float(border.mean()) >= 0.65 for border in borders)
 
 
