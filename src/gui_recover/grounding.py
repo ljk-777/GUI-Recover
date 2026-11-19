@@ -66,7 +66,8 @@ class ScriptedGroundingPolicy:
     def predict(self, obs, history):
         plan = plan_from_goal(obs.goal)
         if len(history) >= len(plan):
-            self.last_metrics = {**self.last_metrics, "model_invocations": 0,
+            peaks = {key: value for key, value in self.last_metrics.items() if key.startswith("peak_cuda_")}
+            self.last_metrics = {**peaks, "model_invocations": 0, "input_tokens": 0, "generated_tokens": 0,
                                  "grounding_raw": None, "subgoal": None,
                                  "scripted_plan_exhausted": True}
             return json.dumps(Action("ANSWER", "Scripted plan exhausted").to_dict())
