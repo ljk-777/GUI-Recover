@@ -9,7 +9,7 @@
 
 ## 数据：300 个新场景，630 个计划执行变体
 
-`configs/visual_verification.json` 在收集前冻结：
+以下初始划分在收集前冻结；正式拟合前的一次去重调整见表后说明：
 
 | split | seeds | 场景 | 任务 |
 |---|---|---:|---|
@@ -21,6 +21,18 @@
 CLICK 在 drop-click/offset-click 间轮转；INPUT 在 drop-input/partial-input/wrong-input 间轮转。wrong-input 仍明确限定为原文字追加 `!`，不代表任意文字错误。
 所有 drop-input 场景另有 deferred-input 变体。因此计划 train 320、validation 125、test 185 个执行变体；实际异常与无效输出保留并报告。
 同场景所有故障、截图和观察阶段都留在同一 split。初始图像跨 split 重合会使审计失败。已见旧场景仅用于工程 smoke，不计新验收。
+
+首次300场景采集在划分审计处停止，尚未拟合分类器或查看test效果：focus-text-9004（train）与focus-text-10001（validation）的初始图像、目标和提案相同。
+按只看图像/任务/故障的规则，把10001移入train，与最低seed、同任务同offset-click且不重合的train场景9001交换。最终train的focus-text含10001而不含9001，validation反之；其余不变。
+全部300场景和630变体保留，test的JSON、标签、特征、PNG和轨迹字节完全不变。训练集中仍有两个seed共享初始图像，不能将150个train seed当作150个独立布局。
+`scripts/regroup_verification_data.py`只重排开发集记录与已有特征，不重新推理、不依据效果挑样本；重新计算开发集内矛盾观察标签，并再次严格检查跨split重合为0。
+原始采集目录保留；新manifest记录原代码、原配置、所有来源文件哈希与两条移动。历史trace.record.split保留采集时划分，当前划分以新JSONL为准。
+这是拟合前的协议修订，不声称最终划分完全未经修改。后续可直接用已修订配置重新收集，或从原始完整失败采集构建：
+
+```bash
+git show 68087237da0b2bb3ebf27911d0ec0c6b89dd8571:configs/visual_verification.json > runs/visual-verification-original-config.json
+python scripts/regroup_verification_data.py --source runs/visual-verification-001-data --out runs/visual-verification-002-data --original-config runs/visual-verification-original-config.json --config configs/visual_verification.json --collection-commit 68087237da0b2bb3ebf27911d0ec0c6b89dd8571
+```
 
 none 指没有人为注入，不能直接当作动作成功。必须实际执行后标注效果；模型自然失败与注入故障分别报告。
 主分类器只拟合原始参考动作成功的场景及其变体，排除自然失败及对已失败动作再注入的混杂情况；阈值选择也只用此类 validation。
