@@ -60,6 +60,14 @@ class TransitionExecution:
         self.pending = None
         self.events = []
         self.obs, self.info = self.env.reset(seed)
+        # CDP screenshots capture a blinking caret on Linux. Make the new
+        # verification fixture deterministic before any data collection; raw
+        # PNGs remain unedited and task/reward/focus semantics stay unchanged.
+        self.env.env.unwrapped.page.add_style_tag(content=(
+            "input,textarea{caret-color:transparent !important}"
+            "button{appearance:none!important;border:2px solid #777!important;border-radius:2px!important}"))
+        self.env.obs=self.env._visual(self.env.env.unwrapped._get_obs())
+        self.obs=self.env.obs
         self.before = self.obs
         self.reward, self.done, self.truncated = 0.0, False, False
 

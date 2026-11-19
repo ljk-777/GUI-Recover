@@ -39,7 +39,8 @@ def main():
     actor = ShowUIPolicy(args.model,max_new_tokens=32)
     encoder = FrozenFeatures(actor)
     manifest = {"runtime":runtime,"config":config,"actor":actor.config,"source_scenes":[],
-        "scope":"Teacher labels offline only; queued input is an explicit synthetic delivery fixture"}
+        "scope":"Teacher labels offline only; queued input is an explicit synthetic delivery fixture",
+        "render_fixture":"CSS caret hidden and solid button borders for deterministic screenshots; raw PNGs unedited; not stock benchmark rendering"}
     def frame(obs,name):
         path=out/"images"/f"{name}.png"
         obs.screenshot.save(path)
