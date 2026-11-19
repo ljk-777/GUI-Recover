@@ -1,0 +1,26 @@
+{
+  "case_id": "click-tab-8001-normal_entry",
+  "purpose": "Normal-task regression retained from the fixed primary balanced model; do not promote to defaults.",
+  "selection": "Post-evaluation illustration only, excluded as a selection criterion; full denominators are in the two history results JSON files.",
+  "autonomous_detection": false,
+  "scripted_controller": true,
+  "screenshots": "Native unmodified MiniWoB rendering; MIT notice in ../MINIWOB_LICENSE.txt.",
+  "trials": {
+    "base": {
+      "head": "base_plain",
+      "source_code": "e668e06babce47c84311d79085673d794d73b981",
+      "adapter_sha256": null,
+      "success": true,
+      "conditional": false,
+      "recovery_mode": null
+    },
+    "balanced": {
+      "head": "balanced_20261119_target_last",
+      "source_code": "e668e06babce47c84311d79085673d794d73b981",
+      "adapter_sha256": "4ae35782be305e8f0ab3d26057f31e8742405a807c8a0316f6718432bd782fdb",
+      "success": false,
+      "conditional": false,
+      "recovery_mode": null
+    }
+  }
+}
