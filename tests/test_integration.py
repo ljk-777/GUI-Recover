@@ -39,10 +39,25 @@ def test_real_input_and_submit():
                     (box["y"] + box["height"] / 2) * scale / obs.screenshot.height)
 
         value = re.search(r'Enter "(.*?)"', obs.goal).group(1)
-        obs, _, done, _, _, _ = env.step(Action("INPUT", value, position("#tt")))
+        obs, _, done, _, _, _ = env.step(Action("INPUT", value[:2], position("#tt")))
+        assert not done
+        obs, _, done, _, _, _ = env.step(Action("TYPE", value[2:]))
         assert not done
         assert page.locator("#tt").input_value() == value
         _, reward, terminated, truncated, info, _ = env.step(Action("CLICK", position=position("#subbtn")))
         assert is_success(reward, terminated, truncated, info["task_info"])
+    finally:
+        env.close()
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(not os.getenv("MINIWOB_URL"), reason="Set MINIWOB_URL to enable real browser tests")
+def test_dropped_click_still_advances_real_environment(tmp_path):
+    env = MiniwobEnvironment("click-test")
+    try:
+        result = run_episode(env, OracleSmokePolicy(env), "click-test", 5, 2,
+                             tmp_path / "episode", fault_kind="drop-click")
+        assert result["success"] and result["injected"]
+        assert result["steps"] == 2
     finally:
         env.close()
