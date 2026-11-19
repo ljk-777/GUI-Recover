@@ -1,0 +1,44 @@
+{
+  "case_id": "enter-text-12000-deferred-input",
+  "purpose": "Fixed first pending case across four controls, retaining every actual outcome and all waiting/repair costs.",
+  "selection": "First sorted pending case, independent of success; controlled FIFO simulator, not actual network latency.",
+  "source_code": "b88e567fede19086c4ae83756333ca77a7c9437b",
+  "scripted_task_controller": true,
+  "primary_detector_inputs": "before/current pixels, proposed action, goal,target,own observation phase",
+  "render_fixture": "CSS caret hidden, solid button borders, double-RAF native CDP capture; raw PNGs unedited; not stock benchmark rendering",
+  "raw_pngs": "Unedited native captures; MiniWoB MIT notice in ../MINIWOB_LICENSE.txt",
+  "trials": {
+    "none": {
+      "success": true,
+      "reason": "success",
+      "waits": 0,
+      "repairs": 0,
+      "logical_actor_calls": 2,
+      "privileged": false
+    },
+    "retry": {
+      "success": false,
+      "reason": "task_not_completed",
+      "waits": 0,
+      "repairs": 1,
+      "logical_actor_calls": 3,
+      "privileged": false
+    },
+    "wait_retry": {
+      "success": true,
+      "reason": "success",
+      "waits": 1,
+      "repairs": 1,
+      "logical_actor_calls": 3,
+      "privileged": false
+    },
+    "verifier": {
+      "success": true,
+      "reason": "success",
+      "waits": 1,
+      "repairs": 0,
+      "logical_actor_calls": 2,
+      "privileged": false
+    }
+  }
+}

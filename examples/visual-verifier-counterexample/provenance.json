@@ -1,0 +1,36 @@
+{
+  "case_id": "click-tab-12002-drop-click",
+  "purpose": "Detector/abstention counterexample retained where privileged triggering can finish and learned visual triggering does not.",
+  "selection": "Post-evaluation first sorted oracle/visual gap; no denominator changes.",
+  "source_code": "b88e567fede19086c4ae83756333ca77a7c9437b",
+  "scripted_task_controller": true,
+  "primary_detector_inputs": "before/current pixels, proposed action, goal,target,own observation phase",
+  "render_fixture": "CSS caret hidden, solid button borders, double-RAF native CDP capture; raw PNGs unedited; not stock benchmark rendering",
+  "raw_pngs": "Unedited native captures; MiniWoB MIT notice in ../MINIWOB_LICENSE.txt",
+  "trials": {
+    "none": {
+      "success": false,
+      "reason": "task_not_completed",
+      "waits": 0,
+      "repairs": 0,
+      "logical_actor_calls": 1,
+      "privileged": false
+    },
+    "verifier": {
+      "success": false,
+      "reason": "task_not_completed",
+      "waits": 1,
+      "repairs": 0,
+      "logical_actor_calls": 1,
+      "privileged": false
+    },
+    "oracle": {
+      "success": true,
+      "reason": "success",
+      "waits": 0,
+      "repairs": 1,
+      "logical_actor_calls": 2,
+      "privileged": true
+    }
+  }
+}
