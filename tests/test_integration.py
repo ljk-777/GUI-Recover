@@ -127,3 +127,50 @@ def test_visual_layout_fixtures_keep_rewards_and_report_limits(variant):
         assert is_success(reward, terminated, truncated, info["task_info"])
     finally:
         env.close()
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("variant,fault,persistent", [
+    ("default", "none", False), ("dark", "none", False),
+    ("default", "drop-input", False), ("dark", "drop-input", False),
+    ("dark", "none", True),
+])
+@pytest.mark.skipif(not os.getenv("MINIWOB_URL"), reason="Set MINIWOB_URL to enable real browser tests")
+def test_precheck_prevents_a_known_submit_target_before_execution(tmp_path, variant, fault, persistent):
+    from gui_recover.grounding import ScriptedGroundingPolicy
+    env = MiniwobEnvironment("enter-text", visual_variant=variant)
+
+    class DiagnosticGrounder:
+        # Deliberately wrong first candidate from a DOM oracle TEST DOUBLE.
+        # The production precheck still receives only pixels and coordinates.
+        config = {"diagnostic_grounder": True}
+        last_metrics = {}
+
+        def reset(self, seed):
+            self.calls = 0
+
+        def ground(self, screenshot, query):
+            self.calls += 1
+            wrong = self.calls == 1 or persistent
+            selector = "#subbtn" if wrong or query == "Submit button" else "#tt"
+            page = env.env.unwrapped.page
+            box = page.locator(selector).bounding_box()
+            scale = page._bgym_scale_factor
+            return json.dumps([(box["x"] + box["width"] / 2) * scale / screenshot.width,
+                               (box["y"] + box["height"] / 2) * scale / screenshot.height])
+
+    try:
+        result = run_episode(env, ScriptedGroundingPolicy(DiagnosticGrounder(), input_guard=True,
+                             input_guard_version="v3", input_precheck=True), "enter-text", 7, 4,
+                             tmp_path / "episode", fault_kind=fault, recovery="input-guard")
+        if persistent:
+            assert result["reason"] == "input_target_unverified" and not result["success"]
+            assert result["steps"] == 0 and result["model_calls"] == 2
+            assert not result["terminated"]
+        else:
+            assert result["success"], result
+            assert result["steps"] == 2 + int(fault == "drop-input")
+            assert result["model_calls"] == 3 + int(fault == "drop-input")
+        assert result["input_precheck"]["regrounds"] == 1
+    finally:
+        env.close()

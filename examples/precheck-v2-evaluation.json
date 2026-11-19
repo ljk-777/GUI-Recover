@@ -1,0 +1,1396 @@
+{
+  "arms": {
+    "clean-off": {
+      "episodes": 5,
+      "successes": 5,
+      "model_calls": 10,
+      "steps": 10,
+      "precheck_seconds": 0.0,
+      "injected": 0,
+      "reasons": {
+        "success": 5
+      },
+      "precheck": {
+        "checks": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "regrounds": 0,
+        "blocked": 0
+      },
+      "per_seed": [
+        {
+          "seed": 80,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 81,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 82,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 83,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 84,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        }
+      ]
+    },
+    "clean-on": {
+      "episodes": 5,
+      "successes": 4,
+      "model_calls": 10,
+      "steps": 8,
+      "precheck_seconds": 0.5178572945296764,
+      "injected": 0,
+      "reasons": {
+        "success": 4,
+        "input_target_unverified": 1
+      },
+      "precheck": {
+        "checks": 6,
+        "accepted": 4,
+        "rejected": 2,
+        "regrounds": 1,
+        "blocked": 1
+      },
+      "per_seed": [
+        {
+          "seed": 80,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 1,
+            "accepted": 1,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 81,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 1,
+            "accepted": 1,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 82,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 1,
+            "accepted": 1,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 83,
+          "success": false,
+          "reason": "input_target_unverified",
+          "model_calls": 2,
+          "steps": 0,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 0,
+            "rejected": 2,
+            "regrounds": 1,
+            "blocked": 1
+          }
+        },
+        {
+          "seed": 84,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 1,
+            "accepted": 1,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        }
+      ]
+    },
+    "drop-off": {
+      "episodes": 5,
+      "successes": 5,
+      "model_calls": 15,
+      "steps": 15,
+      "precheck_seconds": 0.0,
+      "injected": 5,
+      "reasons": {
+        "success": 5
+      },
+      "precheck": {
+        "checks": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "regrounds": 0,
+        "blocked": 0
+      },
+      "per_seed": [
+        {
+          "seed": 80,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 3,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 81,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 3,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 82,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 3,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 83,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 3,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 84,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 3,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        }
+      ]
+    },
+    "drop-on": {
+      "episodes": 5,
+      "successes": 4,
+      "model_calls": 14,
+      "steps": 12,
+      "precheck_seconds": 0.6310308333486319,
+      "injected": 4,
+      "reasons": {
+        "success": 4,
+        "input_target_unverified": 1
+      },
+      "precheck": {
+        "checks": 10,
+        "accepted": 8,
+        "rejected": 2,
+        "regrounds": 1,
+        "blocked": 1
+      },
+      "per_seed": [
+        {
+          "seed": 80,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 3,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 2,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 81,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 3,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 2,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 82,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 3,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 2,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 83,
+          "success": false,
+          "reason": "input_target_unverified",
+          "model_calls": 2,
+          "steps": 0,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 0,
+            "rejected": 2,
+            "regrounds": 1,
+            "blocked": 1
+          }
+        },
+        {
+          "seed": 84,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 3,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 2,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        }
+      ]
+    },
+    "dark-clean-off": {
+      "episodes": 5,
+      "successes": 5,
+      "model_calls": 10,
+      "steps": 10,
+      "precheck_seconds": 0.0,
+      "injected": 0,
+      "reasons": {
+        "success": 5
+      },
+      "precheck": {
+        "checks": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "regrounds": 0,
+        "blocked": 0
+      },
+      "per_seed": [
+        {
+          "seed": 80,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 81,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 82,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 83,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 84,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        }
+      ]
+    },
+    "dark-clean-on": {
+      "episodes": 5,
+      "successes": 3,
+      "model_calls": 10,
+      "steps": 6,
+      "precheck_seconds": 0.8851515520364046,
+      "injected": 0,
+      "reasons": {
+        "input_target_unverified": 2,
+        "success": 3
+      },
+      "precheck": {
+        "checks": 7,
+        "accepted": 3,
+        "rejected": 4,
+        "regrounds": 2,
+        "blocked": 2
+      },
+      "per_seed": [
+        {
+          "seed": 80,
+          "success": false,
+          "reason": "input_target_unverified",
+          "model_calls": 2,
+          "steps": 0,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 0,
+            "rejected": 2,
+            "regrounds": 1,
+            "blocked": 1
+          }
+        },
+        {
+          "seed": 81,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 1,
+            "accepted": 1,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 82,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 1,
+            "accepted": 1,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 83,
+          "success": false,
+          "reason": "input_target_unverified",
+          "model_calls": 2,
+          "steps": 0,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 0,
+            "rejected": 2,
+            "regrounds": 1,
+            "blocked": 1
+          }
+        },
+        {
+          "seed": 84,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 1,
+            "accepted": 1,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        }
+      ]
+    },
+    "dark-drop-off": {
+      "episodes": 5,
+      "successes": 3,
+      "model_calls": 13,
+      "steps": 13,
+      "precheck_seconds": 0.0,
+      "injected": 5,
+      "reasons": {
+        "policy_stop": 2,
+        "success": 3
+      },
+      "precheck": {
+        "checks": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "regrounds": 0,
+        "blocked": 0
+      },
+      "per_seed": [
+        {
+          "seed": 80,
+          "success": false,
+          "reason": "policy_stop",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 81,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 3,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 82,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 3,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 83,
+          "success": false,
+          "reason": "policy_stop",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 84,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 3,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        }
+      ]
+    },
+    "dark-drop-on": {
+      "episodes": 5,
+      "successes": 3,
+      "model_calls": 13,
+      "steps": 9,
+      "precheck_seconds": 0.9720869828015566,
+      "injected": 3,
+      "reasons": {
+        "input_target_unverified": 2,
+        "success": 3
+      },
+      "precheck": {
+        "checks": 10,
+        "accepted": 6,
+        "rejected": 4,
+        "regrounds": 2,
+        "blocked": 2
+      },
+      "per_seed": [
+        {
+          "seed": 80,
+          "success": false,
+          "reason": "input_target_unverified",
+          "model_calls": 2,
+          "steps": 0,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 0,
+            "rejected": 2,
+            "regrounds": 1,
+            "blocked": 1
+          }
+        },
+        {
+          "seed": 81,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 3,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 2,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 82,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 3,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 2,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 83,
+          "success": false,
+          "reason": "input_target_unverified",
+          "model_calls": 2,
+          "steps": 0,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 0,
+            "rejected": 2,
+            "regrounds": 1,
+            "blocked": 1
+          }
+        },
+        {
+          "seed": 84,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 3,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 2,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        }
+      ]
+    },
+    "regression-clean-off": {
+      "episodes": 3,
+      "successes": 2,
+      "model_calls": 5,
+      "steps": 5,
+      "precheck_seconds": 0.0,
+      "injected": 0,
+      "reasons": {
+        "task_failure": 1,
+        "success": 2
+      },
+      "precheck": {
+        "checks": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "regrounds": 0,
+        "blocked": 0
+      },
+      "per_seed": [
+        {
+          "seed": 60,
+          "success": false,
+          "reason": "task_failure",
+          "model_calls": 1,
+          "steps": 1,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 70,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 73,
+          "success": true,
+          "reason": "success",
+          "model_calls": 2,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        }
+      ]
+    },
+    "regression-clean-on": {
+      "episodes": 3,
+      "successes": 1,
+      "model_calls": 7,
+      "steps": 2,
+      "precheck_seconds": 0.5986658502370119,
+      "injected": 0,
+      "reasons": {
+        "input_target_unverified": 2,
+        "success": 1
+      },
+      "precheck": {
+        "checks": 6,
+        "accepted": 1,
+        "rejected": 5,
+        "regrounds": 3,
+        "blocked": 2
+      },
+      "per_seed": [
+        {
+          "seed": 60,
+          "success": false,
+          "reason": "input_target_unverified",
+          "model_calls": 2,
+          "steps": 0,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 0,
+            "rejected": 2,
+            "regrounds": 1,
+            "blocked": 1
+          }
+        },
+        {
+          "seed": 70,
+          "success": false,
+          "reason": "input_target_unverified",
+          "model_calls": 2,
+          "steps": 0,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 0,
+            "rejected": 2,
+            "regrounds": 1,
+            "blocked": 1
+          }
+        },
+        {
+          "seed": 73,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 2,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 1,
+            "rejected": 1,
+            "regrounds": 1,
+            "blocked": 0
+          }
+        }
+      ]
+    },
+    "regression-drop-off": {
+      "episodes": 3,
+      "successes": 2,
+      "model_calls": 7,
+      "steps": 7,
+      "precheck_seconds": 0.0,
+      "injected": 3,
+      "reasons": {
+        "task_failure": 1,
+        "success": 2
+      },
+      "precheck": {
+        "checks": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "regrounds": 0,
+        "blocked": 0
+      },
+      "per_seed": [
+        {
+          "seed": 60,
+          "success": false,
+          "reason": "task_failure",
+          "model_calls": 1,
+          "steps": 1,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 70,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 3,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        },
+        {
+          "seed": 73,
+          "success": true,
+          "reason": "success",
+          "model_calls": 3,
+          "steps": 3,
+          "input_precheck": {
+            "checks": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "regrounds": 0,
+            "blocked": 0
+          }
+        }
+      ]
+    },
+    "regression-drop-on": {
+      "episodes": 3,
+      "successes": 0,
+      "model_calls": 7,
+      "steps": 1,
+      "precheck_seconds": 0.8808315191417933,
+      "injected": 1,
+      "reasons": {
+        "input_target_unverified": 3
+      },
+      "precheck": {
+        "checks": 7,
+        "accepted": 1,
+        "rejected": 6,
+        "regrounds": 3,
+        "blocked": 3
+      },
+      "per_seed": [
+        {
+          "seed": 60,
+          "success": false,
+          "reason": "input_target_unverified",
+          "model_calls": 2,
+          "steps": 0,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 0,
+            "rejected": 2,
+            "regrounds": 1,
+            "blocked": 1
+          }
+        },
+        {
+          "seed": 70,
+          "success": false,
+          "reason": "input_target_unverified",
+          "model_calls": 2,
+          "steps": 0,
+          "input_precheck": {
+            "checks": 2,
+            "accepted": 0,
+            "rejected": 2,
+            "regrounds": 1,
+            "blocked": 1
+          }
+        },
+        {
+          "seed": 73,
+          "success": false,
+          "reason": "input_target_unverified",
+          "model_calls": 3,
+          "steps": 1,
+          "input_precheck": {
+            "checks": 3,
+            "accepted": 1,
+            "rejected": 2,
+            "regrounds": 1,
+            "blocked": 1
+          }
+        }
+      ]
+    }
+  },
+  "verified_screenshots": 150,
+  "reproduced_prechecks": 46,
+  "comparisons": {
+    "clean": {
+      "arms": {
+        "baseline": {
+          "episodes": 5,
+          "successes": 5,
+          "model_calls": 10,
+          "steps": 10,
+          "predictions": 10,
+          "precheck_rejected": 0,
+          "precheck_regrounds": 0,
+          "precheck_blocked": 0,
+          "precheck_seconds": 0.0
+        },
+        "checked": {
+          "episodes": 5,
+          "successes": 4,
+          "model_calls": 10,
+          "steps": 8,
+          "predictions": 10,
+          "precheck_rejected": 2,
+          "precheck_regrounds": 1,
+          "precheck_blocked": 1,
+          "precheck_seconds": 0.5178572945296764
+        }
+      },
+      "matched_initial_pairs": 5,
+      "mismatched_initial_pairs": 0,
+      "rescued": 0,
+      "degraded": 1,
+      "pairs": [
+        {
+          "task": "enter-text",
+          "seed": 80,
+          "baseline_success": true,
+          "checked_success": true,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 81,
+          "baseline_success": true,
+          "checked_success": true,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 82,
+          "baseline_success": true,
+          "checked_success": true,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 83,
+          "baseline_success": true,
+          "checked_success": false,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 84,
+          "baseline_success": true,
+          "checked_success": true,
+          "status": "matched"
+        }
+      ]
+    },
+    "drop": {
+      "arms": {
+        "baseline": {
+          "episodes": 5,
+          "successes": 5,
+          "model_calls": 15,
+          "steps": 15,
+          "predictions": 15,
+          "precheck_rejected": 0,
+          "precheck_regrounds": 0,
+          "precheck_blocked": 0,
+          "precheck_seconds": 0.0
+        },
+        "checked": {
+          "episodes": 5,
+          "successes": 4,
+          "model_calls": 14,
+          "steps": 12,
+          "predictions": 14,
+          "precheck_rejected": 2,
+          "precheck_regrounds": 1,
+          "precheck_blocked": 1,
+          "precheck_seconds": 0.6310308333486319
+        }
+      },
+      "matched_initial_pairs": 5,
+      "mismatched_initial_pairs": 0,
+      "rescued": 0,
+      "degraded": 1,
+      "pairs": [
+        {
+          "task": "enter-text",
+          "seed": 80,
+          "baseline_success": true,
+          "checked_success": true,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 81,
+          "baseline_success": true,
+          "checked_success": true,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 82,
+          "baseline_success": true,
+          "checked_success": true,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 83,
+          "baseline_success": true,
+          "checked_success": false,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 84,
+          "baseline_success": true,
+          "checked_success": true,
+          "status": "matched"
+        }
+      ]
+    },
+    "dark-clean": {
+      "arms": {
+        "baseline": {
+          "episodes": 5,
+          "successes": 5,
+          "model_calls": 10,
+          "steps": 10,
+          "predictions": 10,
+          "precheck_rejected": 0,
+          "precheck_regrounds": 0,
+          "precheck_blocked": 0,
+          "precheck_seconds": 0.0
+        },
+        "checked": {
+          "episodes": 5,
+          "successes": 3,
+          "model_calls": 10,
+          "steps": 6,
+          "predictions": 10,
+          "precheck_rejected": 4,
+          "precheck_regrounds": 2,
+          "precheck_blocked": 2,
+          "precheck_seconds": 0.8851515520364046
+        }
+      },
+      "matched_initial_pairs": 5,
+      "mismatched_initial_pairs": 0,
+      "rescued": 0,
+      "degraded": 2,
+      "pairs": [
+        {
+          "task": "enter-text",
+          "seed": 80,
+          "baseline_success": true,
+          "checked_success": false,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 81,
+          "baseline_success": true,
+          "checked_success": true,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 82,
+          "baseline_success": true,
+          "checked_success": true,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 83,
+          "baseline_success": true,
+          "checked_success": false,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 84,
+          "baseline_success": true,
+          "checked_success": true,
+          "status": "matched"
+        }
+      ]
+    },
+    "dark-drop": {
+      "arms": {
+        "baseline": {
+          "episodes": 5,
+          "successes": 3,
+          "model_calls": 13,
+          "steps": 13,
+          "predictions": 15,
+          "precheck_rejected": 0,
+          "precheck_regrounds": 0,
+          "precheck_blocked": 0,
+          "precheck_seconds": 0.0
+        },
+        "checked": {
+          "episodes": 5,
+          "successes": 3,
+          "model_calls": 13,
+          "steps": 9,
+          "predictions": 13,
+          "precheck_rejected": 4,
+          "precheck_regrounds": 2,
+          "precheck_blocked": 2,
+          "precheck_seconds": 0.9720869828015566
+        }
+      },
+      "matched_initial_pairs": 5,
+      "mismatched_initial_pairs": 0,
+      "rescued": 0,
+      "degraded": 0,
+      "pairs": [
+        {
+          "task": "enter-text",
+          "seed": 80,
+          "baseline_success": false,
+          "checked_success": false,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 81,
+          "baseline_success": true,
+          "checked_success": true,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 82,
+          "baseline_success": true,
+          "checked_success": true,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 83,
+          "baseline_success": false,
+          "checked_success": false,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 84,
+          "baseline_success": true,
+          "checked_success": true,
+          "status": "matched"
+        }
+      ]
+    },
+    "regression-clean": {
+      "arms": {
+        "baseline": {
+          "episodes": 3,
+          "successes": 2,
+          "model_calls": 5,
+          "steps": 5,
+          "predictions": 5,
+          "precheck_rejected": 0,
+          "precheck_regrounds": 0,
+          "precheck_blocked": 0,
+          "precheck_seconds": 0.0
+        },
+        "checked": {
+          "episodes": 3,
+          "successes": 1,
+          "model_calls": 7,
+          "steps": 2,
+          "predictions": 7,
+          "precheck_rejected": 5,
+          "precheck_regrounds": 3,
+          "precheck_blocked": 2,
+          "precheck_seconds": 0.5986658502370119
+        }
+      },
+      "matched_initial_pairs": 3,
+      "mismatched_initial_pairs": 0,
+      "rescued": 0,
+      "degraded": 1,
+      "pairs": [
+        {
+          "task": "enter-text",
+          "seed": 60,
+          "baseline_success": false,
+          "checked_success": false,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 70,
+          "baseline_success": true,
+          "checked_success": false,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 73,
+          "baseline_success": true,
+          "checked_success": true,
+          "status": "matched"
+        }
+      ]
+    },
+    "regression-drop": {
+      "arms": {
+        "baseline": {
+          "episodes": 3,
+          "successes": 2,
+          "model_calls": 7,
+          "steps": 7,
+          "predictions": 7,
+          "precheck_rejected": 0,
+          "precheck_regrounds": 0,
+          "precheck_blocked": 0,
+          "precheck_seconds": 0.0
+        },
+        "checked": {
+          "episodes": 3,
+          "successes": 0,
+          "model_calls": 7,
+          "steps": 1,
+          "predictions": 7,
+          "precheck_rejected": 6,
+          "precheck_regrounds": 3,
+          "precheck_blocked": 3,
+          "precheck_seconds": 0.8808315191417933
+        }
+      },
+      "matched_initial_pairs": 3,
+      "mismatched_initial_pairs": 0,
+      "rescued": 0,
+      "degraded": 2,
+      "pairs": [
+        {
+          "task": "enter-text",
+          "seed": 60,
+          "baseline_success": false,
+          "checked_success": false,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 70,
+          "baseline_success": true,
+          "checked_success": false,
+          "status": "matched"
+        },
+        {
+          "task": "enter-text",
+          "seed": 73,
+          "baseline_success": true,
+          "checked_success": false,
+          "status": "matched"
+        }
+      ]
+    }
+  },
+  "offline_audit": {
+    "replayed_episodes": 26,
+    "input_states": 23,
+    "guard_checks": 23,
+    "empty_detection_tp": 8,
+    "empty_detection_fp": 0,
+    "empty_detection_fn": 0,
+    "unknown": 0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "offline_detector_mean_seconds": 0.08219361353827559,
+    "offline_detector_max_seconds": 0.11705184541642666,
+    "precheck_checks": 46,
+    "precheck_accepted_outside_input": 0,
+    "precheck_rejected_inside_empty_input": 15
+  },
+  "schema_version": 1,
+  "date": "2026-11-19",
+  "source_code_commit": "01a28d75c166e20ea73cbca3f577388565c541ca",
+  "model": "showlab/ShowUI-2B",
+  "model_revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+  "input_precheck_version": "v2",
+  "scripted_planner": true,
+  "config": "configs/input_precheck_v2.json",
+  "evaluation_seeds": [
+    80,
+    81,
+    82,
+    83,
+    84
+  ],
+  "known_regression_seeds": [
+    60,
+    70,
+    73
+  ],
+  "gpu_sampled_peak_mib": 5297,
+  "scope": "52 controlled episodes. Held-out normal-task degradation persists; experimental and disabled by default. Both failures and uninjected episodes retained. DOM labels used in offline audit only."
+}

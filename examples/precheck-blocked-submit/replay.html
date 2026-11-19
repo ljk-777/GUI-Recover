@@ -1,0 +1,158 @@
+<!doctype html><meta charset="utf-8"><title>GUI-Recover trajectory</title><style>body{font:15px system-ui;max-width:1000px;margin:30px auto}section{border-top:1px solid #ccc;padding:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere}img{max-width:100%}</style><h1>GUI-Recover trajectory</h1><section><img src="0000.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;reset&quot;,
+  &quot;task&quot;: &quot;enter-text&quot;,
+  &quot;seed&quot;: 60,
+  &quot;goal&quot;: &quot;Enter \&quot;Sergio\&quot; into the text field and press Submit.&quot;,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: 0,
+    &quot;RAW_REWARD_GLOBAL&quot;: 0,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: false,
+    &quot;EPISODE_ID&quot;: 0,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;screenshot&quot;: &quot;0000.png&quot;,
+  &quot;sha256&quot;: &quot;963efdf08898cd5856fedf0a7715324a3e9c4138c167e54aab51973ac418c19a&quot;,
+  &quot;size&quot;: [
+    498,
+    321
+  ]
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;prediction&quot;,
+  &quot;step&quot;: 0,
+  &quot;raw&quot;: &quot;{\&quot;action\&quot;: \&quot;INPUT\&quot;, \&quot;value\&quot;: \&quot;Sergio\&quot;, \&quot;position\&quot;: [0.21, 0.38]}&quot;,
+  &quot;inference_seconds&quot;: 0.4404007736593485,
+  &quot;metrics&quot;: {
+    &quot;input_tokens&quot;: 324,
+    &quot;model_invocations&quot;: 1,
+    &quot;generated_tokens&quot;: 13,
+    &quot;peak_cuda_allocated_bytes&quot;: 4637332992,
+    &quot;peak_cuda_reserved_bytes&quot;: 5075107840,
+    &quot;grounding_raw&quot;: &quot;[0.21, 0.38]&quot;,
+    &quot;subgoal&quot;: &quot;text field&quot;,
+    &quot;scripted_step&quot;: 0
+  }
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;pre_execution_check&quot;,
+  &quot;step&quot;: 0,
+  &quot;proposed_action&quot;: {
+    &quot;action&quot;: &quot;INPUT&quot;,
+    &quot;value&quot;: &quot;Sergio&quot;,
+    &quot;position&quot;: [
+      0.21,
+      0.38
+    ]
+  },
+  &quot;check_seconds&quot;: 0.02570551633834839,
+  &quot;observed_screenshot&quot;: &quot;0000.png&quot;,
+  &quot;kind&quot;: &quot;input_target_precheck&quot;,
+  &quot;signal&quot;: {
+    &quot;status&quot;: &quot;unknown&quot;,
+    &quot;reason&quot;: &quot;no_enclosed_uniform_input_region&quot;
+  },
+  &quot;decision&quot;: &quot;reground_and_retry&quot;
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;prediction&quot;,
+  &quot;step&quot;: 1,
+  &quot;raw&quot;: &quot;{\&quot;action\&quot;: \&quot;INPUT\&quot;, \&quot;value\&quot;: \&quot;Sergio\&quot;, \&quot;position\&quot;: [0.21, 0.39]}&quot;,
+  &quot;inference_seconds&quot;: 0.3970049303025007,
+  &quot;metrics&quot;: {
+    &quot;input_tokens&quot;: 345,
+    &quot;model_invocations&quot;: 1,
+    &quot;generated_tokens&quot;: 13,
+    &quot;peak_cuda_allocated_bytes&quot;: 4637648384,
+    &quot;peak_cuda_reserved_bytes&quot;: 5179965440,
+    &quot;grounding_raw&quot;: &quot;[0.21, 0.39]&quot;,
+    &quot;subgoal&quot;: &quot;The previous position did not pass the visual empty-field check. Locate the center of the empty editable text input box.&quot;,
+    &quot;scripted_step&quot;: 0
+  }
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;pre_execution_check&quot;,
+  &quot;step&quot;: 1,
+  &quot;proposed_action&quot;: {
+    &quot;action&quot;: &quot;INPUT&quot;,
+    &quot;value&quot;: &quot;Sergio&quot;,
+    &quot;position&quot;: [
+      0.21,
+      0.39
+    ]
+  },
+  &quot;check_seconds&quot;: 0.01829926110804081,
+  &quot;observed_screenshot&quot;: &quot;0000.png&quot;,
+  &quot;kind&quot;: &quot;input_target_precheck&quot;,
+  &quot;signal&quot;: {
+    &quot;status&quot;: &quot;unknown&quot;,
+    &quot;reason&quot;: &quot;no_enclosed_uniform_input_region&quot;
+  },
+  &quot;decision&quot;: &quot;block_action&quot;
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;episode_end&quot;,
+  &quot;task&quot;: &quot;enter-text&quot;,
+  &quot;seed&quot;: 60,
+  &quot;success&quot;: false,
+  &quot;reason&quot;: &quot;input_target_unverified&quot;,
+  &quot;steps&quot;: 0,
+  &quot;predictions&quot;: 2,
+  &quot;execution_errors&quot;: 0,
+  &quot;reward&quot;: 0.0,
+  &quot;terminated&quot;: false,
+  &quot;truncated&quot;: false,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: 0,
+    &quot;RAW_REWARD_GLOBAL&quot;: 0,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: false,
+    &quot;EPISODE_ID&quot;: 0,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;inference_seconds&quot;: 0.8374057039618492,
+  &quot;precheck_seconds&quot;: 0.0440047774463892,
+  &quot;elapsed_seconds&quot;: 2.107675040140748,
+  &quot;environment&quot;: {
+    &quot;browser_version&quot;: &quot;125.0.6422.26&quot;,
+    &quot;visual_variant&quot;: &quot;dark&quot;,
+    &quot;viewport&quot;: {
+      &quot;width&quot;: 332,
+      &quot;height&quot;: 214
+    },
+    &quot;screenshot_size&quot;: [
+      498,
+      321
+    ],
+    &quot;screenshot_scale&quot;: 1.5
+  },
+  &quot;metrics&quot;: {
+    &quot;input_tokens&quot;: 345,
+    &quot;model_invocations&quot;: 1,
+    &quot;generated_tokens&quot;: 13,
+    &quot;peak_cuda_allocated_bytes&quot;: 4637648384,
+    &quot;peak_cuda_reserved_bytes&quot;: 5179965440,
+    &quot;grounding_raw&quot;: &quot;[0.21, 0.39]&quot;,
+    &quot;subgoal&quot;: &quot;The previous position did not pass the visual empty-field check. Locate the center of the empty editable text input box.&quot;,
+    &quot;scripted_step&quot;: 0
+  },
+  &quot;normalized_outputs&quot;: 0,
+  &quot;model_calls&quot;: 2,
+  &quot;input_guard&quot;: {
+    &quot;checks&quot;: 0,
+    &quot;empty&quot;: 0,
+    &quot;text_visible&quot;: 0,
+    &quot;unknown&quot;: 0,
+    &quot;retries&quot;: 0,
+    &quot;blocked&quot;: 0,
+    &quot;blind_retries&quot;: 0
+  },
+  &quot;input_precheck&quot;: {
+    &quot;checks&quot;: 2,
+    &quot;accepted&quot;: 0,
+    &quot;rejected&quot;: 2,
+    &quot;regrounds&quot;: 1,
+    &quot;blocked&quot;: 1
+  },
+  &quot;fault_kind&quot;: &quot;none&quot;,
+  &quot;fault_seed&quot;: 20261119,
+  &quot;injected&quot;: false,
+  &quot;recovery&quot;: &quot;input-guard&quot;,
+  &quot;recovery_feedbacks&quot;: 0,
+  &quot;detection_signals&quot;: 0
+}</pre></section>

@@ -5,8 +5,38 @@ injection labels enter this API. Unsupported layouts return unknown.
 """
 
 from collections import deque
+import math
+from numbers import Real
 
 import numpy as np
+
+
+def inspect_input_target(image, position, version="v1"):
+    """Pre-action appearance check; a blank rectangle is not proof of editability."""
+    if version not in ("v1", "v2"):
+        raise ValueError("Unknown input precheck version")
+    if (not isinstance(position, (list, tuple)) or len(position) != 2
+            or any(isinstance(p, bool) or not isinstance(p, Real)
+                   or not math.isfinite(p) or not 0 <= p <= 1 for p in position)):
+        return {"status": "unknown", "reason": "invalid_position"}
+    pixels = np.asarray(image.convert("RGB"), dtype=np.int16)
+    found = _uniform_region(pixels, position)
+    if found is None:
+        return {"status": "unknown", "reason": "no_enclosed_uniform_input_region"}
+    bounds, background = found
+    x0, y0, x1, y1 = bounds
+    x, y = position[0] * image.width, position[1] * image.height
+    # The inset used to exclude focused outlines from INK detection is not
+    # needed for clicking: a point anywhere within the inferred fill can type.
+    inset = 2 if version == "v1" else 0
+    if not (x0 + inset <= x < x1 - inset and y0 + inset <= y < y1 - inset):
+        return {"status": "unknown", "reason": "point_outside_region_interior", "region": bounds}
+    ink, _, _, _ = _contrast_ink(pixels, bounds, background)
+    if ink:
+        return {"status": "unknown", "reason": "region_was_not_empty", "region": bounds}
+    return {"status": "empty_region", "region": bounds,
+            "background_rgb": background.astype(int).tolist(),
+            "reason": "appearance_only_not_element_identity"}
 
 
 def _component(mask, start):

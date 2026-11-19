@@ -33,6 +33,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
     model_calls_known = True
     execution_errors = 0
     inference_seconds = 0.0
+    precheck_seconds = 0.0
     success = terminated = truncated = False
     reward = 0.0
     task_info = {}
@@ -93,6 +94,22 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
                 reason = "policy_stop"
                 emit({"event": "stop", "step": index, "action": action.to_dict()})
                 break
+            if hasattr(policy, "before_action"):
+                before_check = time.perf_counter()
+                check = policy.before_action(obs, action)
+                if check:
+                    check_seconds = time.perf_counter() - before_check
+                    precheck_seconds += check_seconds
+                    emit({"event": "pre_execution_check", "step": index,
+                          "proposed_action": action.to_dict(), "check_seconds": check_seconds,
+                          "observed_screenshot": f"{steps:04d}.png", **check})
+                    if check["decision"] == "reground_and_retry":
+                        continue
+                    if check["decision"] == "block_action":
+                        reason = "input_target_unverified"
+                        break
+                    if check["decision"] != "execute":
+                        raise ValueError("Unknown pre-execution decision")
             executed, fault = injector.apply(action)
             before_obs = obs
             obs, reward, terminated, truncated, info, code = env.step(executed)
@@ -133,11 +150,13 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
               "steps": steps, "predictions": predictions, "execution_errors": execution_errors,
               "reward": reward, "terminated": terminated, "truncated": truncated,
               "task_info": task_info, "inference_seconds": inference_seconds,
+              "precheck_seconds": precheck_seconds,
               "elapsed_seconds": time.perf_counter() - start, "environment": metadata,
               "metrics": getattr(policy, "last_metrics", {})}
     result["normalized_outputs"] = normalized_outputs
     result["model_calls"] = model_calls if model_calls_known else None
     result["input_guard"] = getattr(policy, "guard_metrics", None)
+    result["input_precheck"] = getattr(policy, "precheck_metrics", None)
     result.update({"fault_kind": fault_kind, "fault_seed": fault_seed,
                    "injected": injector.injected, "recovery": recovery,
                    "recovery_feedbacks": controller.used, "detection_signals": detection_signals})

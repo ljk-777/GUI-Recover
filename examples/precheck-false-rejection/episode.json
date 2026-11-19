@@ -1,0 +1,70 @@
+{
+  "task": "enter-text",
+  "seed": 83,
+  "success": false,
+  "reason": "input_target_unverified",
+  "steps": 0,
+  "predictions": 2,
+  "execution_errors": 0,
+  "reward": 0.0,
+  "terminated": false,
+  "truncated": false,
+  "task_info": {
+    "REWARD_GLOBAL": 0,
+    "RAW_REWARD_GLOBAL": 0,
+    "REWARD_REASON": null,
+    "DONE_GLOBAL": false,
+    "EPISODE_ID": 0,
+    "TASK_READY": true
+  },
+  "inference_seconds": 0.8290344625711441,
+  "precheck_seconds": 0.3864524941891432,
+  "elapsed_seconds": 2.203018421307206,
+  "environment": {
+    "browser_version": "125.0.6422.26",
+    "visual_variant": "default",
+    "viewport": {
+      "width": 332,
+      "height": 214
+    },
+    "screenshot_size": [
+      498,
+      321
+    ],
+    "screenshot_scale": 1.5
+  },
+  "metrics": {
+    "input_tokens": 345,
+    "model_invocations": 1,
+    "generated_tokens": 13,
+    "peak_cuda_allocated_bytes": 4637648384,
+    "peak_cuda_reserved_bytes": 5179965440,
+    "grounding_raw": "[0.25, 0.32]",
+    "subgoal": "The previous position did not pass the visual empty-field check. Locate the center of the empty editable text input box.",
+    "scripted_step": 0
+  },
+  "normalized_outputs": 0,
+  "model_calls": 2,
+  "input_guard": {
+    "checks": 0,
+    "empty": 0,
+    "text_visible": 0,
+    "unknown": 0,
+    "retries": 0,
+    "blocked": 0,
+    "blind_retries": 0
+  },
+  "input_precheck": {
+    "checks": 2,
+    "accepted": 0,
+    "rejected": 2,
+    "regrounds": 1,
+    "blocked": 1
+  },
+  "fault_kind": "none",
+  "fault_seed": 20261119,
+  "injected": false,
+  "recovery": "input-guard",
+  "recovery_feedbacks": 0,
+  "detection_signals": 0
+}

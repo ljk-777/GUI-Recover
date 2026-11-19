@@ -12,7 +12,7 @@ from . import __version__
 from .environment import MiniwobEnvironment
 from .policies import MODEL_ID, MODEL_REVISION, OracleSmokePolicy, ShowUIPolicy
 from .runner import aggregate, render_replay, run_episode, write_json
-from .comparison import compare_runs
+from .comparison import compare_runs, compare_precheck_runs
 from .grounding import ScriptedGroundingPolicy
 
 
@@ -57,6 +57,10 @@ def main(argv=None, backend=None):
     compare.add_argument("--recovered", required=True)
     compare.add_argument("--clean-recovered")
     compare.add_argument("--out", required=True)
+    precheck = sub.add_parser("compare-precheck")
+    precheck.add_argument("--baseline", required=True)
+    precheck.add_argument("--checked", required=True)
+    precheck.add_argument("--out", required=True)
     run = sub.add_parser("run")
     run.add_argument("--policy", choices=["oracle-smoke", "showui", "showui-scripted"], required=True)
     run.add_argument("--tasks", nargs="+", default=["click-test"])
@@ -71,6 +75,8 @@ def main(argv=None, backend=None):
     run.add_argument("--fault-seed", type=int, default=0)
     run.add_argument("--recovery", choices=["none", "feedback", "input-guard", "input-retry"], default="none")
     run.add_argument("--input-guard-version", choices=["v1", "v2", "v3"], default="v2")
+    run.add_argument("--input-precheck", choices=["off", "visual"], default="off")
+    run.add_argument("--input-precheck-version", choices=["v1", "v2"], default="v2")
     run.add_argument("--visual-variant", choices=["default", "shifted", "dark"], default="default")
     args = parser.parse_args(argv)
     if args.command == "doctor":
@@ -94,6 +100,13 @@ def main(argv=None, backend=None):
         write_json(args.out, result)
         print(json.dumps(result, indent=2))
         return
+    if args.command == "compare-precheck":
+        if Path(args.out).exists():
+            parser.error("Comparison output already exists")
+        result = compare_precheck_runs(args.baseline, args.checked)
+        write_json(args.out, result)
+        print(json.dumps(result, indent=2))
+        return
     if args.max_steps < 1 or any(seed < 0 for seed in args.seeds):
         parser.error("max-steps must be positive and seeds nonnegative")
     if len(set(args.tasks)) != len(args.tasks) or len(set(args.seeds)) != len(args.seeds):
@@ -110,6 +123,10 @@ def main(argv=None, backend=None):
         parser.error("Scripted planner supports click-test, click-button and enter-text only")
     if args.visual_variant != "default" and args.tasks != ["enter-text"]:
         parser.error("Visual fixtures require tasks=[enter-text]")
+    if args.input_precheck != "off" and (args.policy != "showui-scripted" or args.tasks != ["enter-text"]):
+        parser.error("Input precheck requires showui-scripted and tasks=[enter-text]")
+    if args.input_precheck != "off" and args.recovery == "input-retry":
+        parser.error("Input precheck cannot be combined with blind input retry")
     directory = Path(args.out)
     directory.mkdir(parents=True, exist_ok=False)
     manifest = {"schema_version": 1, "policy": args.policy, "diagnostic_only": args.policy == "oracle-smoke",
@@ -132,7 +149,9 @@ def main(argv=None, backend=None):
         if args.policy == "showui-scripted":
             model = ScriptedGroundingPolicy(model, input_guard=args.recovery == "input-guard",
                                             blind_input_retry=args.recovery == "input-retry",
-                                            input_guard_version=args.input_guard_version)
+                                            input_guard_version=args.input_guard_version,
+                                            input_precheck=args.input_precheck == "visual",
+                                            input_precheck_version=args.input_precheck_version)
     except Exception as exc:
         write_json(directory / "startup_error.json", {"error_type": type(exc).__name__, "error": str(exc)})
         raise
