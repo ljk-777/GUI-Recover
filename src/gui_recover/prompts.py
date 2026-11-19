@@ -1,4 +1,6 @@
 """Versioned prompts. Upstream reference: ShowUI QUICK_START.md@21ed7cb."""
+# Prompt text adapted from ShowUI, Copyright 2024 Show Lab ShowUI Team.
+# Licensed under Apache-2.0; see LICENSE and THIRD_PARTY.md.
 
 OFFICIAL_WEB = """You are an assistant trained to navigate the web screen.
 Given a task instruction, a screen observation, and an action history sequence,

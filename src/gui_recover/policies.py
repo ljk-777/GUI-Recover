@@ -67,8 +67,13 @@ class ShowUIPolicy:
         if provenance.is_file():
             self.config["asset_provenance"] = json.loads(provenance.read_text())
         self.last_metrics = {}
+        self.recovery_feedback = None
+
+    def set_feedback(self, message):
+        self.recovery_feedback = message
 
     def reset(self, seed):
+        self.recovery_feedback = None
         self.torch.manual_seed(seed)
         self.torch.cuda.reset_peak_memory_stats()
 
@@ -91,6 +96,8 @@ class ShowUIPolicy:
                 *[{"type": "text", "text": str(item["action"])} for item in history[-8:]],
                 {"type": "image", "image": obs.screenshot},
             ]
+        if self.recovery_feedback:
+            messages[0]["content"].insert(-1, {"type": "text", "text": self.recovery_feedback})
         text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         inputs = self.processor(text=[text], images=[obs.screenshot], padding=True,
                                 return_tensors="pt").to("cuda:0")

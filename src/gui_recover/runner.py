@@ -6,6 +6,7 @@ from collections import Counter
 from pathlib import Path
 
 from .actions import ActionError, parse_action
+from .recovery import ClickFault, FeedbackRecovery, detect
 
 
 def write_json(path, data):
@@ -20,7 +21,8 @@ def is_success(reward, terminated, truncated, task_info):
                 and task_info.get("RAW_REWARD_GLOBAL", 0) > 0)
 
 
-def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict"):
+def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict",
+                fault_kind="none", fault_seed=0, recovery="none"):
     directory = Path(out_dir)
     directory.mkdir(parents=True, exist_ok=False)
     trajectory = directory / "trajectory.jsonl"
@@ -36,6 +38,9 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
     history = []
     metadata = {}
     normalized_outputs = 0
+    injector = ClickFault(fault_kind, fault_seed)
+    controller = FeedbackRecovery(enabled=recovery == "feedback")
+    detection_signals = 0
 
     def emit(event):
         with trajectory.open("a", encoding="utf-8") as file:
@@ -81,19 +86,35 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
                 reason = "policy_stop"
                 emit({"event": "stop", "step": index, "action": action.to_dict()})
                 break
-            obs, reward, terminated, truncated, info, code = env.step(action)
+            executed, fault = injector.apply(action)
+            before_obs = obs
+            obs, reward, terminated, truncated, info, code = env.step(executed)
             steps += 1
+            signal = detect(before_obs, obs, action)
+            detection_signals += signal.unchanged_after_click or bool(signal.execution_error)
             task_info = info.get("task_info", {})
             execution_errors += bool(obs.last_action_error)
-            emit({"event": "transition", "step": index, "action": action.to_dict(),
+            emit({"event": "transition", "step": index, "action": executed.to_dict(),
+                  "proposed_action": action.to_dict(),
                   "executed_code": code, "reward": reward, "terminated": terminated,
                   "truncated": truncated, "task_info": task_info,
                   "execution_error": obs.last_action_error, **screenshot(obs, steps)})
+            emit({"event": "diagnostic", "step": index, "proposed_action": action.to_dict(),
+                  "executed_action": executed.to_dict(), "fault": fault,
+                  "unchanged_after_click": signal.unchanged_after_click,
+                  "mean_pixel_difference": signal.mean_pixel_difference})
+            # Proposed action is what the agent believes it executed. Actual injected
+            # actions and labels are audit data only, not passed into policy history.
             history.append({"action": action.to_dict(), "execution_error": obs.last_action_error})
             success = is_success(reward, terminated, truncated, task_info)
             if terminated or truncated:
                 reason = "success" if success else ("truncated" if truncated else "task_failure")
                 break
+            feedback = controller.feedback(signal)
+            if hasattr(policy, "set_feedback"):
+                policy.set_feedback(feedback)
+            if feedback:
+                emit({"event": "recovery_feedback", "step": index, "message": feedback})
     except Exception as exc:
         reason = "runtime_error"
         emit({"event": "error", "error_type": type(exc).__name__, "error": str(exc)})
@@ -104,6 +125,9 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
               "elapsed_seconds": time.perf_counter() - start, "environment": metadata,
               "metrics": getattr(policy, "last_metrics", {})}
     result["normalized_outputs"] = normalized_outputs
+    result.update({"fault_kind": fault_kind, "fault_seed": fault_seed,
+                   "injected": injector.injected, "recovery": recovery,
+                   "recovery_feedbacks": controller.used, "detection_signals": detection_signals})
     write_json(directory / "episode.json", result)
     emit({"event": "episode_end", **result})
     return result

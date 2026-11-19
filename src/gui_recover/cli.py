@@ -10,6 +10,7 @@ from urllib.parse import unquote, urlparse
 from .environment import MiniwobEnvironment
 from .policies import MODEL_ID, MODEL_REVISION, OracleSmokePolicy, ShowUIPolicy
 from .runner import aggregate, render_replay, run_episode, write_json
+from .comparison import compare_runs
 
 
 def fingerprint():
@@ -46,6 +47,12 @@ def main():
     doctor.add_argument("--cuda", action="store_true", help="Probe CUDA only when explicitly requested")
     replay = sub.add_parser("replay")
     replay.add_argument("directory")
+    compare = sub.add_parser("compare")
+    compare.add_argument("--clean", required=True)
+    compare.add_argument("--faulted", required=True)
+    compare.add_argument("--recovered", required=True)
+    compare.add_argument("--clean-recovered")
+    compare.add_argument("--out", required=True)
     run = sub.add_parser("run")
     run.add_argument("--policy", choices=["oracle-smoke", "showui"], required=True)
     run.add_argument("--tasks", nargs="+", default=["click-test"])
@@ -56,6 +63,9 @@ def main():
     run.add_argument("--revision", default=MODEL_REVISION)
     run.add_argument("--prompt-profile", choices=["baseline", "official-web", "official-miniwob"], default="baseline")
     run.add_argument("--parser", choices=["strict", "mixed"], default="strict")
+    run.add_argument("--fault", choices=["none", "drop-click", "offset-click"], default="none")
+    run.add_argument("--fault-seed", type=int, default=0)
+    run.add_argument("--recovery", choices=["none", "feedback"], default="none")
     args = parser.parse_args()
     if args.command == "doctor":
         data = fingerprint()
@@ -71,6 +81,13 @@ def main():
     if args.command == "replay":
         render_replay(args.directory)
         return
+    if args.command == "compare":
+        result = compare_runs(args.clean, args.faulted, args.recovered, args.clean_recovered)
+        if Path(args.out).exists():
+            parser.error("Comparison output already exists")
+        write_json(args.out, result)
+        print(json.dumps(result, indent=2))
+        return
     if args.max_steps < 1 or any(seed < 0 for seed in args.seeds):
         parser.error("max-steps must be positive and seeds nonnegative")
     if len(set(args.tasks)) != len(args.tasks) or len(set(args.seeds)) != len(args.seeds):
@@ -79,6 +96,8 @@ def main():
         parser.error("Invalid MiniWoB task name")
     if args.policy == "oracle-smoke" and args.tasks != ["click-test"]:
         parser.error("oracle-smoke supports only click-test")
+    if args.policy != "showui" and args.recovery != "none":
+        parser.error("Feedback recovery requires a model policy")
     directory = Path(args.out)
     directory.mkdir(parents=True, exist_ok=False)
     manifest = {"schema_version": 1, "policy": args.policy, "diagnostic_only": args.policy == "oracle-smoke",
@@ -102,7 +121,9 @@ def main():
                 env = MiniwobEnvironment(task)
                 policy = model if model is not None else OracleSmokePolicy(env)
                 result = run_episode(env, policy, task, seed, args.max_steps,
-                                     directory / f"{task}-{seed}", parser_mode=args.parser)
+                                     directory / f"{task}-{seed}", parser_mode=args.parser,
+                                     fault_kind=args.fault, fault_seed=args.fault_seed,
+                                     recovery=args.recovery)
                 render_replay(directory / f"{task}-{seed}")
             except Exception as exc:
                 result = {"task": task, "seed": seed, "success": False, "reason": "setup_error",
