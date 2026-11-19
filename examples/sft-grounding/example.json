@@ -1,0 +1,54 @@
+{
+  "source_code_commit": "e6b78e61da18d86b65cb65d16a9ef67cc288f8a7",
+  "base_revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+  "adapter_sha256": "d9f52472a7d806affefa98ce6418efdbb38a1ad173f5e1529a0abd0b297f279a",
+  "record": {
+    "id": "click-button-3001-button",
+    "split": "test",
+    "task": "click-button",
+    "seed": 3001,
+    "kind": "button",
+    "query": "The \"Okay\" button",
+    "image_sha256": "0ade4354459993e48e2f0956caf6a2391ed04e32e43d8c671a8fde7a9d9a3cdb",
+    "target_boxes": [
+      [
+        0.006024096385542169,
+        0.29439252336448596,
+        0.14791980421686746,
+        0.3925233644859813
+      ]
+    ],
+    "target_point": [
+      0.077,
+      0.343
+    ],
+    "answer": "[0.077,0.343]"
+  },
+  "predictions": {
+    "id": "click-button-3001-button",
+    "task": "click-button",
+    "seed": 3001,
+    "kind": "button",
+    "image_sha256": "0ade4354459993e48e2f0956caf6a2391ed04e32e43d8c671a8fde7a9d9a3cdb",
+    "query": "The \"Okay\" button",
+    "baseline": {
+      "raw": "[0.1, 0.28]",
+      "point": [
+        0.1,
+        0.28
+      ],
+      "hit": false,
+      "inference_seconds": 0.3052377477288246
+    },
+    "sft": {
+      "raw": "[0.1, 0.27]",
+      "point": [
+        0.1,
+        0.27
+      ],
+      "hit": false,
+      "inference_seconds": 0.35731681250035763
+    }
+  },
+  "notice": "Single-frame synthetic MiniWoB grounding failure, not a recovery episode; see ../MINIWOB_LICENSE.txt."
+}
