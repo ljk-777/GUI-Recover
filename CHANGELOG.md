@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Added opt-in v3 input appearance guard based on local background contrast, retaining v1/v2 behavior and v2 as default.
+- Added theme/focus/background-change regressions, real-browser layout tests, and a separate frozen ShowUI comparison matrix.
+
 ## 0.2.0a1 — 2026-11-19 (alpha prerelease)
 
 - Added explicit ShowUI grounding and a separately labelled scripted MiniWoB planner.

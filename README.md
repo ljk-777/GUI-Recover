@@ -84,6 +84,8 @@ SELECT、SELECT_TEXT、COPY 暂不支持，出现时计入 invalid_action。只�
 `--prompt-profile official-web` / `official-miniwob` 用于自主导航模板诊断，历史结果未改善输入任务，详见 [失败诊断](docs/DIAGNOSIS.md)。
 `--input-guard-version v1` 保留原始信号；v2 忽略独立单像素噪声。布局反例通过 `--visual-variant shifted|dark` 启用，它们是修改后的测试夹具，不是原版 MiniWoB 成绩。
 
+开发分支增加可选 `--input-guard-version v3`，按区域自身底色检测笔画，面向均匀深色输入框；默认仍为 v2。实现、验收协议和边界见 [v3 主题适应实验](docs/INPUT_GUARD_V3.md)。
+
 ## 评测口径
 
 成功要求同时满足 `terminated`、非 `truncated`、BrowserGym reward 为 1、`DONE_GLOBAL` 为真且 `RAW_REWARD_GLOBAL > 0`，与固定版本的 MiniWoB 二值奖励规则对应。

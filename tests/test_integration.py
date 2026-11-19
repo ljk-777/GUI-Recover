@@ -65,12 +65,14 @@ def test_dropped_click_still_advances_real_environment(tmp_path):
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize("version,variant", [("v2", "default"), ("v3", "default"),
+                                            ("v3", "shifted"), ("v3", "dark")])
 @pytest.mark.parametrize("fault", ["none", "drop-input", "partial-input", "wrong-input"])
 @pytest.mark.skipif(not os.getenv("MINIWOB_URL"), reason="Set MINIWOB_URL to enable real browser tests")
-def test_visual_input_guard_in_real_browser(tmp_path, fault):
+def test_visual_input_guard_in_real_browser(tmp_path, fault, version, variant):
     from gui_recover.grounding import ScriptedGroundingPolicy
 
-    env = MiniwobEnvironment("enter-text")
+    env = MiniwobEnvironment("enter-text", visual_variant=variant)
 
     class DiagnosticBackend:
         # DOM lookup is limited to this grounder test double. The guard itself
@@ -89,7 +91,8 @@ def test_visual_input_guard_in_real_browser(tmp_path, fault):
                                (box["y"] + box["height"] / 2) * scale / screenshot.height])
 
     try:
-        result = run_episode(env, ScriptedGroundingPolicy(DiagnosticBackend(), input_guard=True),
+        result = run_episode(env, ScriptedGroundingPolicy(DiagnosticBackend(), input_guard=True,
+                                                        input_guard_version=version),
                              "enter-text", 7, 4, tmp_path / "episode",
                              fault_kind=fault, recovery="input-guard")
         assert result["success"] == (fault in ("none", "drop-input")), result
