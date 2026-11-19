@@ -53,7 +53,7 @@ source .env
 ```
 
 两个在线 run 使用相同初始任务/seed，任务成功仍由环境验证，不能由定位框评分代替。
-manifest 的 `scripted_planner` 和 `model_config.planner` 明确标记脚本策略。现有恢复 compare 命令不接受脚本策略，避免混用自主模型与手工规划实验。
+manifest 的 `scripted_planner` 和 `model_config.planner` 明确标记脚本策略。后续 compare 扩展为对脚本策略核查 input-guard、自主模型核查 feedback；不同规划策略不能混在同一组对照中。
 
 源代码提交 `8e88798`。关键 Git 操作：`git diff --check` 和测试后提交，用 bundle 传输，再通过 `git fetch` / `git merge --ff-only` 同步；原诊断和恢复实验未覆盖。
 
