@@ -1,0 +1,21 @@
+{
+  "study": "target-state-checkbox-v1",
+  "model_revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+  "weights_sha256": "68080df785764e98976eb9cc93a07c6c69cf8a6933738496e02aef55b53d2aa3",
+  "miniwob_commit": "7fd85d71a4b60325c6585396ec4f48377d049838",
+  "font_sha256": "4659bc0c58c5028dd488ec928d41d9265db43d9b669fc14ca8b0832daca7b144",
+  "prior_plan_sha256": "88ea785e786a4de96ccd8e2ea431a97ef0c76cb7c76dda79d8eda7ffe4687a44",
+  "frozen_selection_sha256": "9665c7a92475a8303c2064b29ed8cd64e617c5ba1092d50d3ec5b05a6d55c8dc",
+  "minimum_label_score": 0.70,
+  "minimum_label_margin": 0.18,
+  "test": {
+    "first_seed": 43000,
+    "reserve": 50,
+    "tasks": {"click-button-sequence": 8, "click-checkboxes": 14}
+  },
+  "smoke": {
+    "first_seed": 53000,
+    "reserve": 15,
+    "tasks": {"click-button-sequence": 1, "click-checkboxes": 2}
+  }
+}

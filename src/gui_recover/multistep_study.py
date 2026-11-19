@@ -84,9 +84,9 @@ def record_frame(obs, out, name):
     return {"image": path.name, "sha256": file_sha256(path), "pixel_hash": pixel_hash(obs.screenshot)}
 
 
-def register_multistep(config):
+def register_multistep(config, *, known_layouts=()):
     plan = {"accepted": [], "rejected": [], "actor_calls": 0, "outcomes_observed": False}
-    seen = set()
+    seen = set(known_layouts)
     for group in config["multistep_tasks"]:
         accepted = 0
         for seed in group["candidate_seeds"]:
@@ -110,7 +110,7 @@ def register_multistep(config):
     return plan
 
 
-def first_click(scene, role, grounder, verifiers, out):
+def first_click(scene, role, grounder, verifiers, out, *, recovery=None):
     execution = TransitionExecution(scene["task"], scene["seed"], None)
     inputs = scene["fixture"]
     out.mkdir(parents=True, exist_ok=False)
@@ -164,7 +164,29 @@ def first_click(scene, role, grounder, verifiers, out):
                 verdict = {("click", phase): verify(view) for phase, view in views.items()}
                 decision = routed_decision({"id": "click", "after_wait": True, "deferred": False}, verdict)
                 evidence["decisions"][backend] = {**decision, **{p: verdict["click", p] for p in views}}
-        if role == "correct":
+        continue_task = role == "correct"
+        if recovery is not None:
+            if live:
+                decision = evidence["decisions"]["target_state"]
+                phase = "after_wait" if decision["wait"] else "immediate"
+
+                def execute_repair(action):
+                    execution._step(action, "target_state_recovery")
+                    n = sum(e["event"] == "target_state_recovery" for e in execution.events)
+                    evidence[f"repair_{n}"] = record_frame(execution.obs, out, f"repair-{n}")
+                    if execution.obs.last_action_error or execution.info.get("task_info", {}).get("error"):
+                        raise RuntimeError(f"Repair execution failed: {execution.events[-1]}")
+                    if not (execution.done or execution.truncated):
+                        return execution.obs.screenshot
+
+                # The harness has already captured the shared hover frame.
+                # Check that freshest frame again before issuing a click.
+                evidence["recovery"] = recovery.recover(views["after_wait"], execute_repair) if decision["trigger"] else {
+                    "actions": [], "final": decision[phase]}
+            evidence["state_after_recovery"] = task_state(execution)
+            evidence["achieved_after_recovery"] = evidence["state_after_recovery"] == expected
+            continue_task = live and evidence["achieved_after_recovery"] and not (execution.done or execution.truncated)
+        if continue_task:
             for n, next_point in enumerate(inputs["continuation"], 1):
                 execution._step(Action("CLICK", position=tuple(next_point)), "oracle_continuation")
                 evidence[f"continuation_{n}"] = record_frame(execution.obs, out, f"continuation-{n}")
@@ -209,18 +231,20 @@ def summarize_multistep(rows, backends):
     return result
 
 
-def run_multistep(plan, grounder, learned, out):
+def run_multistep(plan, grounder, learned, out, *, recovery=None):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=False)
     verifiers = {name: model.verify for name, model in learned.items()}
     verifiers["appearance"] = appearance_verdict
+    if recovery is not None:
+        verifiers["target_state"] = recovery.verify
     rows = []
     for scene in plan["accepted"]:
         for role in ("correct", "blank", "wrong_control", "natural"):
             if role == "wrong_control" and scene["fixture"][role] is None:
                 continue
             directory = out/f"{scene['task']}-{scene['seed']}-{role}"
-            row = first_click(scene, role, grounder, verifiers, directory)
+            row = first_click(scene, role, grounder, verifiers, directory, recovery=recovery)
             rows.append(row)
             print("multistep", scene["task"], scene["seed"], role, row.get("achieved"), flush=True)
     summary = summarize_multistep(rows, tuple(verifiers))
