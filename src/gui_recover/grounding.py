@@ -53,14 +53,18 @@ def point_hits_boxes(point, boxes):
 class ScriptedGroundingPolicy:
     """Text-derived two-step plan; ShowUI supplies every coordinate."""
 
-    def __init__(self, backend, input_guard=False):
+    def __init__(self, backend, input_guard=False, blind_input_retry=False):
+        if input_guard and blind_input_retry:
+            raise ValueError("Choose visual guard or blind retry, not both")
         self.backend = backend
         self.input_guard = input_guard
+        self.blind_input_retry = blind_input_retry
         self.last_metrics = {}
         self.config = {**backend.config, "planner": "scripted_miniwob_goal_patterns_v1",
                        "grounding_prompt": GROUNDING, "uses_dom": False,
                        "advances_plan": "history order by default; visual input check when input_guard enabled",
                        "input_guard": {"enabled": input_guard, "retry_limit": 1,
+                                       "blind_retry": blind_input_retry,
                                        "signal": "enclosed_white_input_ink_v1"}}
         self._clear_state()
 
@@ -69,18 +73,28 @@ class ScriptedGroundingPolicy:
         self.step_index = 0
         self.input_attempts = 0
         self.block_reason = None
-        self.guard_metrics = {"checks": 0, "empty": 0, "text_visible": 0, "unknown": 0, "retries": 0, "blocked": 0}
+        self.guard_metrics = {"checks": 0, "empty": 0, "text_visible": 0, "unknown": 0,
+                              "retries": 0, "blocked": 0, "blind_retries": 0}
 
     def reset(self, seed):
         self._clear_state()
         self.backend.reset(seed)
 
     def observe_transition(self, before, after, proposed):
-        if not self.input_guard:
+        if not self.input_guard and not self.blind_input_retry:
             return None
         if proposed.action != "INPUT":
             self.step_index += 1
             return None
+        if self.blind_input_retry:
+            self.input_attempts += 1
+            if self.input_attempts == 1:
+                self.guard_metrics["blind_retries"] += 1
+                decision = "unconditional_retry"
+            else:
+                self.step_index += 1
+                decision = "advance"
+            return {"kind": "blind_input_retry", "decision": decision, "input_attempts": self.input_attempts}
         signal = inspect_input(before.screenshot, after.screenshot, proposed.position)
         status = signal["status"]
         self.input_attempts += 1
@@ -101,7 +115,7 @@ class ScriptedGroundingPolicy:
 
     def predict(self, obs, history):
         plan = plan_from_goal(obs.goal)
-        index = self.step_index if self.input_guard else len(history)
+        index = self.step_index if self.input_guard or self.blind_input_retry else len(history)
         if self.block_reason or index >= len(plan):
             peaks = {key: value for key, value in self.last_metrics.items() if key.startswith("peak_cuda_")}
             self.last_metrics = {**peaks, "model_invocations": 0, "input_tokens": 0, "generated_tokens": 0,

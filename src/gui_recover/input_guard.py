@@ -53,8 +53,9 @@ def _blank_region(image, position):
 
 def _ink(image, bounds):
     x0, y0, x1, y1 = bounds
-    # Remove one interior pixel around the edge to avoid focus/border antialiasing.
-    crop = np.asarray(image.convert("RGB"))[y0 + 1:y1 - 1, x0 + 1:x1 - 1]
+    # Two interior pixels exclude Chromium's thicker focused outline at the
+    # fixed MiniWoB screenshot scale, as well as border antialiasing.
+    crop = np.asarray(image.convert("RGB"))[y0 + 2:y1 - 2, x0 + 2:x1 - 2]
     dark = crop.mean(axis=2) < 180
     remaining = set(zip(*np.nonzero(dark)[::-1]))
     ink = 0
@@ -88,7 +89,7 @@ def inspect_input(before_image, after_image, position):
     if any(float((~border).mean()) < 0.65 for border in borders):
         return {"status": "unknown", "reason": "input_outline_moved_or_changed", "region": bounds}
     after_ink, caret = _ink(after_image, bounds)
-    interior_area = (x1 - x0 - 2) * (y1 - y0 - 2)
+    interior_area = (x1 - x0 - 4) * (y1 - y0 - 4)
     if after_ink > interior_area * 0.4:
         return {"status": "unknown", "reason": "region_background_changed", "region": bounds}
     status = "text_visible" if after_ink >= 8 else ("empty" if after_ink == 0 else "unknown")

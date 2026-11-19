@@ -17,6 +17,11 @@ def field(kind="empty"):
     pixels[30:52, 20:180] = 255
     if kind in ("caret", "text"):
         pixels[32:50, 25:27] = 0
+    if kind == "focus":
+        pixels[30:32, 20:180] = 0
+        pixels[50:52, 20:180] = 0
+        pixels[30:52, 20:22] = 0
+        pixels[30:52, 178:180] = 0
     if kind == "text":
         pixels[35:46, 40:55] = 0
     return Image.fromarray(pixels)
@@ -24,6 +29,7 @@ def field(kind="empty"):
 
 def test_visual_signal_ignores_caret_and_detects_ink():
     assert inspect_input(field(), field("caret"), (0.5, 0.5))["status"] == "empty"
+    assert inspect_input(field(), field("focus"), (0.5, 0.5))["status"] == "empty"
     assert inspect_input(field(), field("text"), (0.5, 0.5))["status"] == "text_visible"
     assert inspect_input(field("text"), field("text"), (0.5, 0.5))["status"] == "unknown"
     assert inspect_input(field(), Image.new("RGB", (200, 80)), (0.5, 0.5))["status"] == "unknown"
@@ -68,7 +74,7 @@ class TextEnv:
         self.submissions = 0
 
     def reset(self, seed):
-        self.text = False
+        self.text = ""
         self.picture = field()
         return self.obs(), {}
 
@@ -80,13 +86,16 @@ class TextEnv:
 
     def step(self, action):
         if action.action == "INPUT":
-            self.text = not self.persistent_loss
+            if not self.persistent_loss:
+                self.text += action.value
             self.picture = field("text" if self.text else "caret")
         elif action.action == "CLICK" and not self.text:
             self.picture = field("caret")
         done = action.action == "CLICK" and self.text
+        done = bool(done)
+        reward = int(done and self.text == "abc")
         self.submissions += int(done)
-        return self.obs(), int(done), done, False, {"task_info": {"DONE_GLOBAL": done, "RAW_REWARD_GLOBAL": int(done)}}, "compiled"
+        return self.obs(), reward, done, False, {"task_info": {"DONE_GLOBAL": done, "RAW_REWARD_GLOBAL": reward}}, "compiled"
 
 
 def test_missing_input_regrounds_and_recovers_without_label_leakage(tmp_path):
@@ -123,3 +132,14 @@ def test_clean_input_does_not_duplicate_text(tmp_path):
     assert result["input_guard"]["retries"] == 0
     assert result["model_calls"] == result["steps"] == 2
     assert backend.queries == ["text field", "Submit button"]
+
+
+def test_blind_retry_succeeds_only_when_first_input_is_lost(tmp_path):
+    for fault in ("none", "drop-input"):
+        backend = Backend()
+        result = run_episode(TextEnv(), ScriptedGroundingPolicy(backend, blind_input_retry=True),
+                             "enter-text", 0, 4, tmp_path / fault,
+                             fault_kind=fault, recovery="input-retry")
+        assert result["success"] == (fault == "drop-input")
+        assert result["model_calls"] == result["steps"] == 3
+        assert result["input_guard"]["checks"] == 0
