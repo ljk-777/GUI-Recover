@@ -1,0 +1,189 @@
+<!doctype html><meta charset="utf-8"><title>GUI-Recover trajectory</title><style>body{font:15px system-ui;max-width:1000px;margin:30px auto}section{border-top:1px solid #ccc;padding:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere}img{max-width:100%}</style><h1>GUI-Recover trajectory</h1><section><img src="0000.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;reset&quot;,
+  &quot;goal&quot;: &quot;Click on the \&quot;previous\&quot; button.&quot;,
+  &quot;target&quot;: &quot;The \&quot;previous\&quot; button&quot;,
+  &quot;screenshot&quot;: &quot;0000.png&quot;,
+  &quot;sha256&quot;: &quot;8157e8a4ff0286aba01644b0ac0736c6a3eec853c229499cae12df0cb000bf0b&quot;
+}</pre></section><section><img src="0001.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;first&quot;,
+  &quot;executed_action&quot;: {
+    &quot;action&quot;: &quot;CLICK&quot;,
+    &quot;value&quot;: null,
+    &quot;position&quot;: [
+      0.26,
+      0.34
+    ]
+  },
+  &quot;executed_code&quot;: &quot;mouse_click(129.48000000000002, 109.14000000000001)&quot;,
+  &quot;reward&quot;: 0.0,
+  &quot;terminated&quot;: false,
+  &quot;truncated&quot;: false,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: 0,
+    &quot;RAW_REWARD_GLOBAL&quot;: 0,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: false,
+    &quot;EPISODE_ID&quot;: 0,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;execution_error&quot;: &quot;&quot;,
+  &quot;screenshot&quot;: &quot;0001.png&quot;,
+  &quot;sha256&quot;: &quot;8157e8a4ff0286aba01644b0ac0736c6a3eec853c229499cae12df0cb000bf0b&quot;
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;verification&quot;,
+  &quot;phase&quot;: &quot;immediate&quot;,
+  &quot;verdict&quot;: {
+    &quot;status&quot;: &quot;unknown&quot;,
+    &quot;probabilities&quot;: {
+      &quot;achieved&quot;: 0.10188757271816017,
+      &quot;not_achieved&quot;: 0.14783863024669203,
+      &quot;unknown&quot;: 0.7502737970351477
+    },
+    &quot;threshold&quot;: 0.6
+  }
+}</pre></section><section><img src="0002.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;wait_hover&quot;,
+  &quot;executed_action&quot;: {
+    &quot;action&quot;: &quot;HOVER&quot;,
+    &quot;value&quot;: null,
+    &quot;position&quot;: [
+      0.26,
+      0.34
+    ]
+  },
+  &quot;executed_code&quot;: &quot;mouse_move(129.48000000000002, 109.14000000000001)&quot;,
+  &quot;reward&quot;: 0.0,
+  &quot;terminated&quot;: false,
+  &quot;truncated&quot;: false,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: 0,
+    &quot;RAW_REWARD_GLOBAL&quot;: 0,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: false,
+    &quot;EPISODE_ID&quot;: 0,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;execution_error&quot;: &quot;&quot;,
+  &quot;screenshot&quot;: &quot;0002.png&quot;,
+  &quot;sha256&quot;: &quot;8157e8a4ff0286aba01644b0ac0736c6a3eec853c229499cae12df0cb000bf0b&quot;
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;verification&quot;,
+  &quot;phase&quot;: &quot;after_wait&quot;,
+  &quot;verdict&quot;: {
+    &quot;status&quot;: &quot;not_achieved&quot;,
+    &quot;probabilities&quot;: {
+      &quot;achieved&quot;: 0.17038910416747452,
+      &quot;not_achieved&quot;: 0.6315259701836619,
+      &quot;unknown&quot;: 0.19808492564886365
+    },
+    &quot;threshold&quot;: 0.6
+  }
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;repair_prediction&quot;,
+  &quot;prediction&quot;: {
+    &quot;raw&quot;: &quot;[0.26, 0.34]&quot;,
+    &quot;point&quot;: [
+      0.26,
+      0.34
+    ],
+    &quot;metrics&quot;: {
+      &quot;input_tokens&quot;: 327,
+      &quot;model_invocations&quot;: 1,
+      &quot;generated_tokens&quot;: 13,
+      &quot;peak_cuda_allocated_bytes&quot;: 4637342208,
+      &quot;peak_cuda_reserved_bytes&quot;: 5077204992
+    },
+    &quot;generation_seconds&quot;: 0.41387378238141537,
+    &quot;cache_key&quot;: &quot;f0b0c10085ac740c8e5d45476682e373be361067294b07d4833546c8831351a8&quot;,
+    &quot;cache_hit&quot;: true,
+    &quot;input_pixel_hash&quot;: &quot;9a3f40e83a7b27eaa9f6e4840edb061732b4e83c9909d19821a044414fe326f8&quot;,
+    &quot;input_size&quot;: [
+      498,
+      321
+    ],
+    &quot;query&quot;: &quot;The \&quot;previous\&quot; button&quot;,
+    &quot;local_point&quot;: [
+      0.26,
+      0.34
+    ],
+    &quot;crop&quot;: [
+      0,
+      0,
+      498,
+      321
+    ],
+    &quot;original_size&quot;: [
+      498,
+      321
+    ],
+    &quot;repair_mode&quot;: &quot;plain&quot;,
+    &quot;input_image&quot;: &quot;repair-input.png&quot;,
+    &quot;input_image_sha256&quot;: &quot;8157e8a4ff0286aba01644b0ac0736c6a3eec853c229499cae12df0cb000bf0b&quot;
+  }
+}</pre></section><section><img src="0003.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;retry_click&quot;,
+  &quot;executed_action&quot;: {
+    &quot;action&quot;: &quot;CLICK&quot;,
+    &quot;value&quot;: null,
+    &quot;position&quot;: [
+      0.26,
+      0.34
+    ]
+  },
+  &quot;executed_code&quot;: &quot;mouse_click(129.48000000000002, 109.14000000000001)&quot;,
+  &quot;reward&quot;: 0.0,
+  &quot;terminated&quot;: false,
+  &quot;truncated&quot;: false,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: 0,
+    &quot;RAW_REWARD_GLOBAL&quot;: 0,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: false,
+    &quot;EPISODE_ID&quot;: 0,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;execution_error&quot;: &quot;&quot;,
+  &quot;screenshot&quot;: &quot;0003.png&quot;,
+  &quot;sha256&quot;: &quot;8157e8a4ff0286aba01644b0ac0736c6a3eec853c229499cae12df0cb000bf0b&quot;
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;episode_end&quot;,
+  &quot;id&quot;: &quot;click-button-20002-none&quot;,
+  &quot;scene_id&quot;: &quot;click-button-20002&quot;,
+  &quot;task&quot;: &quot;click-button&quot;,
+  &quot;seed&quot;: 20002,
+  &quot;regime&quot;: &quot;none&quot;,
+  &quot;strategy&quot;: &quot;verifier_plain&quot;,
+  &quot;success&quot;: false,
+  &quot;reason&quot;: &quot;task_not_completed&quot;,
+  &quot;prefix_matched&quot;: true,
+  &quot;waits&quot;: 1,
+  &quot;repairs&quot;: 1,
+  &quot;logical_actor_calls&quot;: 2,
+  &quot;invalid_predictions&quot;: 0,
+  &quot;source_prediction_reused&quot;: true,
+  &quot;verifier_calls&quot;: 2,
+  &quot;verifier_seconds&quot;: 0.020851176232099533,
+  &quot;trigger_strategy&quot;: &quot;verifier&quot;,
+  &quot;repair_policy&quot;: {
+    &quot;mode&quot;: &quot;plain&quot;,
+    &quot;crop_fraction&quot;: 0.6,
+    &quot;feedback_sha256&quot;: &quot;cbf940774ae19e0344e50f9a7c1b9171d631c54ed506739b921be35510b12cc7&quot;,
+    &quot;uses_teacher&quot;: false,
+    &quot;coordinates_in_feedback&quot;: false
+  },
+  &quot;triggered_recovery&quot;: true,
+  &quot;reward&quot;: 0.0,
+  &quot;terminated&quot;: false,
+  &quot;truncated&quot;: false,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: 0,
+    &quot;RAW_REWARD_GLOBAL&quot;: 0,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: false,
+    &quot;EPISODE_ID&quot;: 0,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;environment_steps&quot;: 3,
+  &quot;new_actor_generations&quot;: 0,
+  &quot;elapsed_seconds&quot;: 4.648200543597341
+}</pre></section>
