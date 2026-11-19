@@ -7,11 +7,16 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import time
+import statistics
+
+from PIL import Image
 
 from gui_recover.actions import parse_action
 from gui_recover.cli import fingerprint
 from gui_recover.environment import MiniwobEnvironment
 from gui_recover.grounding import plan_from_goal
+from gui_recover.input_guard import inspect_input
 from gui_recover.runner import is_success, write_json
 
 
@@ -42,6 +47,7 @@ def main():
                     raise ValueError("Replay initial screenshot differs")
                 expected = plan_from_goal(obs.goal)[0].value
                 replay_success = False
+                previous_screenshot = events[0]["screenshot"]
                 for event in events:
                     if event["event"] != "transition":
                         continue
@@ -52,11 +58,22 @@ def main():
                         value = env.env.unwrapped.page.locator("#tt").input_value()
                         observation = observations.get(event["step"])
                         signal = (observation or {}).get("signal", {})
+                        detector_seconds = None
+                        if signal:
+                            before = Image.open(path.parent / previous_screenshot).convert("RGB")
+                            after = Image.open(path.parent / event["screenshot"]).convert("RGB")
+                            start = time.perf_counter()
+                            reproduced = inspect_input(before, after, event["proposed_action"]["position"])
+                            detector_seconds = time.perf_counter() - start
+                            if json.loads(json.dumps(reproduced)) != signal:
+                                raise ValueError("Original screenshot signal could not be reproduced")
                         labels.append({"run": source.name, "task": result["task"], "seed": result["seed"],
                             "step": event["step"], "actual_empty": value == "",
                             "matches_expected": value == expected, "value_length": len(value),
                             "guard_status": signal.get("status"),
+                            "offline_detector_seconds": detector_seconds,
                             "decision": (observation or {}).get("decision")})
+                    previous_screenshot = event["screenshot"]
                 if replay_success != result["success"]:
                     raise ValueError("Replay outcome differs from original")
                 episodes.append({"run": source.name, "seed": result["seed"], "success": replay_success,
@@ -74,6 +91,9 @@ def main():
               "unknown": sum(r["guard_status"] == "unknown" for r in checked),
               "precision": tp / (tp + fp) if tp + fp else None,
               "recall": tp / (tp + fn) if tp + fn else None}
+    timings = [r["offline_detector_seconds"] for r in checked]
+    totals["offline_detector_mean_seconds"] = statistics.mean(timings) if timings else None
+    totals["offline_detector_max_seconds"] = max(timings) if timings else None
     write_json(directory / "summary.json", totals)
     print(json.dumps(totals, indent=2))
 
