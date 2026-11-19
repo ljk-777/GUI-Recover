@@ -96,6 +96,7 @@ manifest 记录模型版本、提示词、依赖、seed、步数预算、Git 版
 
 - [首轮 SFT 训练与重载](docs/SFT_SMOKE.md)：64 对监督、32 次 QLoRA 更新，adapter 已可加载执行；独立定位对照为 23/28 对 23/28，尚无收益，暂不包含自主规划或 RL。
 - [干扰按钮与真实错误前缀的补充实验](docs/SFT_RECOVERY.md)：两组各 128 次 SFT 更新；条件纠错执行为 base 1/12、无历史 SFT 2/12、历史 SFT 3/12，但正常任务为 11/12、8/12、6/12，暂不替换默认模型。
+- [历史提示修复实验](docs/HISTORY_PROMPT_REPAIR.md)：冻结权重，只在验证集选择历史提示，再用新的 8000 系列场景验收正常任务和条件纠错。
 - [仓库、许可证和数据核查](docs/UPSTREAM_AUDIT.md)
 - [本地实测验收记录](docs/LOCAL_VALIDATION.md)
 - [单卡服务器实测](docs/SERVER_VALIDATION.md)

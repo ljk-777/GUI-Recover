@@ -13,6 +13,7 @@ from gui_recover.policies import MODEL_REVISION, ShowUIPolicy
 from gui_recover.runner import is_success, write_json
 from gui_recover.sft import audit_dataset, file_sha256
 from gui_recover.sft_recovery import audit_corrections, center, select_online_cases, visible_target_boxes
+from gui_recover.sft_history import reuse_development_data
 
 
 def main():
@@ -20,6 +21,7 @@ def main():
     parser.add_argument("--config", required=True)
     parser.add_argument("--model", required=True)
     parser.add_argument("--out", required=True)
+    parser.add_argument("--reuse-development-from", help="Reuse frozen train/validation, mine only the new test cohort")
     args = parser.parse_args()
     config = json.loads(Path(args.config).read_text())
     runtime = fingerprint()
@@ -36,6 +38,9 @@ def main():
         "failure_selection": "executed first proposal misses target and fails actual first-action postcondition",
         "filtered": [], "source_cohort": [], "corrections": {}}
     all_rows = {}
+    if args.reuse_development_from:
+        all_rows, reused = reuse_development_data(args.reuse_development_from, out, config)
+        manifest.update(reused)
 
     def frame(obs, name):
         image = f"images/{name}.png"
@@ -50,6 +55,8 @@ def main():
             "previous_action": previous, **extra}
 
     for split, groups in config["splits"].items():
+        if split in all_rows:
+            continue
         rows = []
         for group in groups:
             task = group["task"]

@@ -12,6 +12,7 @@ from .prompts import GROUNDING
 
 
 REQUERY = "Locate the center of the empty editable text input box."
+HISTORY_PROFILES = ("legacy", "target-last", "current-target", "action-only")
 
 
 def file_sha256(path):
@@ -22,20 +23,32 @@ def file_sha256(path):
     return result.hexdigest()
 
 
-def grounding_query(query, previous_action=None):
+def grounding_query(query, previous_action=None, *, history_profile="legacy"):
+    if history_profile not in HISTORY_PROFILES:
+        raise ValueError("Unknown grounding history profile")
     if previous_action is None:
         return query
     # The previous PROPOSED action is the only admitted prefix. Rewards,
     # teacher boxes, fault labels and executed-code strings are not accepted.
     action = parse_action(json.dumps(previous_action)).to_dict()
-    return (query + "\nPrevious proposed action: " + json.dumps(action, separators=(",", ":"))
-            + "\nRecheck the current screenshot and return the target location.")
+    previous = "Previous proposed action: " + json.dumps(action, separators=(",", ":"))
+    recheck = "Recheck the current screenshot and return the target location."
+    if history_profile == "legacy":
+        return query + "\n" + previous + "\n" + recheck
+    if history_profile == "target-last":
+        # Same text/information as legacy; only the three lines are reordered.
+        return previous + "\n" + recheck + "\n" + query
+    if history_profile == "action-only":
+        # Explicit information-removal diagnostic, not an equal-information ablation.
+        action = {key: action[key] for key in ("action", "value")}
+    return ("Historical action context: " + json.dumps(action, separators=(",", ":"))
+            + "\nLocate the CURRENT target in the current screenshot: " + query)
 
 
-def grounding_messages(picture, query, answer=None, previous_action=None):
+def grounding_messages(picture, query, answer=None, previous_action=None, *, history_profile="legacy"):
     messages = [{"role": "user", "content": [
         {"type": "text", "text": GROUNDING}, {"type": "image", "image": picture},
-        {"type": "text", "text": grounding_query(query, previous_action)}]}]
+        {"type": "text", "text": grounding_query(query, previous_action, history_profile=history_profile)}]}]
     if answer is not None:
         messages.append({"role": "assistant", "content": [{"type": "text", "text": answer}]})
     return messages
