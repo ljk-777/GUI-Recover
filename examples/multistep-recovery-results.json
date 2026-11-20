@@ -1,0 +1,1768 @@
+{
+  "design_commit": "e4ab085",
+  "qwen_compatibility_commit": "a7862f9",
+  "visualwebarena_live_commit": "c55962b",
+  "reward_semantics": {
+    "metrics": "Native binary reward. The checkbox task permits positive partial credit.",
+    "full_credit_metrics": "Binary success and RAW_REWARD_GLOBAL equals 1.0."
+  },
+  "showui_formal": {
+    "episodes": 540,
+    "layouts": 36,
+    "screenshots": 2352,
+    "gate": {
+      "healthy_repair_fraction_passed": true,
+      "natural_recovery_gain_over_best_fixed": true
+    },
+    "full_credit_natural_gain": true,
+    "full_credit_metrics": {
+      "all": {
+        "continue": {
+          "episodes": 180,
+          "exact_successes": 71,
+          "healthy_live": 59,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 13,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 71,
+            "failed": 84,
+            "partial_credit": 25
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 0
+        },
+        "fixed_retry": {
+          "episodes": 180,
+          "exact_successes": 104,
+          "healthy_live": 59,
+          "healthy_repairs": 59,
+          "healthy_checks": 59,
+          "natural_failures": 13,
+          "natural_recovered": 1,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 104,
+            "failed": 42,
+            "partial_credit": 34
+          },
+          "extra_operations": 204,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 180,
+          "relocation_requests": 180
+        },
+        "visual": {
+          "episodes": 180,
+          "exact_successes": 167,
+          "healthy_live": 59,
+          "healthy_repairs": 0,
+          "healthy_checks": 47,
+          "natural_failures": 13,
+          "natural_recovered": 12,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 167,
+            "failed": 13
+          },
+          "extra_operations": 255,
+          "waits": 36,
+          "probes": 108,
+          "repairs": 111,
+          "relocation_requests": 12
+        }
+      },
+      "click-button-sequence": {
+        "continue": {
+          "episodes": 48,
+          "exact_successes": 23,
+          "healthy_live": 23,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 1,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 23,
+            "failed": 25
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 0
+        },
+        "fixed_retry": {
+          "episodes": 48,
+          "exact_successes": 16,
+          "healthy_live": 23,
+          "healthy_repairs": 23,
+          "healthy_checks": 23,
+          "natural_failures": 1,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 16,
+            "failed": 32
+          },
+          "extra_operations": 48,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 48,
+          "relocation_requests": 48
+        },
+        "visual": {
+          "episodes": 48,
+          "exact_successes": 35,
+          "healthy_live": 23,
+          "healthy_repairs": 0,
+          "healthy_checks": 23,
+          "natural_failures": 1,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 35,
+            "failed": 13
+          },
+          "extra_operations": 60,
+          "waits": 0,
+          "probes": 48,
+          "repairs": 12,
+          "relocation_requests": 12
+        }
+      },
+      "click-checkboxes": {
+        "continue": {
+          "episodes": 48,
+          "exact_successes": 12,
+          "healthy_live": 12,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 12,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 12,
+            "partial_credit": 25,
+            "failed": 11
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 0
+        },
+        "fixed_retry": {
+          "episodes": 48,
+          "exact_successes": 4,
+          "healthy_live": 12,
+          "healthy_repairs": 12,
+          "healthy_checks": 12,
+          "natural_failures": 12,
+          "natural_recovered": 1,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "partial_credit": 34,
+            "success": 4,
+            "failed": 10
+          },
+          "extra_operations": 48,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 48,
+          "relocation_requests": 48
+        },
+        "visual": {
+          "episodes": 48,
+          "exact_successes": 48,
+          "healthy_live": 12,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 12,
+          "natural_recovered": 12,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 48
+          },
+          "extra_operations": 51,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 51,
+          "relocation_requests": 0
+        }
+      },
+      "enter-text": {
+        "continue": {
+          "episodes": 84,
+          "exact_successes": 36,
+          "healthy_live": 24,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 36,
+            "failed": 48
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 0
+        },
+        "fixed_retry": {
+          "episodes": 84,
+          "exact_successes": 84,
+          "healthy_live": 24,
+          "healthy_repairs": 24,
+          "healthy_checks": 24,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 84
+          },
+          "extra_operations": 108,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 84,
+          "relocation_requests": 84
+        },
+        "visual": {
+          "episodes": 84,
+          "exact_successes": 84,
+          "healthy_live": 24,
+          "healthy_repairs": 0,
+          "healthy_checks": 24,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 84
+          },
+          "extra_operations": 144,
+          "waits": 36,
+          "probes": 60,
+          "repairs": 48,
+          "relocation_requests": 0
+        }
+      }
+    },
+    "metrics": {
+      "all": {
+        "continue": {
+          "episodes": 180,
+          "exact_successes": 96,
+          "healthy_live": 59,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 13,
+          "natural_recovered": 10,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 96,
+            "failed": 84
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 0
+        },
+        "fixed_retry": {
+          "episodes": 180,
+          "exact_successes": 138,
+          "healthy_live": 59,
+          "healthy_repairs": 59,
+          "healthy_checks": 59,
+          "natural_failures": 13,
+          "natural_recovered": 9,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 138,
+            "failed": 42
+          },
+          "extra_operations": 204,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 180,
+          "relocation_requests": 180
+        },
+        "visual": {
+          "episodes": 180,
+          "exact_successes": 167,
+          "healthy_live": 59,
+          "healthy_repairs": 0,
+          "healthy_checks": 47,
+          "natural_failures": 13,
+          "natural_recovered": 12,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 167,
+            "failed": 13
+          },
+          "extra_operations": 255,
+          "waits": 36,
+          "probes": 108,
+          "repairs": 111,
+          "relocation_requests": 12
+        }
+      },
+      "click-button-sequence": {
+        "continue": {
+          "episodes": 48,
+          "exact_successes": 23,
+          "healthy_live": 23,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 1,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 23,
+            "failed": 25
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 0
+        },
+        "fixed_retry": {
+          "episodes": 48,
+          "exact_successes": 16,
+          "healthy_live": 23,
+          "healthy_repairs": 23,
+          "healthy_checks": 23,
+          "natural_failures": 1,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 16,
+            "failed": 32
+          },
+          "extra_operations": 48,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 48,
+          "relocation_requests": 48
+        },
+        "visual": {
+          "episodes": 48,
+          "exact_successes": 35,
+          "healthy_live": 23,
+          "healthy_repairs": 0,
+          "healthy_checks": 23,
+          "natural_failures": 1,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 35,
+            "failed": 13
+          },
+          "extra_operations": 60,
+          "waits": 0,
+          "probes": 48,
+          "repairs": 12,
+          "relocation_requests": 12
+        }
+      },
+      "click-checkboxes": {
+        "continue": {
+          "episodes": 48,
+          "exact_successes": 37,
+          "healthy_live": 12,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 12,
+          "natural_recovered": 10,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 37,
+            "failed": 11
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 0
+        },
+        "fixed_retry": {
+          "episodes": 48,
+          "exact_successes": 38,
+          "healthy_live": 12,
+          "healthy_repairs": 12,
+          "healthy_checks": 12,
+          "natural_failures": 12,
+          "natural_recovered": 9,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 38,
+            "failed": 10
+          },
+          "extra_operations": 48,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 48,
+          "relocation_requests": 48
+        },
+        "visual": {
+          "episodes": 48,
+          "exact_successes": 48,
+          "healthy_live": 12,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 12,
+          "natural_recovered": 12,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 48
+          },
+          "extra_operations": 51,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 51,
+          "relocation_requests": 0
+        }
+      },
+      "enter-text": {
+        "continue": {
+          "episodes": 84,
+          "exact_successes": 36,
+          "healthy_live": 24,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 36,
+            "failed": 48
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 0
+        },
+        "fixed_retry": {
+          "episodes": 84,
+          "exact_successes": 84,
+          "healthy_live": 24,
+          "healthy_repairs": 24,
+          "healthy_checks": 24,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 84
+          },
+          "extra_operations": 108,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 84,
+          "relocation_requests": 84
+        },
+        "visual": {
+          "episodes": 84,
+          "exact_successes": 84,
+          "healthy_live": 24,
+          "healthy_repairs": 0,
+          "healthy_checks": 24,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 84
+          },
+          "extra_operations": 144,
+          "waits": 36,
+          "probes": 60,
+          "repairs": 48,
+          "relocation_requests": 0
+        }
+      }
+    },
+    "actual_inference": {
+      "logical_requests": 336,
+      "actual_generations": 169,
+      "actual_input_tokens": 61483,
+      "actual_generated_tokens": 2163,
+      "scope": "Actual token totals exclude cached/reused original predictions with unavailable token counts"
+    },
+    "frozen_probe_learning_audit": {
+      "training_episodes": 64,
+      "sampled_probe_decisions": 64,
+      "checkpoint_sha256": "793fe6b79c3bb7d3e2fce4969bef1d3e1fec25540291e4ca8f4687c5c0e28a6d",
+      "checkpoint_reproduced": true
+    },
+    "probe_evaluation": {
+      "summary": {
+        "all": {
+          "visual": {
+            "episodes": 48,
+            "exact_successes": 48,
+            "healthy_live": 12,
+            "healthy_repairs": 0,
+            "healthy_checks": 12,
+            "natural_failures": 0,
+            "natural_recovered": 0,
+            "nonrecoverable_natural": 0,
+            "outcomes": {
+              "success": 48
+            },
+            "extra_operations": 96,
+            "waits": 24,
+            "probes": 48,
+            "repairs": 24,
+            "relocation_requests": 0
+          },
+          "learned_probe": {
+            "episodes": 48,
+            "exact_successes": 48,
+            "healthy_live": 12,
+            "healthy_repairs": 0,
+            "healthy_checks": 12,
+            "natural_failures": 0,
+            "natural_recovered": 0,
+            "nonrecoverable_natural": 0,
+            "outcomes": {
+              "success": 48
+            },
+            "extra_operations": 96,
+            "waits": 24,
+            "probes": 48,
+            "repairs": 24,
+            "relocation_requests": 0
+          }
+        },
+        "click-button-sequence": {
+          "visual": {
+            "episodes": 0,
+            "exact_successes": 0,
+            "healthy_live": 0,
+            "healthy_repairs": 0,
+            "healthy_checks": 0,
+            "natural_failures": 0,
+            "natural_recovered": 0,
+            "nonrecoverable_natural": 0,
+            "outcomes": {},
+            "extra_operations": 0,
+            "waits": 0,
+            "probes": 0,
+            "repairs": 0,
+            "relocation_requests": 0
+          },
+          "learned_probe": {
+            "episodes": 0,
+            "exact_successes": 0,
+            "healthy_live": 0,
+            "healthy_repairs": 0,
+            "healthy_checks": 0,
+            "natural_failures": 0,
+            "natural_recovered": 0,
+            "nonrecoverable_natural": 0,
+            "outcomes": {},
+            "extra_operations": 0,
+            "waits": 0,
+            "probes": 0,
+            "repairs": 0,
+            "relocation_requests": 0
+          }
+        },
+        "click-checkboxes": {
+          "visual": {
+            "episodes": 0,
+            "exact_successes": 0,
+            "healthy_live": 0,
+            "healthy_repairs": 0,
+            "healthy_checks": 0,
+            "natural_failures": 0,
+            "natural_recovered": 0,
+            "nonrecoverable_natural": 0,
+            "outcomes": {},
+            "extra_operations": 0,
+            "waits": 0,
+            "probes": 0,
+            "repairs": 0,
+            "relocation_requests": 0
+          },
+          "learned_probe": {
+            "episodes": 0,
+            "exact_successes": 0,
+            "healthy_live": 0,
+            "healthy_repairs": 0,
+            "healthy_checks": 0,
+            "natural_failures": 0,
+            "natural_recovered": 0,
+            "nonrecoverable_natural": 0,
+            "outcomes": {},
+            "extra_operations": 0,
+            "waits": 0,
+            "probes": 0,
+            "repairs": 0,
+            "relocation_requests": 0
+          }
+        },
+        "enter-text": {
+          "visual": {
+            "episodes": 48,
+            "exact_successes": 48,
+            "healthy_live": 12,
+            "healthy_repairs": 0,
+            "healthy_checks": 12,
+            "natural_failures": 0,
+            "natural_recovered": 0,
+            "nonrecoverable_natural": 0,
+            "outcomes": {
+              "success": 48
+            },
+            "extra_operations": 96,
+            "waits": 24,
+            "probes": 48,
+            "repairs": 24,
+            "relocation_requests": 0
+          },
+          "learned_probe": {
+            "episodes": 48,
+            "exact_successes": 48,
+            "healthy_live": 12,
+            "healthy_repairs": 0,
+            "healthy_checks": 12,
+            "natural_failures": 0,
+            "natural_recovered": 0,
+            "nonrecoverable_natural": 0,
+            "outcomes": {
+              "success": 48
+            },
+            "extra_operations": 96,
+            "waits": 24,
+            "probes": 48,
+            "repairs": 24,
+            "relocation_requests": 0
+          }
+        }
+      },
+      "gate": {
+        "preserved_rule_successes": true,
+        "delayed_tail_challenge_passed": true,
+        "fewer_probes": false
+      },
+      "by_regime": {
+        "healthy": {
+          "visual": {
+            "exact_successes": 12,
+            "episodes": 12
+          },
+          "learned_probe": {
+            "exact_successes": 12,
+            "episodes": 12
+          }
+        },
+        "deferred": {
+          "visual": {
+            "exact_successes": 12,
+            "episodes": 12
+          },
+          "learned_probe": {
+            "exact_successes": 12,
+            "episodes": 12
+          }
+        },
+        "trailing": {
+          "visual": {
+            "exact_successes": 12,
+            "episodes": 12
+          },
+          "learned_probe": {
+            "exact_successes": 12,
+            "episodes": 12
+          }
+        },
+        "deferred_tail": {
+          "visual": {
+            "exact_successes": 12,
+            "episodes": 12
+          },
+          "learned_probe": {
+            "exact_successes": 12,
+            "episodes": 12
+          }
+        }
+      }
+    },
+    "gpu_peak_sample_mib": 5329,
+    "plan_sha256": "cd4a5b0fd2ead1417989f5a140c6a3b69dbbcc3ed86b925ec272ac8c562f88e9"
+  },
+  "qwen_miniwob": {
+    "episodes": 45,
+    "layouts": 3,
+    "screenshots": 199,
+    "gate": {
+      "healthy_repair_fraction_passed": true,
+      "natural_recovery_gain_over_best_fixed": false
+    },
+    "full_credit_natural_gain": false,
+    "full_credit_metrics": {
+      "all": {
+        "continue": {
+          "episodes": 15,
+          "exact_successes": 7,
+          "healthy_live": 6,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 7,
+            "failed": 6,
+            "partial_credit": 2
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 0
+        },
+        "fixed_retry": {
+          "episodes": 15,
+          "exact_successes": 10,
+          "healthy_live": 6,
+          "healthy_repairs": 4,
+          "healthy_checks": 4,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 10,
+            "failed": 2,
+            "partial_credit": 3
+          },
+          "extra_operations": 13,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 11,
+          "relocation_requests": 15
+        },
+        "visual": {
+          "episodes": 15,
+          "exact_successes": 14,
+          "healthy_live": 6,
+          "healthy_repairs": 0,
+          "healthy_checks": 4,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 14,
+            "failed": 1
+          },
+          "extra_operations": 20,
+          "waits": 3,
+          "probes": 9,
+          "repairs": 8,
+          "relocation_requests": 1
+        }
+      },
+      "click-button-sequence": {
+        "continue": {
+          "episodes": 4,
+          "exact_successes": 2,
+          "healthy_live": 2,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 2,
+            "failed": 2
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 0
+        },
+        "fixed_retry": {
+          "episodes": 4,
+          "exact_successes": 2,
+          "healthy_live": 2,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 2,
+            "failed": 2
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 4
+        },
+        "visual": {
+          "episodes": 4,
+          "exact_successes": 3,
+          "healthy_live": 2,
+          "healthy_repairs": 0,
+          "healthy_checks": 2,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 3,
+            "failed": 1
+          },
+          "extra_operations": 5,
+          "waits": 0,
+          "probes": 4,
+          "repairs": 1,
+          "relocation_requests": 1
+        }
+      },
+      "click-checkboxes": {
+        "continue": {
+          "episodes": 4,
+          "exact_successes": 2,
+          "healthy_live": 2,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 2,
+            "partial_credit": 2
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 0
+        },
+        "fixed_retry": {
+          "episodes": 4,
+          "exact_successes": 1,
+          "healthy_live": 2,
+          "healthy_repairs": 2,
+          "healthy_checks": 2,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "partial_credit": 3,
+            "success": 1
+          },
+          "extra_operations": 4,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 4,
+          "relocation_requests": 4
+        },
+        "visual": {
+          "episodes": 4,
+          "exact_successes": 4,
+          "healthy_live": 2,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 4
+          },
+          "extra_operations": 3,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 3,
+          "relocation_requests": 0
+        }
+      },
+      "enter-text": {
+        "continue": {
+          "episodes": 7,
+          "exact_successes": 3,
+          "healthy_live": 2,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 3,
+            "failed": 4
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 0
+        },
+        "fixed_retry": {
+          "episodes": 7,
+          "exact_successes": 7,
+          "healthy_live": 2,
+          "healthy_repairs": 2,
+          "healthy_checks": 2,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 7
+          },
+          "extra_operations": 9,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 7,
+          "relocation_requests": 7
+        },
+        "visual": {
+          "episodes": 7,
+          "exact_successes": 7,
+          "healthy_live": 2,
+          "healthy_repairs": 0,
+          "healthy_checks": 2,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 7
+          },
+          "extra_operations": 12,
+          "waits": 3,
+          "probes": 5,
+          "repairs": 4,
+          "relocation_requests": 0
+        }
+      }
+    },
+    "metrics": {
+      "all": {
+        "continue": {
+          "episodes": 15,
+          "exact_successes": 9,
+          "healthy_live": 6,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 9,
+            "failed": 6
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 0
+        },
+        "fixed_retry": {
+          "episodes": 15,
+          "exact_successes": 13,
+          "healthy_live": 6,
+          "healthy_repairs": 4,
+          "healthy_checks": 4,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 13,
+            "failed": 2
+          },
+          "extra_operations": 13,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 11,
+          "relocation_requests": 15
+        },
+        "visual": {
+          "episodes": 15,
+          "exact_successes": 14,
+          "healthy_live": 6,
+          "healthy_repairs": 0,
+          "healthy_checks": 4,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 14,
+            "failed": 1
+          },
+          "extra_operations": 20,
+          "waits": 3,
+          "probes": 9,
+          "repairs": 8,
+          "relocation_requests": 1
+        }
+      },
+      "click-button-sequence": {
+        "continue": {
+          "episodes": 4,
+          "exact_successes": 2,
+          "healthy_live": 2,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 2,
+            "failed": 2
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 0
+        },
+        "fixed_retry": {
+          "episodes": 4,
+          "exact_successes": 2,
+          "healthy_live": 2,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 2,
+            "failed": 2
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 4
+        },
+        "visual": {
+          "episodes": 4,
+          "exact_successes": 3,
+          "healthy_live": 2,
+          "healthy_repairs": 0,
+          "healthy_checks": 2,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 3,
+            "failed": 1
+          },
+          "extra_operations": 5,
+          "waits": 0,
+          "probes": 4,
+          "repairs": 1,
+          "relocation_requests": 1
+        }
+      },
+      "click-checkboxes": {
+        "continue": {
+          "episodes": 4,
+          "exact_successes": 4,
+          "healthy_live": 2,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 4
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 0
+        },
+        "fixed_retry": {
+          "episodes": 4,
+          "exact_successes": 4,
+          "healthy_live": 2,
+          "healthy_repairs": 2,
+          "healthy_checks": 2,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 4
+          },
+          "extra_operations": 4,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 4,
+          "relocation_requests": 4
+        },
+        "visual": {
+          "episodes": 4,
+          "exact_successes": 4,
+          "healthy_live": 2,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 4
+          },
+          "extra_operations": 3,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 3,
+          "relocation_requests": 0
+        }
+      },
+      "enter-text": {
+        "continue": {
+          "episodes": 7,
+          "exact_successes": 3,
+          "healthy_live": 2,
+          "healthy_repairs": 0,
+          "healthy_checks": 0,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 3,
+            "failed": 4
+          },
+          "extra_operations": 0,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 0,
+          "relocation_requests": 0
+        },
+        "fixed_retry": {
+          "episodes": 7,
+          "exact_successes": 7,
+          "healthy_live": 2,
+          "healthy_repairs": 2,
+          "healthy_checks": 2,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 7
+          },
+          "extra_operations": 9,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 7,
+          "relocation_requests": 7
+        },
+        "visual": {
+          "episodes": 7,
+          "exact_successes": 7,
+          "healthy_live": 2,
+          "healthy_repairs": 0,
+          "healthy_checks": 2,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 7
+          },
+          "extra_operations": 12,
+          "waits": 3,
+          "probes": 5,
+          "repairs": 4,
+          "relocation_requests": 0
+        }
+      }
+    },
+    "model": {
+      "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+      "revision": "66285546d2b821cf421d4f5eb2576359d3770cd3",
+      "dtype": "bfloat16",
+      "device": "cpu",
+      "min_pixels": 3136,
+      "max_pixels": 200704,
+      "max_new_tokens": 48,
+      "do_sample": false,
+      "coordinate_format": "integer pixels in the resized image",
+      "weights_sha256": {
+        "model-00001-of-00002.safetensors": "41a8895c164b4d32bae6b302f4603fcbc1797f32dafa45c7e9bcda23c6755df8",
+        "model-00002-of-00002.safetensors": "365531ff8752420e89dee707b79d021fb2d6e25abafe486f080555a4fe6972e4"
+      }
+    },
+    "actual_inference": {
+      "logical_requests": 25,
+      "actual_generations": 11,
+      "actual_input_tokens": 3567,
+      "actual_generated_tokens": 245,
+      "scope": "Actual token totals exclude cached/reused original predictions with unavailable token counts"
+    },
+    "plan_sha256": "8471c01b44c79d9a4f9085b4cabc266565dd6d58bc6b208422ba249a0a4ce736"
+  },
+  "showui_sft": {
+    "dataset": {
+      "records": {
+        "train": 56,
+        "validation": 28,
+        "test": 36
+      },
+      "scenes": {
+        "train": 16,
+        "validation": 8,
+        "test": 36
+      },
+      "tasks": {
+        "train": [
+          "click-button-sequence",
+          "enter-text"
+        ],
+        "validation": [
+          "click-button-sequence",
+          "enter-text"
+        ],
+        "test": [
+          "click-button-sequence",
+          "click-checkboxes",
+          "enter-text"
+        ]
+      },
+      "unseen_test_tasks": [
+        "click-checkboxes"
+      ],
+      "cross_split_scene_and_image_overlap": 0
+    },
+    "verified_corrections": {
+      "train": 40,
+      "validation": 20
+    },
+    "completed_updates": 32,
+    "validation_loss_before": 4.15023935692651,
+    "validation_loss_after": 1.8301770580666405,
+    "adapter_sha256": "e0f85fce175bc111eecda09f31d67beb11f82c92c2e38f1d7551d352672f57c0",
+    "reload_probe_loss_abs_difference": 0.0,
+    "adapter_delta_l2": 2.262891982405091,
+    "frozen_original_action_generations": 0,
+    "metrics": {
+      "all": {
+        "fixed_retry": {
+          "episodes": 18,
+          "exact_successes": 14,
+          "healthy_live": 10,
+          "healthy_repairs": 10,
+          "healthy_checks": 10,
+          "natural_failures": 2,
+          "natural_recovered": 2,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 14,
+            "failed": 4
+          },
+          "extra_operations": 18,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 18,
+          "relocation_requests": 18
+        },
+        "sft_retry": {
+          "episodes": 18,
+          "exact_successes": 14,
+          "healthy_live": 10,
+          "healthy_repairs": 10,
+          "healthy_checks": 10,
+          "natural_failures": 2,
+          "natural_recovered": 2,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 14,
+            "failed": 4
+          },
+          "extra_operations": 18,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 18,
+          "relocation_requests": 18
+        }
+      },
+      "click-button-sequence": {
+        "fixed_retry": {
+          "episodes": 6,
+          "exact_successes": 3,
+          "healthy_live": 4,
+          "healthy_repairs": 4,
+          "healthy_checks": 4,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 3,
+            "failed": 3
+          },
+          "extra_operations": 6,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 6,
+          "relocation_requests": 6
+        },
+        "sft_retry": {
+          "episodes": 6,
+          "exact_successes": 3,
+          "healthy_live": 4,
+          "healthy_repairs": 4,
+          "healthy_checks": 4,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 3,
+            "failed": 3
+          },
+          "extra_operations": 6,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 6,
+          "relocation_requests": 6
+        }
+      },
+      "click-checkboxes": {
+        "fixed_retry": {
+          "episodes": 6,
+          "exact_successes": 5,
+          "healthy_live": 2,
+          "healthy_repairs": 2,
+          "healthy_checks": 2,
+          "natural_failures": 2,
+          "natural_recovered": 2,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 5,
+            "failed": 1
+          },
+          "extra_operations": 6,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 6,
+          "relocation_requests": 6
+        },
+        "sft_retry": {
+          "episodes": 6,
+          "exact_successes": 5,
+          "healthy_live": 2,
+          "healthy_repairs": 2,
+          "healthy_checks": 2,
+          "natural_failures": 2,
+          "natural_recovered": 2,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 5,
+            "failed": 1
+          },
+          "extra_operations": 6,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 6,
+          "relocation_requests": 6
+        }
+      },
+      "enter-text": {
+        "fixed_retry": {
+          "episodes": 6,
+          "exact_successes": 6,
+          "healthy_live": 4,
+          "healthy_repairs": 4,
+          "healthy_checks": 4,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 6
+          },
+          "extra_operations": 6,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 6,
+          "relocation_requests": 6
+        },
+        "sft_retry": {
+          "episodes": 6,
+          "exact_successes": 6,
+          "healthy_live": 4,
+          "healthy_repairs": 4,
+          "healthy_checks": 4,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 6
+          },
+          "extra_operations": 6,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 6,
+          "relocation_requests": 6
+        }
+      }
+    },
+    "full_credit_metrics": {
+      "all": {
+        "fixed_retry": {
+          "episodes": 18,
+          "exact_successes": 11,
+          "healthy_live": 10,
+          "healthy_repairs": 10,
+          "healthy_checks": 10,
+          "natural_failures": 2,
+          "natural_recovered": 1,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 11,
+            "failed": 4,
+            "partial_credit": 3
+          },
+          "extra_operations": 18,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 18,
+          "relocation_requests": 18
+        },
+        "sft_retry": {
+          "episodes": 18,
+          "exact_successes": 10,
+          "healthy_live": 10,
+          "healthy_repairs": 10,
+          "healthy_checks": 10,
+          "natural_failures": 2,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 10,
+            "failed": 4,
+            "partial_credit": 4
+          },
+          "extra_operations": 18,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 18,
+          "relocation_requests": 18
+        }
+      },
+      "click-button-sequence": {
+        "fixed_retry": {
+          "episodes": 6,
+          "exact_successes": 3,
+          "healthy_live": 4,
+          "healthy_repairs": 4,
+          "healthy_checks": 4,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 3,
+            "failed": 3
+          },
+          "extra_operations": 6,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 6,
+          "relocation_requests": 6
+        },
+        "sft_retry": {
+          "episodes": 6,
+          "exact_successes": 3,
+          "healthy_live": 4,
+          "healthy_repairs": 4,
+          "healthy_checks": 4,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 3,
+            "failed": 3
+          },
+          "extra_operations": 6,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 6,
+          "relocation_requests": 6
+        }
+      },
+      "click-checkboxes": {
+        "fixed_retry": {
+          "episodes": 6,
+          "exact_successes": 2,
+          "healthy_live": 2,
+          "healthy_repairs": 2,
+          "healthy_checks": 2,
+          "natural_failures": 2,
+          "natural_recovered": 1,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "partial_credit": 3,
+            "success": 2,
+            "failed": 1
+          },
+          "extra_operations": 6,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 6,
+          "relocation_requests": 6
+        },
+        "sft_retry": {
+          "episodes": 6,
+          "exact_successes": 1,
+          "healthy_live": 2,
+          "healthy_repairs": 2,
+          "healthy_checks": 2,
+          "natural_failures": 2,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 1,
+            "partial_credit": 4,
+            "failed": 1
+          },
+          "extra_operations": 6,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 6,
+          "relocation_requests": 6
+        }
+      },
+      "enter-text": {
+        "fixed_retry": {
+          "episodes": 6,
+          "exact_successes": 6,
+          "healthy_live": 4,
+          "healthy_repairs": 4,
+          "healthy_checks": 4,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 6
+          },
+          "extra_operations": 6,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 6,
+          "relocation_requests": 6
+        },
+        "sft_retry": {
+          "episodes": 6,
+          "exact_successes": 6,
+          "healthy_live": 4,
+          "healthy_repairs": 4,
+          "healthy_checks": 4,
+          "natural_failures": 0,
+          "natural_recovered": 0,
+          "nonrecoverable_natural": 0,
+          "outcomes": {
+            "success": 6
+          },
+          "extra_operations": 6,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 6,
+          "relocation_requests": 6
+        }
+      }
+    }
+  },
+  "visualwebarena": {
+    "offline": {
+      "single_frame_matches": 1,
+      "recheck_matches": 1,
+      "extra_model_requests": 0,
+      "protocol_sha256": "9450b92574abdab6254eb2bdd110f675371443b103287d80c856489257f6a4fd"
+    },
+    "site": {
+      "site_variant": "Optimized VWA Classifieds with re-encoded AVIF assets",
+      "pinned_images": {
+        "web": "sha256:b2df5018c66bb48ce1828bef3f28171b90c4c74027ab0a3611d93cbb7a4509f7",
+        "db": "sha256:70c327b1c16aac0b17c05fd59ef79f6930a1389e9da45b04d33cd47f327b7d1a"
+      },
+      "verified_photo_count": 12
+    },
+    "privileged_native_check": {
+      "kind": "privileged_known_answer_wiring_check",
+      "site_live": true,
+      "successful_native_submissions": 3,
+      "cases": [
+        {
+          "task_id": 118,
+          "reward": 1.0,
+          "terminated": true,
+          "viewport": [
+            1280,
+            720
+          ]
+        },
+        {
+          "task_id": 120,
+          "reward": 1.0,
+          "terminated": true,
+          "viewport": [
+            1280,
+            720
+          ]
+        },
+        {
+          "task_id": 149,
+          "reward": 1.0,
+          "terminated": true,
+          "viewport": [
+            1280,
+            720
+          ]
+        }
+      ]
+    },
+    "live": {
+      "max_steps": 2,
+      "task_ids": [
+        118,
+        120,
+        149
+      ],
+      "strategies": {
+        "none": {
+          "episodes": 3,
+          "successes": 0,
+          "success_rate": 0.0,
+          "mean_steps": 1.0,
+          "reasons": {
+            "step_limit": 1,
+            "invalid_action": 2
+          },
+          "by_task": {
+            "visualwebarena.118": {
+              "episodes": 1,
+              "successes": 0,
+              "success_rate": 0.0,
+              "mean_steps": 2.0,
+              "reasons": {
+                "step_limit": 1
+              }
+            },
+            "visualwebarena.120": {
+              "episodes": 1,
+              "successes": 0,
+              "success_rate": 0.0,
+              "mean_steps": 1.0,
+              "reasons": {
+                "invalid_action": 1
+              }
+            },
+            "visualwebarena.149": {
+              "episodes": 1,
+              "successes": 0,
+              "success_rate": 0.0,
+              "mean_steps": 0.0,
+              "reasons": {
+                "invalid_action": 1
+              }
+            }
+          }
+        },
+        "feedback": {
+          "episodes": 3,
+          "successes": 0,
+          "success_rate": 0.0,
+          "mean_steps": 1.0,
+          "reasons": {
+            "step_limit": 1,
+            "invalid_action": 2
+          },
+          "by_task": {
+            "visualwebarena.118": {
+              "episodes": 1,
+              "successes": 0,
+              "success_rate": 0.0,
+              "mean_steps": 2.0,
+              "reasons": {
+                "step_limit": 1
+              }
+            },
+            "visualwebarena.120": {
+              "episodes": 1,
+              "successes": 0,
+              "success_rate": 0.0,
+              "mean_steps": 1.0,
+              "reasons": {
+                "invalid_action": 1
+              }
+            },
+            "visualwebarena.149": {
+              "episodes": 1,
+              "successes": 0,
+              "success_rate": 0.0,
+              "mean_steps": 0.0,
+              "reasons": {
+                "invalid_action": 1
+              }
+            }
+          }
+        }
+      },
+      "episodes": [
+        {
+          "task": "visualwebarena.118",
+          "recovery": "feedback",
+          "success": false,
+          "reason": "step_limit",
+          "steps": 2,
+          "recovery_feedbacks": 0,
+          "reward": 0.0
+        },
+        {
+          "task": "visualwebarena.118",
+          "recovery": "none",
+          "success": false,
+          "reason": "step_limit",
+          "steps": 2,
+          "recovery_feedbacks": 0,
+          "reward": 0.0
+        },
+        {
+          "task": "visualwebarena.120",
+          "recovery": "feedback",
+          "success": false,
+          "reason": "invalid_action",
+          "steps": 1,
+          "recovery_feedbacks": 0,
+          "reward": 0.0
+        },
+        {
+          "task": "visualwebarena.120",
+          "recovery": "none",
+          "success": false,
+          "reason": "invalid_action",
+          "steps": 1,
+          "recovery_feedbacks": 0,
+          "reward": 0.0
+        },
+        {
+          "task": "visualwebarena.149",
+          "recovery": "feedback",
+          "success": false,
+          "reason": "invalid_action",
+          "steps": 0,
+          "recovery_feedbacks": 0,
+          "reward": 0.0
+        },
+        {
+          "task": "visualwebarena.149",
+          "recovery": "none",
+          "success": false,
+          "reason": "invalid_action",
+          "steps": 0,
+          "recovery_feedbacks": 0,
+          "reward": 0.0
+        }
+      ]
+    }
+  }
+}

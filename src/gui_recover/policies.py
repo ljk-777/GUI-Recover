@@ -69,6 +69,7 @@ class ShowUIPolicy:
         if not torch.cuda.is_bf16_supported():
             raise RuntimeError("This inference profile requires a BF16-capable GPU")
         self.torch = torch
+        self.device = "cuda:0"
         self.prompt_profile = prompt_profile
         self.prompt = {"baseline": NAV_PROMPT, "official-web": OFFICIAL_WEB,
                        "official-miniwob": OFFICIAL_MINIWOB}[prompt_profile]
@@ -137,11 +138,12 @@ class ShowUIPolicy:
         text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         screenshot = next(item["image"] for item in messages[0]["content"] if item["type"] == "image")
         inputs = self.processor(text=[text], images=[screenshot], padding=True,
-                                return_tensors="pt").to("cuda:0")
+                                return_tensors="pt").to(self.device)
         with self.torch.inference_mode():
             ids = self.model.generate(**inputs, max_new_tokens=self.max_new_tokens, do_sample=False)
         result = self.processor.batch_decode(ids[:, inputs.input_ids.shape[1]:],
                     skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
+        cuda = self.device.startswith("cuda")
         self.last_metrics = {"input_tokens": int(inputs.input_ids.shape[1]),
                 "model_invocations": 1,
                 "generated_tokens": int(ids.shape[1] - inputs.input_ids.shape[1]),

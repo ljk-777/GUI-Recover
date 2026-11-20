@@ -1,0 +1,47 @@
+{
+  "task": "click-button-sequence",
+  "seed": 98400,
+  "split": "test",
+  "code_commit": "e4ab085",
+  "scope": "First registered button layout with a shared scripted suffix",
+  "upstream_license": "MiniWoB++ MIT, see ../MINIWOB_LICENSE.txt",
+  "cases": {
+    "healthy": {
+      "image": "healthy-focus.png",
+      "sha256": "2bd676eaff63f9df948951d9c44dfdeb882f363f2bf7186861dccff84d670603",
+      "probe": {
+        "status": "focused",
+        "restored": true,
+        "marker_pixels": 982
+      },
+      "rewrites_or_retries": 0,
+      "success": true
+    },
+    "miss": {
+      "image": "miss-focus.png",
+      "sha256": "aa4d2b3ce91f176645d21abda929ab63d2e413b6407576b58207dc522ddee818",
+      "probe": {
+        "status": "unfocused",
+        "restored": true,
+        "marker_pixels": 0
+      },
+      "rewrites_or_retries": 1,
+      "success": true
+    },
+    "wrong": {
+      "image": "wrong-focus.png",
+      "sha256": "7991874d1d320f06fcffd22520343a02eaedab3760304bf1fc61bbc9fc74ba55",
+      "probe": {
+        "status": "focused",
+        "restored": true,
+        "marker_pixels": 983
+      },
+      "rewrites_or_retries": 0,
+      "success": false
+    }
+  },
+  "shared_untouched_observation": {
+    "image": "without-probe.png",
+    "sha256": "aa4d2b3ce91f176645d21abda929ab63d2e413b6407576b58207dc522ddee818"
+  }
+}
