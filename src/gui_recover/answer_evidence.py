@@ -8,6 +8,7 @@ from PIL import Image, ImageDraw
 
 from .actions import Action, ActionError
 from .qwen_grounding import native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
+from .screen_text import from_readable_control
 from .verification import pixel_hash
 
 
@@ -92,6 +93,44 @@ def evidence_answer(raw, goal, *, allow_string_abstention=False):
     return answer.strip(), "evidence_answer"
 
 
+def localized_candidate(raw, goal, size):
+    try:
+        data = read_reply(raw)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(data, dict) or set(data) != {"bbox_2d", "evidence", "answer"}:
+        return None
+    box = evidence_box(json.dumps({"bbox_2d": data["bbox_2d"]}), size)
+    if box is None:
+        raise ActionError("A candidate needs a selectable region")
+    reply = json.dumps({"answer": data["answer"], "evidence": data["evidence"]})
+    answer, _ = evidence_answer(reply, goal, allow_string_abstention=True)
+    return box, answer
+
+
+def parse_evidence_location(raw, goal, size, *, confirm, compact_navigation=True, rows=None):
+    """Return a browser action or a validated evidence region and optional candidate."""
+    candidate = None
+    localized = None
+    if rows is not None:
+        control = from_readable_control(raw, rows, size)
+        if control is not None:
+            return control, None, None, "evidence_ocr_navigation"
+        localized = localized_candidate(raw, goal, size)
+    if localized is not None:
+        box, candidate = localized
+    else:
+        navigation = evidence_navigation(raw, size, compact_navigation=compact_navigation) if confirm else None
+        if navigation is not None:
+            return navigation, None, None, "evidence_navigation"
+        box = evidence_box(raw, size)
+    if box is None:
+        return None, None, None, "evidence_abstained"
+    if evidence_clipped(goal, box, size):
+        return None, None, None, "evidence_clipped"
+    return None, box, candidate, "evidence_locate_read" if candidate is not None else "evidence_region"
+
+
 def confirmation_image(screen, crop, bounds, navigation_context=None):
     overview = screen.convert("RGB")
     overview.thumbnail((448, 336), Image.Resampling.LANCZOS)
@@ -129,10 +168,13 @@ def answer_signature(answer):
 class EvidenceAnswerPolicy:
     """Use one model invocation per prediction, including crop localization."""
 
-    def __init__(self, actor, *, confirm=False, use_navigation_context=False):
+    def __init__(self, actor, *, confirm=False, use_navigation_context=False, screen_reader=None):
+        if screen_reader is not None and not confirm:
+            raise ValueError("The OCR policy needs independent confirmation")
         self.actor = actor
         self.confirm = confirm
         self.use_navigation_context = use_navigation_context
+        self.screen_reader = screen_reader
         self.checked_frames = set()
         self.pending_crop = None
         self.pending_answer = None
@@ -157,7 +199,7 @@ class EvidenceAnswerPolicy:
                 and pixel_hash(before.screenshot) != pixel_hash(after.screenshot)):
             self.navigation_context = before.screenshot.copy(), action.position
 
-    def locate(self, observation, frame):
+    def locate(self, observation, frame, history):
         canvas = self.actor.prepare_image(observation.screenshot)
         width, height = canvas.size
         prompt = (
@@ -183,24 +225,44 @@ class EvidenceAnswerPolicy:
                 'Coordinates are integer pixels. Return {"bbox_2d":null} if neither option is clear. '
                 "Return one JSON response and never answer the task directly."
             )
+        rows = None
+        if self.screen_reader is not None:
+            rows = self.screen_reader(observation.screenshot, canvas.size)
+            controls = "\n".join(
+                f"{index}: {json.dumps(row['text'], ensure_ascii=False)} at {row['bounds']}"
+                for index, row in enumerate(rows)
+            )
+            recent = [item["action"]["action"] for item in history[-4:]]
+            prompt += (
+                "\nUse the indexed visible text as screenshot evidence. "
+                'For a button or field with an identified line, use {"action":"CLICK","value":null,"control":index} '
+                'or {"action":"INPUT","value":"query","control":index}. Only use INPUT on a visible field or placeholder. '
+                "If the current page shows a search form and the target is elsewhere, search by the requested keyword "
+                "or category instead of scrolling unrelated items. If the field already contains the query, submit it. "
+                "Use the visible row order and item photos to identify a requested listing. "
+                'When the answer is already legible, you may return {"bbox_2d":[x0,y0,x1,y1],"evidence":["visible fact"],'
+                '"answer":"candidate"}. A separate read will confirm it. Do not guess. '
+                f"Previous browser actions: {', '.join(recent) or 'none'}.\nVisible text:\n{controls}"
+            )
         raw = self.actor.ask(canvas, prompt)
         self.last_metrics.update(evidence_stage="locate", evidence_frame=frame, provider_format="evidence_invalid")
+        if rows is not None:
+            self.last_metrics["screen_text"] = rows
         try:
-            navigation = evidence_navigation(raw, canvas.size) if self.confirm else None
-            if navigation is not None:
-                self.last_metrics["provider_format"] = "evidence_navigation"
-                return json.dumps(navigation.to_dict(), ensure_ascii=False)
-            box = evidence_box(raw, canvas.size)
+            navigation, box, candidate, status = parse_evidence_location(
+                raw, observation.goal, canvas.size, confirm=self.confirm, rows=rows)
         except (ValueError, RecursionError):
             return None
-        self.last_metrics["provider_format"] = "evidence_region" if box else "evidence_abstained"
+        self.last_metrics["provider_format"] = status
+        if navigation is not None:
+            return json.dumps(navigation.to_dict(), ensure_ascii=False)
         if box:
-            if evidence_clipped(observation.goal, box, canvas.size):
-                self.last_metrics["provider_format"] = "evidence_clipped"
-                return None
             crop, bounds = native_crop(observation.screenshot, canvas.size, box)
-            self.pending_crop = frame, crop, bounds
             self.last_metrics["evidence_bounds"] = list(bounds)
+            if candidate is not None:
+                self.pending_answer = frame, crop, bounds, candidate
+            else:
+                self.pending_crop = frame, crop, bounds
         return None
 
     def read(self, observation, frame, crop, bounds):
@@ -284,5 +346,5 @@ class EvidenceAnswerPolicy:
                 return self.read(observation, frame, crop, bounds)
         if frame not in self.checked_frames:
             self.checked_frames.add(frame)
-            return self.locate(observation, frame)
+            return self.locate(observation, frame, history)
         return self.actor.predict(observation, history, allow_answer=False)

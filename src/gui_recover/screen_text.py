@@ -1,0 +1,71 @@
+"""Optional OCR for grounding actions in rendered text."""
+
+import json
+import math
+
+from .actions import ActionError
+from .qwen_grounding import normalize_qwen_action, read_reply
+
+
+def visible_rows(result, source_size, canvas_size):
+    """Map OCR quadrilaterals to bounded rectangles in the model canvas."""
+    if result.boxes is None:
+        return []
+    source_width, source_height = source_size
+    width, height = canvas_size
+    rows = []
+    for points, text, score in zip(result.boxes, result.txts, result.scores, strict=True):
+        if not math.isfinite(score) or score < 0.65 or points.shape != (4, 2):
+            continue
+        if not all(math.isfinite(value) for point in points for value in point):
+            continue
+        xs, ys = points.T
+        left = max(0, math.floor(min(xs) * width / source_width))
+        top = max(0, math.floor(min(ys) * height / source_height))
+        right = min(width, math.ceil(max(xs) * width / source_width))
+        bottom = min(height, math.ceil(max(ys) * height / source_height))
+        label = " ".join(text.split())[:100]
+        if label and left < right and top < bottom:
+            rows.append({"text": label, "bounds": [left, top, right, bottom]})
+    rows.sort(key=lambda row: (row["bounds"][1], row["bounds"][0]))
+    return rows[:56]
+
+
+class RapidScreenReader:
+    """Read pixels locally on the CPU. Imports the optional backend lazily."""
+
+    def __init__(self):
+        from importlib.metadata import version
+
+        from rapidocr import RapidOCR
+
+        self.engine = RapidOCR(params={"EngineConfig.onnxruntime.intra_op_num_threads": 2,
+                                       "EngineConfig.onnxruntime.inter_op_num_threads": 1})
+        self.config = {"rapidocr": version("rapidocr"), "onnxruntime": version("onnxruntime")}
+
+    def __call__(self, screen, canvas_size):
+        import numpy as np
+
+        image = np.ascontiguousarray(np.asarray(screen.convert("RGB"))[:, :, ::-1])
+        result = self.engine(image)
+        return visible_rows(result, screen.size, canvas_size)
+
+
+def from_readable_control(raw, rows, size):
+    try:
+        data = read_reply(raw)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(data, dict) or "control" not in data:
+        return None
+    if set(data) != {"action", "value", "control"} or data["action"] not in ("CLICK", "INPUT"):
+        raise ActionError("Expected one click or input on an OCR line")
+    index = data["control"]
+    if type(index) is not int or not 0 <= index < len(rows):
+        raise ActionError("OCR control index is out of range")
+    left, top, right, bottom = rows[index]["bounds"]
+    width, height = size
+    if not (0 <= left < right <= width and 0 <= top < bottom <= height):
+        raise ActionError("OCR control lies outside the model canvas")
+    point = [(left + right) // 2, (top + bottom) // 2]
+    return normalize_qwen_action({"action": data["action"], "value": data["value"], "position": point}, size)

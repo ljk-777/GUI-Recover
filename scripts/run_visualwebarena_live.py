@@ -15,6 +15,7 @@ from gui_recover.environment import MiniwobEnvironment
 from gui_recover.policies import MODEL_REVISION, ShowUIPolicy
 from gui_recover.qwen_grounding import QwenGroundingPolicy
 from gui_recover.runner import aggregate, render_replay, run_episode, write_json
+from gui_recover.screen_text import RapidScreenReader
 
 
 BACKEND_VARIABLES = ("VWA_CLASSIFIEDS", "VWA_SHOPPING", "VWA_REDDIT", "VWA_WIKIPEDIA",
@@ -31,6 +32,7 @@ TASK_SETS = {
     "evidence-confirm-transfer": (25, 27, 98, 100, 107, 109, 111, 178),
     "evidence-context-transfer": (14, 15, 16, 26, 50, 80, 83, 129),
     "evidence-navigation-diagnostic": (14, 15, 221),
+    "evidence-ocr-diagnostic": (14, 15, 40, 83, 98, 221),
 }
 STUDY_MODES = {
     "visual": ("none", "feedback"),
@@ -40,8 +42,9 @@ STUDY_MODES = {
     "evidence": ("answer-check", "evidence-check"),
     "evidence-confirm": ("answer-check", "evidence-confirm"),
     "evidence-context": ("answer-check", "evidence-context"),
+    "evidence-ocr": ("answer-check", "evidence-ocr"),
 }
-EVIDENCE_STUDIES = ("evidence", "evidence-confirm", "evidence-context")
+EVIDENCE_STUDIES = ("evidence", "evidence-confirm", "evidence-context", "evidence-ocr")
 ANSWER_STUDIES = ("answer", *EVIDENCE_STUDIES)
 
 
@@ -140,6 +143,7 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
 
 def run_study(actor, *, out, study, task_set, max_steps):
     out.mkdir(parents=True, exist_ok=False)
+    screen_reader = RapidScreenReader() if study == "evidence-ocr" else None
     task_ids = TASK_SETS[task_set]
     strategies = {mode: [] for mode in STUDY_MODES[study]}
     for task_id in task_ids:
@@ -158,7 +162,8 @@ def run_study(actor, *, out, study, task_set, max_steps):
                 policy = actor
                 if using_evidence:
                     policy = EvidenceAnswerPolicy(actor, confirm=mode != "evidence-check",
-                                                  use_navigation_context=mode == "evidence-context")
+                                                  use_navigation_context=mode in ("evidence-context", "evidence-ocr"),
+                                                  screen_reader=screen_reader)
                 row = run_episode(env, policy, env.task, 0, max_steps, branch,
                                   recovery=recovery, invalid_action_retry=invalid_retry,
                                   answer_check=mode == "answer-check",
@@ -175,11 +180,14 @@ def run_study(actor, *, out, study, task_set, max_steps):
         counts += ("scroll_feedbacks", "scroll_detection_signals")
     if study in ANSWER_STUDIES:
         counts += ("answer_checks", "answers_submitted", "answers_from_checks")
-    write_json(out / "summary.json", {"benchmark": "visualwebarena", "task_ids": task_ids,
+    summary = {"benchmark": "visualwebarena", "task_ids": task_ids,
         "task_set": task_set, "study": study, "budget_unit": "predictions",
         "max_steps": max_steps, "model": actor.config, "strategies": {
             mode: {**aggregate(rows), **{key: sum(row[key] for row in rows) for key in counts}}
-            for mode, rows in strategies.items()}})
+            for mode, rows in strategies.items()}}
+    if screen_reader is not None:
+        summary["screen_reader"] = screen_reader.config
+    write_json(out / "summary.json", summary)
 
 
 def main():
@@ -217,7 +225,7 @@ def main():
         actor = QwenGroundingPolicy(args.model, device=args.device,
                                     max_new_tokens=128 if args.qwen_7b_4bit else 96, max_pixels=784 * 784,
                                     load_in_4bit=args.qwen_7b_4bit,
-                                    native_navigation=args.study in ("evidence-confirm", "evidence-context"))
+                                    native_navigation=args.study in ("evidence-confirm", "evidence-context", "evidence-ocr"))
     run_study(actor, out=args.out, study=args.study, task_set=args.task_set, max_steps=args.max_steps)
     return 0
 

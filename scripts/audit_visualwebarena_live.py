@@ -9,8 +9,7 @@ from PIL import Image
 
 from gui_recover.actions import ActionError, parse_action
 from gui_recover.answer_evidence import (
-    answer_signature, confirmation_image, evidence_answer, evidence_box, evidence_clipped, evidence_navigation,
-    native_crop,
+    answer_signature, confirmation_image, evidence_answer, native_crop, parse_evidence_location,
 )
 from gui_recover.qwen_grounding import native_action_after_note, parse_visible_answer, read_reply
 from gui_recover.runner import INVALID_ACTION_FEEDBACK, aggregate, write_json
@@ -20,7 +19,7 @@ from run_visualwebarena_live import ANSWER_STUDIES, EVIDENCE_STUDIES, STUDY_MODE
 
 
 def audit_evidence(directory, predictions, frame_before_prediction, frames, goal, *,
-                   confirm=False, click_origins=None, compact_navigation=False):
+                   confirm=False, click_origins=None, compact_navigation=False, use_screen_text=False):
     visited = set()
     answers = set()
     stages = Counter()
@@ -60,26 +59,33 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
             visited.add(frame)
             pending = None
             size = metrics["provider_image_size"]
+            require(("screen_text" in metrics) == use_screen_text, "Unexpected OCR mode")
+            rows = metrics.get("screen_text")
+            if rows is not None:
+                require(isinstance(rows, list) and len(rows) <= 56, "Unexpected OCR row count")
+                for line in rows:
+                    coords = line["bounds"]
+                    require(isinstance(line["text"], str) and 0 < len(line["text"]) <= 100
+                            and len(coords) == 4 and all(type(value) is int for value in coords)
+                            and 0 <= coords[0] < coords[2] <= size[0] and 0 <= coords[1] < coords[3] <= size[1],
+                            "Invalid OCR bounds")
             try:
-                navigation = evidence_navigation(reply, size, compact_navigation=compact_navigation) if confirm else None
-                box = evidence_box(reply, size) if navigation is None else None
+                navigation, box, candidate, status = parse_evidence_location(
+                    reply, goal, size, confirm=confirm, compact_navigation=compact_navigation, rows=rows)
             except (ValueError, RecursionError):
                 require(raw is None, "Unusable evidence localization generated a browser action")
             else:
                 require((raw is None) == (navigation is None), "Evidence localization disagrees with the browser action")
                 if navigation is not None:
-                    status = "evidence_navigation"
                     require(parse_action(raw) == navigation, "Evidence search executed an unexpected action")
-                elif box is None:
-                    status = "evidence_abstained"
-                elif evidence_clipped(goal, box, size):
-                    status = "evidence_clipped"
-                else:
-                    status = "evidence_region"
+                elif box is not None:
                     with Image.open(directory / f"{index:04d}.png") as screen:
                         crop, bounds = native_crop(screen, size, box)
                     require(metrics["evidence_bounds"] == list(bounds), "Evidence crop bounds differ from localization")
-                    pending = frame, list(bounds), pixel_hash(crop)
+                    if candidate is not None:
+                        pending_confirmation = frame, list(bounds), candidate
+                    else:
+                        pending = frame, list(bounds), pixel_hash(crop)
         elif stage == "read":
             _, bounds, crop_digest = pending
             pending = None
@@ -139,7 +145,8 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
 
 
 def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=False, answer_study=False,
-                  evidence_check=False, confirm=False, use_navigation_context=False, compact_navigation=False):
+                  evidence_check=False, confirm=False, use_navigation_context=False, compact_navigation=False,
+                  use_screen_text=False):
     events = [json.loads(line) for line in (directory / "trajectory.jsonl").read_text().splitlines()]
     row = read_json(directory / "episode.json")
     require(events[0]["event"] == "reset" and events[-1] == {"event": "episode_end", **row},
@@ -254,7 +261,8 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
                 click_origins[index + 1] = origin
         evidence_stages, checked_answers = audit_evidence(
             directory, predictions, frame_before_prediction, frames, events[0]["goal"],
-            confirm=confirm, click_origins=click_origins, compact_navigation=compact_navigation)
+            confirm=confirm, click_origins=click_origins, compact_navigation=compact_navigation,
+            use_screen_text=use_screen_text)
     answer_outcome = None
     if answer_study:
         submissions = [event for event in transitions if event["action"]["action"] == "ANSWER"]
@@ -268,7 +276,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
             if last["step"] in checked_answers:
                 source = "evidence-confirm" if confirm else ("evidence-check" if evidence_check else "answer-check")
                 if use_navigation_context:
-                    source = "evidence-context"
+                    source = "evidence-ocr" if use_screen_text else "evidence-context"
             answer_outcome = {"source": source, "prediction": last["step"] + 1, "native_reward": last["reward"]}
     before_retry = None
     if first_invalid is not None:
@@ -328,9 +336,9 @@ def audit(directory):
             record = audit_episode(directory / f"{name}-{mode}", budget, recovery_mode, retry_mode,
                                    answer_check=mode == "answer-check", answer_study=study in ANSWER_STUDIES,
                                    evidence_check=study in EVIDENCE_STUDIES and mode != "answer-check",
-                                   confirm=mode in ("evidence-confirm", "evidence-context"),
-                                   use_navigation_context=mode == "evidence-context",
-                                   compact_navigation=compact_navigation)
+                                   confirm=mode in ("evidence-confirm", "evidence-context", "evidence-ocr"),
+                                   use_navigation_context=mode in ("evidence-context", "evidence-ocr"),
+                                   compact_navigation=compact_navigation, use_screen_text=mode == "evidence-ocr")
             require(record["row"]["task"] == name and record["row"]["seed"] == record["reset"][1] == 0,
                     "Task or seed mismatch")
             studies[mode].append(record)
