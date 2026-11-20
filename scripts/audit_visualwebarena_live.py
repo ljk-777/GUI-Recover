@@ -15,18 +15,24 @@ from gui_recover.qwen_grounding import native_action_after_note, parse_visible_a
 from gui_recover.runner import INVALID_ACTION_FEEDBACK, aggregate, write_json
 from gui_recover.screen_text import exact_initial_search, listing_detail
 from gui_recover.verification import pixel_hash
+from gui_recover.visible_links import agreed_listing_answer, link_answer_count, listing_selection, preview_destinations
 from gui_recover.visual_text_audit import checked_file, read_json, require
-from run_visualwebarena_live import ANSWER_STUDIES, EVIDENCE_STUDIES, STUDY_MODES, TASK_SETS, exact_vwa_success
+from run_visualwebarena_live import (
+    ANSWER_STUDIES, CONFIRM_MODES, EVIDENCE_STUDIES, NAVIGATION_CONTEXT_MODES, OCR_MODES, STUDY_MODES, TASK_SETS,
+    exact_vwa_success,
+)
 
 
 def audit_evidence(directory, predictions, frame_before_prediction, frames, goal, *,
                    confirm=False, click_origins=None, compact_navigation=False, use_screen_text=False,
-                   guarded_ocr=False, direct_navigation=False):
+                   guarded_ocr=False, direct_navigation=False, listing_site=None):
     visited = set()
     answers = set()
     stages = Counter()
     pending = None
     pending_confirmation = None
+    pending_links = None
+    link_count = link_answer_count(goal) if listing_site is not None else None
     for prediction in predictions:
         step = prediction["step"]
         index = frame_before_prediction[step]
@@ -34,7 +40,9 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         metrics = prediction["metrics"]
         raw = prediction["raw"]
         reply = metrics["provider_output"]
-        if pending_confirmation is not None and frame == pending_confirmation[0]:
+        if pending_links is not None and frame == pending_links[0]:
+            stage = "link_confirm"
+        elif pending_confirmation is not None and frame == pending_confirmation[0]:
             stage = "confirm"
         elif pending is not None and frame == pending[0]:
             stage = "read"
@@ -43,6 +51,10 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         else:
             stage = None
         require(metrics.get("evidence_stage") == stage, "Evidence check schedule disagrees with the observed frame")
+        require("listing_preview" not in metrics or (stage == "locate" and link_count is not None),
+                "Link preview is outside the registered link-localization stage")
+        if stage != "link_confirm":
+            pending_links = None
         if stage is None:
             if raw is None:
                 try:
@@ -79,29 +91,47 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                     pass
             if shortcut is not None:
                 require(metrics["provider_format"] == "evidence_exact_search" and reply is None
-                        and parse_action(raw) == shortcut, "Search action differs from the visible field and task text")
+                        and parse_action(raw) == shortcut and "listing_preview" not in metrics,
+                        "Search action differs from the visible field and task text")
                 stages["grounded_search"] += 1
                 continue
-            if direct_navigation and rows is not None and listing_detail(rows):
+            if direct_navigation and link_count is None and rows is not None and listing_detail(rows):
                 rows = None
             try:
-                navigation, box, candidate, status = parse_evidence_location(
-                    reply, goal, size, confirm=confirm, compact_navigation=compact_navigation, rows=rows,
-                    guarded_ocr=guarded_ocr)
+                selected = listing_selection(reply, rows, size, link_count) if link_count is not None else None
+                if selected is None:
+                    navigation, box, candidate, status = parse_evidence_location(
+                        reply, goal, size, confirm=confirm, compact_navigation=compact_navigation, rows=rows,
+                        guarded_ocr=guarded_ocr, navigation_only=link_count is not None)
             except (ValueError, RecursionError):
-                require(raw is None, "Unusable evidence localization generated a browser action")
+                require(raw is None and "listing_preview" not in metrics,
+                        "Unusable evidence localization generated a browser action or link preview")
             else:
-                require((raw is None) == (navigation is None), "Evidence localization disagrees with the browser action")
-                if navigation is not None:
+                if selected is not None:
+                    indices, points = selected
+                    require(raw is None and bool(indices) == ("listing_preview" in metrics),
+                            "Listing selection bypassed the independent check or disagrees with the recorded preview")
+                    status = "evidence_link_abstained"
+                    if indices:
+                        destinations = preview_destinations(metrics["listing_preview"], frame, points, listing_site)
+                        status = "evidence_link_preview"
+                        if destinations is not None:
+                            pending_links = frame, rows, indices, destinations, size
+                elif navigation is not None:
+                    require("listing_preview" not in metrics and raw is not None,
+                            "Navigation generated an unrequested preview or failed to execute")
                     require(parse_action(raw) == navigation, "Evidence search executed an unexpected action")
-                elif box is not None:
-                    with Image.open(directory / f"{index:04d}.png") as screen:
-                        crop, bounds = native_crop(screen, size, box)
-                    require(metrics["evidence_bounds"] == list(bounds), "Evidence crop bounds differ from localization")
-                    if candidate is not None:
-                        pending_confirmation = frame, list(bounds), candidate
-                    else:
-                        pending = frame, list(bounds), pixel_hash(crop)
+                else:
+                    require("listing_preview" not in metrics and raw is None,
+                            "Evidence region bypassed the independent check or generated a link preview")
+                    if box is not None:
+                        with Image.open(directory / f"{index:04d}.png") as screen:
+                            crop, bounds = native_crop(screen, size, box)
+                        require(metrics["evidence_bounds"] == list(bounds), "Evidence crop bounds differ from localization")
+                        if candidate is not None:
+                            pending_confirmation = frame, list(bounds), candidate
+                        else:
+                            pending = frame, list(bounds), pixel_hash(crop)
         elif stage == "read":
             _, bounds, crop_digest = pending
             pending = None
@@ -120,6 +150,22 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
             else:
                 action = parse_action(raw)
                 require(action.action == "ANSWER" and action.value == candidate, "Answer differs from the crop read")
+                answers.add(step)
+        elif stage == "link_confirm":
+            _, rows, indices, destinations, size = pending_links
+            pending_links = None
+            require(size == metrics["provider_image_size"], "Link verification used a different prepared viewport")
+            try:
+                selected = listing_selection(reply, rows, size, link_count)
+                action = agreed_listing_answer(indices, destinations, selected[0] if selected is not None else None)
+            except (ValueError, RecursionError):
+                action = None
+            if action is None:
+                status = "evidence_link_disagreed"
+                require(raw is None, "Link submission reached the browser without agreement")
+            else:
+                status = "evidence_link_agreed"
+                require(raw is not None and parse_action(raw) == action, "Submission differs from the agreed link preview")
                 answers.add(step)
         else:
             _, bounds, candidate = pending_confirmation
@@ -162,7 +208,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
 
 def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=False, answer_study=False,
                   evidence_check=False, confirm=False, use_navigation_context=False, compact_navigation=False,
-                  use_screen_text=False, guarded_ocr=False, direct_navigation=False):
+                  use_screen_text=False, guarded_ocr=False, direct_navigation=False, listing_site=None):
     events = [json.loads(line) for line in (directory / "trajectory.jsonl").read_text().splitlines()]
     row = read_json(directory / "episode.json")
     require(events[0]["event"] == "reset" and events[-1] == {"event": "episode_end", **row},
@@ -280,7 +326,8 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         evidence_stages, checked_answers = audit_evidence(
             directory, predictions, frame_before_prediction, frames, events[0]["goal"],
             confirm=confirm, click_origins=click_origins, compact_navigation=compact_navigation,
-            use_screen_text=use_screen_text, guarded_ocr=guarded_ocr, direct_navigation=direct_navigation)
+            use_screen_text=use_screen_text, guarded_ocr=guarded_ocr, direct_navigation=direct_navigation,
+            listing_site=listing_site)
     answer_outcome = None
     if answer_study:
         submissions = [event for event in transitions if event["action"]["action"] == "ANSWER"]
@@ -294,7 +341,8 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
             if last["step"] in checked_answers:
                 source = "evidence-confirm" if confirm else ("evidence-check" if evidence_check else "answer-check")
                 if use_navigation_context:
-                    source = "evidence-ocr" if use_screen_text else "evidence-context"
+                    source = "evidence-links" if listing_site is not None else (
+                        "evidence-ocr" if use_screen_text else "evidence-context")
             answer_outcome = {"source": source, "prediction": last["step"] + 1, "native_reward": last["reward"]}
     before_retry = None
     if first_invalid is not None:
@@ -338,6 +386,7 @@ def audit(directory):
     compact_navigation = summary["model"].get("compact_navigation_replies", task_set == "evidence-navigation-diagnostic")
     require(study in ("format", "scroll", *ANSWER_STUDIES) and summary["budget_unit"] == "predictions"
             and 1 <= budget <= 12 and list(task_ids) == summary["task_ids"], "Unexpected study manifest")
+    require(("listing_origin" in summary) == (study == "evidence-links"), "Unexpected listing preview mode")
     modes = STUDY_MODES[study]
     require(set(summary["strategies"]) == set(modes), "Unexpected study strategies")
     studies = {mode: [] for mode in modes}
@@ -354,11 +403,11 @@ def audit(directory):
             record = audit_episode(directory / f"{name}-{mode}", budget, recovery_mode, retry_mode,
                                    answer_check=mode == "answer-check", answer_study=study in ANSWER_STUDIES,
                                    evidence_check=study in EVIDENCE_STUDIES and mode != "answer-check",
-                                   confirm=mode in ("evidence-confirm", "evidence-context", "evidence-ocr"),
-                                   use_navigation_context=mode in ("evidence-context", "evidence-ocr"),
-                                   compact_navigation=compact_navigation, use_screen_text=mode == "evidence-ocr",
+                                   confirm=mode in CONFIRM_MODES, use_navigation_context=mode in NAVIGATION_CONTEXT_MODES,
+                                   compact_navigation=compact_navigation, use_screen_text=mode in OCR_MODES,
                                    guarded_ocr=summary.get("screen_reader", {}).get("guarded_ocr", False),
-                                   direct_navigation=summary.get("screen_reader", {}).get("direct_navigation", False))
+                                   direct_navigation=summary.get("screen_reader", {}).get("direct_navigation", False),
+                                   listing_site=summary["listing_origin"] if mode == "evidence-links" else None)
             require(record["row"]["task"] == name and record["row"]["seed"] == record["reset"][1] == 0,
                     "Task or seed mismatch")
             studies[mode].append(record)

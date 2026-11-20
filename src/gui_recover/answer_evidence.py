@@ -10,6 +10,7 @@ from .actions import Action, ActionError
 from .qwen_grounding import native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
 from .screen_text import exact_initial_search, from_readable_control, listing_detail
 from .verification import pixel_hash
+from .visible_links import agreed_listing_answer, link_answer_count, listing_selection, preview_destinations
 
 
 _AMOUNT = re.compile(r"(?<![\w.])(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]+)?(?![\w.])")
@@ -120,7 +121,8 @@ def has_transcribed_answer(answer, box, rows):
     return False
 
 
-def parse_evidence_location(raw, goal, size, *, confirm, compact_navigation=True, rows=None, guarded_ocr=False):
+def parse_evidence_location(raw, goal, size, *, confirm, compact_navigation=True, rows=None, guarded_ocr=False,
+                            navigation_only=False):
     """Return a browser action or a validated evidence region and optional candidate."""
     candidate = None
     localized = None
@@ -140,6 +142,8 @@ def parse_evidence_location(raw, goal, size, *, confirm, compact_navigation=True
         box = evidence_box(raw, size)
     if box is None:
         return None, None, None, "evidence_abstained"
+    if navigation_only:
+        raise ActionError("A listing link must come from a verified title preview")
     if evidence_clipped(goal, box, size):
         return None, None, None, "evidence_clipped"
     return None, box, candidate, "evidence_locate_read" if candidate is not None else "evidence_region"
@@ -179,19 +183,30 @@ def answer_signature(answer):
     return value
 
 
+def indexed_text(rows):
+    return "\n".join(f"{index}: {json.dumps(row['text'], ensure_ascii=False)} at {row['bounds']}"
+                     for index, row in enumerate(rows))
+
+
 class EvidenceAnswerPolicy:
     """Use one model invocation per prediction, including crop localization."""
 
-    def __init__(self, actor, *, confirm=False, use_navigation_context=False, screen_reader=None):
+    def __init__(self, actor, *, confirm=False, use_navigation_context=False, screen_reader=None,
+                 listing_preview=None, listing_site=None):
         if screen_reader is not None and not confirm:
             raise ValueError("The OCR policy needs independent confirmation")
+        if listing_preview is not None and (screen_reader is None or listing_site is None):
+            raise ValueError("A listing preview needs visible text and a registered origin")
         self.actor = actor
         self.confirm = confirm
         self.use_navigation_context = use_navigation_context
         self.screen_reader = screen_reader
+        self.listing_preview = listing_preview
+        self.listing_site = listing_site
         self.checked_frames = set()
         self.pending_crop = None
         self.pending_answer = None
+        self.pending_links = None
         self.navigation_context = None
 
     @property
@@ -203,6 +218,7 @@ class EvidenceAnswerPolicy:
         self.checked_frames.clear()
         self.pending_crop = None
         self.pending_answer = None
+        self.pending_links = None
         self.navigation_context = None
 
     def set_feedback(self, message):
@@ -241,6 +257,7 @@ class EvidenceAnswerPolicy:
             )
         rows = None
         navigation_rows = None
+        link_count = link_answer_count(observation.goal) if self.listing_preview is not None else None
         if self.screen_reader is not None:
             rows = self.screen_reader(observation.screenshot, canvas.size)
             if not history:
@@ -255,12 +272,9 @@ class EvidenceAnswerPolicy:
                         "provider_format": "evidence_exact_search", "peak_cuda_allocated_bytes": 0,
                     }
                     return json.dumps(shortcut.to_dict(), ensure_ascii=False)
-            navigation_rows = None if listing_detail(rows) else rows
+            navigation_rows = None if link_count is None and listing_detail(rows) else rows
         if navigation_rows is not None:
-            controls = "\n".join(
-                f"{index}: {json.dumps(row['text'], ensure_ascii=False)} at {row['bounds']}"
-                for index, row in enumerate(navigation_rows)
-            )
+            controls = indexed_text(navigation_rows)
             recent = [{"action": item["action"]["action"],
                        "value": (item["action"]["value"] or "")[:80]}
                       for item in history[-4:]]
@@ -280,14 +294,45 @@ class EvidenceAnswerPolicy:
                 "and other visual details, return the box only. A separate read will confirm the answer. Do not guess. "
                 f"Previous browser actions: {json.dumps(recent, ensure_ascii=False)}.\nVisible text:\n{controls}"
             )
+        if link_count is not None:
+            prompt = (
+                f"Task: {observation.goal}\n"
+                "Find all requested listings using the screenshot, their positions, and the indexed text. "
+                f"The answer needs {link_count[0]} to {link_count[1]} distinct listing links. "
+                "When the full requested group is visible, select the text index for each matching listing TITLE, "
+                'such as {"listings":[10,12]}. Exclude navigation, prices, labels, and unrelated cards. '
+                "Check any required ordering, category, price, and result scope before selecting. "
+                "If the right results are not shown, issue one navigation command. "
+                'Use {"action":"CLICK","value":null,"control":index} for a visible button or filter, '
+                '{"action":"SEARCH","value":"short query","control":index} on the empty Keyword placeholder to search, '
+                '{"action":"ENTER","value":null,"position":null} to submit a filled search field, or '
+                '{"action":"SCROLL","value":"down","position":null} to see lower listings. '
+                'Return {"listings":null} only if you cannot select or navigate. Never type or invent a URL. '
+                f"Return one JSON object.\nPrevious actions: {json.dumps(recent, ensure_ascii=False)}.\n"
+                f"Visible text:\n{controls}"
+            )
         raw = self.actor.ask(canvas, prompt)
         self.last_metrics.update(evidence_stage="locate", evidence_frame=frame, provider_format="evidence_invalid")
         if rows is not None:
             self.last_metrics["screen_text"] = rows
         try:
-            navigation, box, candidate, status = parse_evidence_location(
-                raw, observation.goal, canvas.size, confirm=self.confirm, rows=navigation_rows, guarded_ocr=True)
+            selection = listing_selection(raw, rows, canvas.size, link_count) if link_count is not None else None
+            if selection is None:
+                navigation, box, candidate, status = parse_evidence_location(
+                    raw, observation.goal, canvas.size, confirm=self.confirm, rows=navigation_rows, guarded_ocr=True,
+                    navigation_only=link_count is not None)
         except (ValueError, RecursionError):
+            return None
+        if selection is not None:
+            indices, points = selection
+            self.last_metrics["provider_format"] = "evidence_link_abstained"
+            if indices:
+                receipt = self.listing_preview(points)
+                destinations = preview_destinations(receipt, frame, points, self.listing_site)
+                self.last_metrics["listing_preview"] = receipt
+                self.last_metrics["provider_format"] = "evidence_link_preview"
+                if destinations is not None:
+                    self.pending_links = frame, rows, indices, destinations, link_count
             return None
         self.last_metrics["provider_format"] = status
         if navigation is not None:
@@ -368,8 +413,36 @@ class EvidenceAnswerPolicy:
         self.last_metrics["provider_format"] = "evidence_verify_agreed"
         return json.dumps(Action("ANSWER", candidate).to_dict(), ensure_ascii=False)
 
+    def verify_links(self, observation, frame, rows, selected, destinations, count):
+        canvas = self.actor.prepare_image(observation.screenshot)
+        raw = self.actor.ask(canvas, (
+            f"Question: {observation.goal}\n"
+            "Independently identify the complete requested set of listings in this screenshot. "
+            "Check the search/category context, ordering and visible card details before choosing. "
+            "Use the numbered text on each listing TITLE as its identifier. "
+            'Return one JSON object like {"listings":[5,9]}. If any required listing or condition is '
+            'unverifiable, return {"listings":null}. Never output URLs.\n'
+            f"Visible text:\n{indexed_text(rows)}"
+        ))
+        self.last_metrics.update(evidence_stage="link_confirm", evidence_frame=frame,
+                                 provider_format="evidence_link_disagreed")
+        try:
+            selection = listing_selection(raw, rows, canvas.size, count)
+            answer = agreed_listing_answer(selected, destinations, selection[0] if selection is not None else None)
+        except (ValueError, RecursionError):
+            answer = None
+        if answer is None:
+            return None
+        self.last_metrics["provider_format"] = "evidence_link_agreed"
+        return json.dumps(answer.to_dict(), ensure_ascii=False)
+
     def predict(self, observation, history):
         frame = pixel_hash(observation.screenshot)
+        if self.pending_links is not None:
+            pending_frame, rows, indices, destinations, count = self.pending_links
+            self.pending_links = None
+            if frame == pending_frame:
+                return self.verify_links(observation, frame, rows, indices, destinations, count)
         if self.pending_answer is not None:
             pending_frame, crop, bounds, candidate = self.pending_answer
             self.pending_answer = None

@@ -1,9 +1,21 @@
 """A bounded listing-link preview at screenshot positions."""
 
+import json
+import re
 from math import isfinite
 from urllib.parse import parse_qs, urlsplit
 
-from .actions import ActionError
+from .actions import Action, ActionError, parse_action
+from .qwen_grounding import read_reply
+from .screen_text import from_readable_control
+
+
+_LINK = re.compile(r"\b(?:hyperlinks?|links?|urls?)\b", re.IGNORECASE)
+_LINK_COUNT = re.compile(
+    r"\b(?:the\s+)?(?:top\s+|first\s+|last\s+)?(one|two|three|[1-9])\s+"
+    r"(?:(?:cheapest|newest|oldest|most|least|recently|listed|recent|expensive|matching|relevant|available)\s+)*"
+    r"(?:listings?|items?|products?|results?|posts?|links?|urls?)\b", re.IGNORECASE,
+)
 
 
 _TOOLTIP_DESTINATIONS = """
@@ -59,3 +71,67 @@ def visible_listing_links(page, site, positions):
         raise ActionError("Browser returned an unexpected number of links")
     return [{"position": list(point), "destination": listing_destination(url, origin)}
             for point, url in zip(points, raw, strict=True)]
+
+
+def link_answer_count(goal):
+    """Return the supported count interval for an explicit link question."""
+    request = _LINK.search(goal)
+    if request is None:
+        return None
+    explicit = _LINK_COUNT.search(goal)
+    if explicit:
+        value = explicit[1].casefold()
+        n = {"one": 1, "two": 2, "three": 3}[value] if value.isalpha() else int(value)
+        return n, n
+    return (2, 3) if request[0].casefold().endswith("s") else (1, 1)
+
+
+def listing_selection(raw, rows, size, count):
+    """Resolve selected visible text centers to normalized browser points."""
+    try:
+        data = read_reply(raw)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(data, dict) or "listings" not in data:
+        return None
+    if set(data) != {"listings"}:
+        raise ActionError("Expected only listing indices")
+    indices = data["listings"]
+    if indices is None:
+        return [], []
+    if (not isinstance(indices, list) or not count[0] <= len(indices) <= min(count[1], 3)
+            or any(type(index) is not int or not 0 <= index < len(rows) for index in indices)
+            or len(set(indices)) != len(indices)):
+        raise ActionError("Expected the required number of distinct visible titles")
+    return indices, normalized_points([
+        from_readable_control(json.dumps({"action": "CLICK", "value": None, "control": index}), rows, size).position
+        for index in indices
+    ])
+
+
+def preview_destinations(receipt, frame, points, site):
+    """Check provenance and preserve missing or duplicate destinations for abstention."""
+    parts = urlsplit(site)
+    origin = parts.scheme, parts.netloc
+    if (not isinstance(receipt, dict) or set(receipt) != {"source_pixels", "links"}
+            or receipt["source_pixels"] != frame
+            or not isinstance(receipt["links"], list) or len(receipt["links"]) != len(points)):
+        raise ActionError("Link preview does not belong to the selected viewport")
+    destinations = []
+    for row, point in zip(receipt["links"], points, strict=True):
+        if (not isinstance(row, dict) or set(row) != {"position", "destination"}
+                or normalized_points([row["position"]]) != [point]):
+            raise ActionError("Preview result differs from the requested location")
+        url = row["destination"]
+        if url is not None and listing_destination(url, origin) != url:
+            raise ActionError("Preview result is not a local listing URL")
+        destinations.append(url)
+    return destinations if None not in destinations and len(set(destinations)) == len(destinations) else None
+
+
+def agreed_listing_answer(selected, destinations, confirmed):
+    if not confirmed or set(confirmed) != set(selected):
+        return None
+    links = dict(zip(selected, destinations, strict=True))
+    answer = Action("ANSWER", "\n".join(links[index] for index in confirmed))
+    return parse_action(json.dumps(answer.to_dict()))

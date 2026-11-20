@@ -47,8 +47,12 @@ STUDY_MODES = {
     "evidence-confirm": ("answer-check", "evidence-confirm"),
     "evidence-context": ("answer-check", "evidence-context"),
     "evidence-ocr": ("answer-check", "evidence-ocr"),
+    "evidence-links": ("answer-check", "evidence-links"),
 }
-EVIDENCE_STUDIES = ("evidence", "evidence-confirm", "evidence-context", "evidence-ocr")
+OCR_MODES = ("evidence-ocr", "evidence-links")
+NAVIGATION_CONTEXT_MODES = ("evidence-context", *OCR_MODES)
+CONFIRM_MODES = ("evidence-confirm", *NAVIGATION_CONTEXT_MODES)
+EVIDENCE_STUDIES = ("evidence", *CONFIRM_MODES)
 ANSWER_STUDIES = ("answer", *EVIDENCE_STUDIES)
 
 
@@ -155,7 +159,8 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
 
 def run_study(actor, *, out, study, task_set, max_steps):
     out.mkdir(parents=True, exist_ok=False)
-    screen_reader = RapidScreenReader() if study == "evidence-ocr" else None
+    screen_reader = RapidScreenReader() if study in OCR_MODES else None
+    listing_site = os.environ["VWA_CLASSIFIEDS"] if study == "evidence-links" else None
     task_ids = TASK_SETS[task_set]
     strategies = {mode: [] for mode in STUDY_MODES[study]}
     for task_id in task_ids:
@@ -173,9 +178,11 @@ def run_study(actor, *, out, study, task_set, max_steps):
                 using_evidence = study in EVIDENCE_STUDIES and mode != "answer-check"
                 policy = actor
                 if using_evidence:
-                    policy = EvidenceAnswerPolicy(actor, confirm=mode != "evidence-check",
-                                                  use_navigation_context=mode in ("evidence-context", "evidence-ocr"),
-                                                  screen_reader=screen_reader)
+                    policy = EvidenceAnswerPolicy(
+                        actor, confirm=mode in CONFIRM_MODES, use_navigation_context=mode in NAVIGATION_CONTEXT_MODES,
+                        screen_reader=screen_reader, listing_site=listing_site,
+                        listing_preview=env.preview_listing_links if listing_site is not None else None,
+                    )
                 row = run_episode(env, policy, env.task, 0, max_steps, branch,
                                   recovery=recovery, invalid_action_retry=invalid_retry,
                                   answer_check=mode == "answer-check",
@@ -199,6 +206,9 @@ def run_study(actor, *, out, study, task_set, max_steps):
             for mode, rows in strategies.items()}}
     if screen_reader is not None:
         summary["screen_reader"] = {**screen_reader.config, "guarded_ocr": True, "direct_navigation": True}
+    if listing_site is not None:
+        site = urlsplit(listing_site)
+        summary["listing_origin"] = f"{site.scheme}://{site.netloc}"
     write_json(out / "summary.json", summary)
 
 
@@ -237,7 +247,7 @@ def main():
         actor = QwenGroundingPolicy(args.model, device=args.device,
                                     max_new_tokens=128 if args.qwen_7b_4bit else 96, max_pixels=784 * 784,
                                     load_in_4bit=args.qwen_7b_4bit,
-                                    native_navigation=args.study in ("evidence-confirm", "evidence-context", "evidence-ocr"))
+                                    native_navigation=args.study in CONFIRM_MODES)
     run_study(actor, out=args.out, study=args.study, task_set=args.task_set, max_steps=args.max_steps)
     return 0
 
