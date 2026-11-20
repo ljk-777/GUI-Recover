@@ -116,4 +116,29 @@ python scripts/audit_visualwebarena_live.py runs/visualwebarena-format-transfer 
 
 Use `--task-set diagnostic` to reproduce the three tasks that exposed the original parsing failures. The transfer set is a separate group of 10 registered Classifieds tasks with local string grading. The CPU audit checks the paired reset screenshots, prediction budgets, executed actions, and terminal reward. Its report tracks how often a retry produced a valid action and how often the original task earned full native reward.
 
+The Qwen CUDA run used six predictions per episode as its cap. The audit verified 39 trajectories and 117 screenshots. All 13 task trios shared identical reset pixels and identical pixels and provider output at the first rejection.
+
+| Transfer strategy | Model calls | Executed actions | Valid retries | Native successes |
+| --- | ---: | ---: | ---: | ---: |
+| Stop after rejection | 29 | 19 | – | 0/10 |
+| Repeat the request | 38 | 19 | 0/9 | 0/10 |
+| Retry with format guidance | 43 | 24 | 3/9 | 0/10 |
+
+On the three diagnostic tasks, zero of three plain retries and one of three guided retries yielded a valid action. No diagnostic arm completed a task. The guided transfer arm executed one click and two text inputs immediately after its successful retries. It submitted zero answers across the 10 tasks. This establishes a benefit for generating executable actions under the tested prompt and budget. Task completion on Classifieds remains unresolved.
+
+### Evaluate unchanged-scroll feedback
+
+Pass `--study scroll --task-set diagnostic` to compare the existing click and execution-error feedback with the same controller plus scroll feedback. Both arms use the one-retry format guidance and the same prediction budget. The scroll detector fires when a scroll leaves the screenshot pixel-identical. Its message describes the observed lack of movement. Scroll messages share the controller's two-message limit with click and execution-error feedback.
+
+```bash
+python scripts/run_visualwebarena_live.py --actor qwen --model models/Qwen2.5-VL-3B-Instruct \
+  --study scroll --task-set diagnostic --max-steps 6 --out runs/visualwebarena-scroll-diagnostic
+python scripts/audit_visualwebarena_live.py runs/visualwebarena-scroll-diagnostic \
+  --out runs/visualwebarena-scroll-diagnostic-audit.json
+```
+
+Two of the three paired tasks reached an identical unchanged viewport after a scroll. The next action was a scroll that moved the viewport on both eligible tasks with scroll feedback, and on one eligible task with the ordinary feedback controller. The third task never reached a scroll. Both arms earned full native reward on zero of three tasks. The audit checked all six trajectories and 20 screenshots in this diagnostic comparison.
+
+[Live format and scroll results with run provenance](../examples/vwa-live-recovery-results.json)
+
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)

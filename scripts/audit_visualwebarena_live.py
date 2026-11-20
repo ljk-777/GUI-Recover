@@ -84,6 +84,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode):
         before_retry = (first_invalid, frames[first_invalid],
                         predictions[first_invalid]["metrics"]["provider_output"])
     first_unchanged_scroll = None
+    first_scroll_followup = None
     if recovery_mode != "none":
         scrolls = {event["step"]: frames[index + 1] for index, event in enumerate(transitions)
                    if event["action"]["action"] == "SCROLL" and frames[index] == frames[index + 1]}
@@ -98,9 +99,15 @@ def audit_episode(directory, budget, recovery_mode, retry_mode):
         if scrolls:
             step = next(iter(scrolls))
             first_unchanged_scroll = (step, scrolls[step], predictions[step]["metrics"]["provider_output"])
+            for index, event in enumerate(transitions):
+                if event["step"] == step + 1:
+                    first_scroll_followup = {"action": event["action"]["action"],
+                                             "viewport_changed": frames[index] != frames[index + 1]}
+                    break
     return {"row": row, "counts": counts, "formats": formats, "screenshots": len(frames),
             "reset": (events[0]["goal"], events[0]["seed"]), "reset_pixels": frames[0],
             "first_invalid": before_retry, "first_unchanged_scroll": first_unchanged_scroll,
+            "first_scroll_followup": first_scroll_followup,
             "peak_cuda_allocated_bytes": max(e["metrics"]["peak_cuda_allocated_bytes"] for e in predictions)}
 
 
@@ -139,6 +146,8 @@ def audit(directory):
                            for mode, record in trio.items()}}
         if study == "scroll":
             by_task[task_id]["identical_first_unchanged_scroll"] = len(scrolls) == 1 and None not in scrolls
+            by_task[task_id]["first_scroll_followup"] = {
+                mode: record["first_scroll_followup"] for mode, record in trio.items()}
     formats = {}
     for mode, records in studies.items():
         counts = {key: sum(record["counts"][key] for record in records) for key in records[0]["counts"]}
