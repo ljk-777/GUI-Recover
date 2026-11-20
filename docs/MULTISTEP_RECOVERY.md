@@ -322,4 +322,29 @@ python scripts/audit_visualwebarena_live.py runs/visualwebarena-card-diagnostic 
 
 [Development scores, calls, and archive digest](../examples/vwa-card-evidence-diagnostic-results.json)
 
+### Run the registered image-and-tab holdout
+
+The second eight-task registration adds official task reference images and multiple browser start pages. The runner verifies the installed task entries and reference file hashes before opening an episode. It resolves BrowserGym's homepage image URLs to the registered local assets. Both strategies receive the same primary viewport, ordered reference images, and one-based tab list. Mouse coordinates still refer to the primary viewport. The auditor checks the reference PNGs, active tabs, executed tab transitions, native rewards, and the eight-call cap.
+
+For a request for a listing title, the evidence policy can use a strong and distinct visual match among rendered card thumbnails to localize the title and thumbnail crop. Qwen reads that crop and independently checks the title before submitting. Weak or ambiguous image matches continue through the standard evidence policy.
+
+Prepare the reference archive from the upstream checkout at revision 89f5af29305c3d1e9f97ce4421462060a70c9a03. Configure the usual VisualWebArena variables and a genuine Shopping instance at a distinct origin for the cross-site task. The cohort retains the original local native scoring rules. Both arms use the pinned Qwen 7B NF4 profile.
+
+~~~bash
+python scripts/prepare_vwa_input_holdout.py --upstream /path/to/visualwebarena \
+  --protocol examples/vwa-input-heldout-protocol.json --out runs/vwa-input-cohort
+python scripts/run_visualwebarena_live.py --actor qwen --qwen-7b-4bit \
+  --model models/Qwen2.5-VL-7B-Instruct --study evidence-cards \
+  --task-set evidence-cards-input-holdout --cohort-dir runs/vwa-input-cohort \
+  --max-steps 8 --out runs/visualwebarena-input-holdout
+python scripts/audit_visualwebarena_live.py runs/visualwebarena-input-holdout \
+  --out runs/visualwebarena-input-holdout-audit.json
+~~~
+
+[Second registered holdout protocol](../examples/vwa-input-heldout-protocol.json)
+
+On a synthetic development fixture derived from an already used Classifieds task, both strategies started from the same screenshot, tab state, and reference image. Each switched browser tabs once, made three model calls, and earned native reward `1.0`. The evidence policy also recorded the thumbnail match, title crop read, and independent confirmation. The registered holdout does not include this fixture.
+
+[Audited development smoke results](../examples/vwa-input-context-smoke-results.json)
+
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
