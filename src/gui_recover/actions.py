@@ -64,9 +64,9 @@ def parse_action(raw: str, mode: str = "strict") -> Action:
     if not isinstance(data, dict) or set(data) != {"action", "value", "position"}:
         raise ActionError("Required keys: action, value, position; no extra keys")
     kind, value, pos = data["action"], data["value"], data["position"]
-    if kind not in ("CLICK", "INPUT", "TYPE", "HOVER", "ENTER", "SCROLL", "ANSWER"):
+    if kind not in ("CLICK", "INPUT", "SEARCH", "TYPE", "HOVER", "ENTER", "SCROLL", "ANSWER"):
         raise ActionError(f"Unsupported action: {kind!r}")
-    if kind in ("CLICK", "INPUT", "HOVER"):
+    if kind in ("CLICK", "INPUT", "SEARCH", "HOVER"):
         if not isinstance(pos, (list, tuple)) or len(pos) != 2:
             raise ActionError("Position must be [x, y]")
         if any(type(p) not in (int, float) or not 0 <= p <= 1 or not math.isfinite(p) for p in pos):
@@ -77,6 +77,9 @@ def parse_action(raw: str, mode: str = "strict") -> Action:
     if kind in ("INPUT", "TYPE", "ANSWER"):
         if not isinstance(value, str) or len(value) > 2048:
             raise ActionError("Expected a string value of at most 2048 characters")
+    elif kind == "SEARCH":
+        if not isinstance(value, str) or not value.strip() or len(value) > 80 or any(ord(char) < 32 for char in value):
+            raise ActionError("Search query must be one short text line")
     elif kind == "SCROLL":
         if value not in ("up", "down", "left", "right"):
             raise ActionError("SCROLL value must be up/down/left/right")
@@ -98,9 +101,10 @@ def compile_action(action: Action, width: int, height: int) -> str:
         return f"mouse_click({x!r}, {y!r})"
     if action.action == "HOVER":
         return f"mouse_move({x!r}, {y!r})"
-    if action.action == "INPUT":
+    if action.action in ("INPUT", "SEARCH"):
         # INPUT appends text to the clicked field; does not silently clear it.
-        return f"mouse_click({x!r}, {y!r})\nkeyboard_type({action.value!r})"
+        code = f"mouse_click({x!r}, {y!r})\nkeyboard_type({action.value!r})"
+        return code + "\nkeyboard_press('Enter')" if action.action == "SEARCH" else code
     if action.action == "ENTER":
         return "keyboard_press('Enter')"
     if action.action == "TYPE":

@@ -108,17 +108,31 @@ def localized_candidate(raw, goal, size):
     return box, answer
 
 
-def parse_evidence_location(raw, goal, size, *, confirm, compact_navigation=True, rows=None):
+def has_transcribed_answer(answer, box, rows):
+    text = " ".join(answer.casefold().split())
+    pattern = re.compile(r"(?<![\w.])" + re.escape(text) + r"(?![\w.])")
+    left, top, right, bottom = box
+    for row in rows:
+        x0, y0, x1, y1 = row["bounds"]
+        if left <= (x0 + x1) / 2 < right and top <= (y0 + y1) / 2 < bottom:
+            if pattern.search(row["text"].casefold()):
+                return True
+    return False
+
+
+def parse_evidence_location(raw, goal, size, *, confirm, compact_navigation=True, rows=None, guarded_ocr=False):
     """Return a browser action or a validated evidence region and optional candidate."""
     candidate = None
     localized = None
     if rows is not None:
-        control = from_readable_control(raw, rows, size)
+        control = from_readable_control(raw, rows, size, guarded=guarded_ocr)
         if control is not None:
             return control, None, None, "evidence_ocr_navigation"
         localized = localized_candidate(raw, goal, size)
     if localized is not None:
         box, candidate = localized
+        if guarded_ocr and candidate is not None and not has_transcribed_answer(candidate, box, rows):
+            candidate = None
     else:
         navigation = evidence_navigation(raw, size, compact_navigation=compact_navigation) if confirm else None
         if navigation is not None:
@@ -232,17 +246,24 @@ class EvidenceAnswerPolicy:
                 f"{index}: {json.dumps(row['text'], ensure_ascii=False)} at {row['bounds']}"
                 for index, row in enumerate(rows)
             )
-            recent = [item["action"]["action"] for item in history[-4:]]
+            recent = [{"action": item["action"]["action"],
+                       "value": (item["action"]["value"] or "")[:80]}
+                      for item in history[-4:]]
             prompt += (
                 "\nUse the indexed visible text as screenshot evidence. "
                 'For a button or field with an identified line, use {"action":"CLICK","value":null,"control":index} '
                 'or {"action":"INPUT","value":"query","control":index}. Only use INPUT on a visible field or placeholder. '
+                'On a page with an empty Keyword input showing an e.g. placeholder, '
+                'use {"action":"SEARCH","value":"query","control":placeholder_index} to type and submit in one action. '
                 "If the current page shows a search form and the target is elsewhere, search by the requested keyword "
                 "or category instead of scrolling unrelated items. If the field already contains the query, submit it. "
-                "Use the visible row order and item photos to identify a requested listing. "
+                "After a SEARCH, inspect its results instead of typing the same query again. "
+                "Use the visible row order and item photos to identify a requested listing. If publisher or item "
+                "details are absent from the gallery, open a matching item. Do not scroll just to find details in a gallery. "
                 'When the answer is already legible, you may return {"bbox_2d":[x0,y0,x1,y1],"evidence":["visible fact"],'
-                '"answer":"candidate"}. A separate read will confirm it. Do not guess. '
-                f"Previous browser actions: {', '.join(recent) or 'none'}.\nVisible text:\n{controls}"
+                '"answer":"candidate"}. Use a candidate only for literal text visible inside the region. For counts, colors '
+                "and other visual details, return the box only. A separate read will confirm the answer. Do not guess. "
+                f"Previous browser actions: {json.dumps(recent, ensure_ascii=False)}.\nVisible text:\n{controls}"
             )
         raw = self.actor.ask(canvas, prompt)
         self.last_metrics.update(evidence_stage="locate", evidence_frame=frame, provider_format="evidence_invalid")
@@ -250,7 +271,7 @@ class EvidenceAnswerPolicy:
             self.last_metrics["screen_text"] = rows
         try:
             navigation, box, candidate, status = parse_evidence_location(
-                raw, observation.goal, canvas.size, confirm=self.confirm, rows=rows)
+                raw, observation.goal, canvas.size, confirm=self.confirm, rows=rows, guarded_ocr=rows is not None)
         except (ValueError, RecursionError):
             return None
         self.last_metrics["provider_format"] = status

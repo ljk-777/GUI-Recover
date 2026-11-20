@@ -5,8 +5,8 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from gui_recover.actions import Action, ActionError, parse_action
-from gui_recover.answer_evidence import EvidenceAnswerPolicy
+from gui_recover.actions import Action, ActionError, compile_action, parse_action
+from gui_recover.answer_evidence import EvidenceAnswerPolicy, parse_evidence_location
 from gui_recover.environment import VisualObservation
 from gui_recover.screen_text import from_readable_control, visible_rows
 
@@ -49,3 +49,22 @@ def test_readable_candidate_still_needs_an_independent_read():
     assert actor.last_metrics["provider_format"] == "evidence_locate_read"
     assert parse_action(policy.predict(observation, [])) == Action("ANSWER", "blue")
     assert actor.last_metrics["provider_format"] == "evidence_verify_agreed"
+
+
+def test_search_uses_only_a_recognized_empty_field_and_compiles_as_one_operation():
+    rows = [{"text": "Keyword", "bounds": [10, 5, 20, 9]},
+            {"text": "e.g., an item", "bounds": [10, 12, 40, 20]}]
+    action = from_readable_control('{"action":"SEARCH","value":"dishwasher","control":1}', rows, (50, 30))
+    assert action.action == "SEARCH"
+    code = compile_action(action, 50, 30)
+    assert code.splitlines()[1:] == ["keyboard_type('dishwasher')", "keyboard_press('Enter')"]
+    with pytest.raises(ActionError):
+        from_readable_control('{"action":"SEARCH","value":"dishwasher","control":0}', rows, (50, 30))
+
+
+def test_untranscribed_fast_candidate_still_gets_a_crop():
+    reply = '{"bbox_2d":[30,20,70,40],"evidence":["Bowls"],"answer":"5"}'
+    rows = [{"text": "Bowls 150.00 $", "bounds": [30, 20, 70, 40]}]
+    action, box, answer, status = parse_evidence_location(
+        reply, "How many bowls?", (100, 60), confirm=True, rows=rows, guarded_ocr=True)
+    assert (action, box, answer, status) == (None, (30, 20, 70, 40), None, "evidence_region")

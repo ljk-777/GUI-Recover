@@ -19,7 +19,8 @@ from run_visualwebarena_live import ANSWER_STUDIES, EVIDENCE_STUDIES, STUDY_MODE
 
 
 def audit_evidence(directory, predictions, frame_before_prediction, frames, goal, *,
-                   confirm=False, click_origins=None, compact_navigation=False, use_screen_text=False):
+                   confirm=False, click_origins=None, compact_navigation=False, use_screen_text=False,
+                   guarded_ocr=False):
     visited = set()
     answers = set()
     stages = Counter()
@@ -71,7 +72,8 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                             "Invalid OCR bounds")
             try:
                 navigation, box, candidate, status = parse_evidence_location(
-                    reply, goal, size, confirm=confirm, compact_navigation=compact_navigation, rows=rows)
+                    reply, goal, size, confirm=confirm, compact_navigation=compact_navigation, rows=rows,
+                    guarded_ocr=guarded_ocr)
             except (ValueError, RecursionError):
                 require(raw is None, "Unusable evidence localization generated a browser action")
             else:
@@ -146,7 +148,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
 
 def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=False, answer_study=False,
                   evidence_check=False, confirm=False, use_navigation_context=False, compact_navigation=False,
-                  use_screen_text=False):
+                  use_screen_text=False, guarded_ocr=False):
     events = [json.loads(line) for line in (directory / "trajectory.jsonl").read_text().splitlines()]
     row = read_json(directory / "episode.json")
     require(events[0]["event"] == "reset" and events[-1] == {"event": "episode_end", **row},
@@ -262,7 +264,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         evidence_stages, checked_answers = audit_evidence(
             directory, predictions, frame_before_prediction, frames, events[0]["goal"],
             confirm=confirm, click_origins=click_origins, compact_navigation=compact_navigation,
-            use_screen_text=use_screen_text)
+            use_screen_text=use_screen_text, guarded_ocr=guarded_ocr)
     answer_outcome = None
     if answer_study:
         submissions = [event for event in transitions if event["action"]["action"] == "ANSWER"]
@@ -338,7 +340,8 @@ def audit(directory):
                                    evidence_check=study in EVIDENCE_STUDIES and mode != "answer-check",
                                    confirm=mode in ("evidence-confirm", "evidence-context", "evidence-ocr"),
                                    use_navigation_context=mode in ("evidence-context", "evidence-ocr"),
-                                   compact_navigation=compact_navigation, use_screen_text=mode == "evidence-ocr")
+                                   compact_navigation=compact_navigation, use_screen_text=mode == "evidence-ocr",
+                                   guarded_ocr=summary.get("screen_reader", {}).get("guarded_ocr", False))
             require(record["row"]["task"] == name and record["row"]["seed"] == record["reset"][1] == 0,
                     "Task or seed mismatch")
             studies[mode].append(record)

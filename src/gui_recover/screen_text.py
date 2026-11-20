@@ -3,7 +3,7 @@
 import json
 import math
 
-from .actions import ActionError
+from .actions import Action, ActionError, parse_action
 from .qwen_grounding import normalize_qwen_action, read_reply
 
 
@@ -51,21 +51,32 @@ class RapidScreenReader:
         return visible_rows(result, screen.size, canvas_size)
 
 
-def from_readable_control(raw, rows, size):
+def from_readable_control(raw, rows, size, *, guarded=False):
     try:
         data = read_reply(raw)
     except json.JSONDecodeError:
         return None
     if not isinstance(data, dict) or "control" not in data:
         return None
-    if set(data) != {"action", "value", "control"} or data["action"] not in ("CLICK", "INPUT"):
-        raise ActionError("Expected one click or input on an OCR line")
+    if set(data) != {"action", "value", "control"} or data["action"] not in ("CLICK", "INPUT", "SEARCH"):
+        raise ActionError("Expected one click, input, or search on an OCR line")
     index = data["control"]
     if type(index) is not int or not 0 <= index < len(rows):
         raise ActionError("OCR control index is out of range")
-    left, top, right, bottom = rows[index]["bounds"]
+    row = rows[index]
+    left, top, right, bottom = row["bounds"]
     width, height = size
     if not (0 <= left < right <= width and 0 <= top < bottom <= height):
         raise ActionError("OCR control lies outside the model canvas")
     point = [(left + right) // 2, (top + bottom) // 2]
+    label = row["text"].casefold()
+    empty_keyword = label.startswith(("e.g.", "eg,")) and any(
+        item["text"].casefold() == "keyword" for item in rows)
+    if data["action"] == "SEARCH":
+        if not empty_keyword:
+            raise ActionError("Search needs a recognized empty keyword field")
+        typed = normalize_qwen_action({"action": "INPUT", "value": data["value"], "position": point}, size)
+        return parse_action(json.dumps(Action("SEARCH", typed.value, typed.position).to_dict()))
+    if guarded and data["action"] == "INPUT" and not empty_keyword:
+        raise ActionError("Text input needs a recognized field rather than an arbitrary label")
     return normalize_qwen_action({"action": data["action"], "value": data["value"], "position": point}, size)
