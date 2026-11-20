@@ -1,6 +1,7 @@
 """Ground controls with a separate Qwen2.5-VL checkpoint."""
 
 import json
+from math import isfinite
 from pathlib import Path
 
 from .actions import ActionError, _unique_dict, parse_action
@@ -136,6 +137,12 @@ class QwenGroundingPolicy:
                 data["value"] = None
             if data["action"] in ("CLICK", "INPUT"):
                 data["position"] = parse_pixel_point(json.dumps({"point_2d": data["position"]}), width, height)
+            elif data["action"] == "SCROLL":
+                value = data["value"]
+                finite_number = type(value) is int or (type(value) is float and isfinite(value))
+                if finite_number and value:
+                    data["value"] = "up" if value < 0 else "down"
+                data["position"] = None
             action = parse_action(json.dumps(data))
             if action.action not in ("CLICK", "INPUT", "SCROLL", "ANSWER"):
                 raise ValueError("Unsupported Qwen navigation action")

@@ -75,6 +75,20 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
                             or set(evaluation["reference_answers"]) != {"must_include"}):
                         raise ValueError("Task requires more than the registered local string evaluator")
 
+                site = urlsplit(self.webarena_instance.urls["classifieds"])
+                origin = site.scheme, site.netloc
+
+                def restrict_origin(route):
+                    requested = urlsplit(route.request.url)
+                    if (requested.scheme, requested.netloc) == origin:
+                        route.continue_()
+                    else:
+                        route.abort()
+
+                page.context.route("**/*", restrict_origin)
+                page.context.set_default_navigation_timeout(30_000)
+                page.set_default_navigation_timeout(30_000)
+
                 def unavailable_captioner(*args, **kwargs):
                     raise RuntimeError("Captioning must not be used by the local string evaluator")
 
