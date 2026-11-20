@@ -55,20 +55,20 @@ def evidence_clipped(goal, box, size):
     return bool(requires_row and box[3] >= size[1] - 2)
 
 
-def evidence_navigation(raw, size):
+def evidence_navigation(raw, size, *, compact_navigation=True):
     try:
         data = read_reply(raw)
     except json.JSONDecodeError:
         data = native_action_after_note(raw)
     if not isinstance(data, dict) or "action" not in data:
         return None
-    action = normalize_qwen_action(data, size, native_navigation=True)
+    action = normalize_qwen_action(data, size, native_navigation=True, compact_navigation=compact_navigation)
     if action.action == "ANSWER":
         raise ActionError("An evidence search cannot submit an answer")
     return action
 
 
-def evidence_answer(raw, goal):
+def evidence_answer(raw, goal, *, allow_string_abstention=False):
     data = read_reply(raw)
     if not isinstance(data, dict) or set(data) != {"answer", "evidence"}:
         raise ActionError("Expected an answer and its visual evidence")
@@ -76,7 +76,7 @@ def evidence_answer(raw, goal):
     if (not isinstance(facts, list) or len(facts) > 6
             or any(not isinstance(fact, str) or not 0 < len(fact.strip()) <= 200 for fact in facts)):
         raise ActionError("Expected a bounded list of visual evidence descriptions")
-    if answer is None or (isinstance(answer, str) and answer.strip().casefold() == "null"):
+    if answer is None or (allow_string_abstention and isinstance(answer, str) and answer.strip().casefold() == "null"):
         return None, "evidence_abstained"
     if not isinstance(answer, str) or not 0 < len(answer.strip()) <= 512:
         raise ActionError("Expected a nonempty short answer or null")
@@ -222,7 +222,7 @@ class EvidenceAnswerPolicy:
         self.last_metrics.update(evidence_stage="read", evidence_frame=frame, evidence_bounds=list(bounds),
                                  evidence_crop_sha256=pixel_hash(crop), provider_format="evidence_invalid")
         try:
-            answer, status = evidence_answer(raw, observation.goal)
+            answer, status = evidence_answer(raw, observation.goal, allow_string_abstention=self.confirm)
         except (ValueError, RecursionError):
             return None
         self.last_metrics["provider_format"] = status

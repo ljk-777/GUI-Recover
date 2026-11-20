@@ -88,8 +88,8 @@ def native_action_after_note(raw):
     return read_reply(action)
 
 
-def normalize_qwen_action(data, size, *, native_navigation=False):
-    if native_navigation and isinstance(data, dict) and isinstance(data.get("action"), str):
+def normalize_qwen_action(data, size, *, native_navigation=False, compact_navigation=True):
+    if native_navigation and compact_navigation and isinstance(data, dict) and isinstance(data.get("action"), str):
         native_kind = data["action"].upper()
         if native_kind == "SCROLL" and set(data) == {"action", "value"}:
             data = {**data, "position": None}
@@ -187,7 +187,7 @@ class QwenGroundingPolicy:
             self.config.update(model=QWEN_7B_MODEL, revision=QWEN_7B_MIRROR_REVISION,
                                quantization="bitsandbytes NF4 double quantization", asset_provenance=manifest)
         if native_navigation:
-            self.config["native_navigation"] = True
+            self.config.update(native_navigation=True, compact_navigation_replies=True)
 
     def reset(self, seed):
         self.torch.manual_seed(seed)
