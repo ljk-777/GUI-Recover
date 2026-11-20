@@ -49,6 +49,9 @@ The installed active demo can also compare the same controllers on case transfor
 
 ```bash
 gui-recover active-text-recovery --model models/ShowUI-2B \
-  --tasks enter-text-2 enter-text-dynamic --seeds 84000 84001 --out runs/native-text-transfer
+  --tasks enter-text-2 enter-text-dynamic --seeds 84000 84004 84005 84002 \
+  --layouts-per-task 2 --out runs/native-text-transfer
 gui-recover audit-active-text-recovery runs/native-text-transfer
 ```
+
+MiniWoB task variants can render the same geometry for the same seed. The command treats the supplied seeds as a reserve and excludes duplicate initial screenshots across tasks. The declared reserve includes upper-case, lower-case and alphanumeric goals, identified from reset-only observations.

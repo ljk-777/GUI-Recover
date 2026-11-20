@@ -6,7 +6,7 @@ import sys
 from .portable_tail import inspect_selection
 from .runner import write_json
 from .sft import file_sha256
-from .verification_capture import capture_after_repaint, capture_selected_tail
+from .verification_capture import capture_context_frame, capture_selected_tail
 
 
 @dataclass(frozen=True)
@@ -33,8 +33,7 @@ SAMPLES = ("Ivor", "Hazel", "Mavis")
 
 def _load_case(browser, profile, layout, expected, value):
     width, height = profile.viewport
-    page = browser.new_page(viewport={"width": width, "height": height})
-    page._bgym_scale_factor = profile.scale
+    page = browser.new_page(viewport={"width": width, "height": height}, device_scale_factor=profile.scale)
     control = ('<input id="entry" autocomplete="off">' if profile.control == "input"
                else '<textarea id="entry" rows="3"></textarea>')
     page.set_content(f"""
@@ -78,9 +77,9 @@ def _run_case(browser, out, profile, layout, expected, fault):
     value = expected + (" " if fault else "")
     page, field, bounds = _load_case(browser, profile, layout, expected, value)
     try:
-        before = capture_after_repaint(page)
-        selected = capture_selected_tail(page)
-        restored = capture_after_repaint(page)
+        before = capture_context_frame(page)
+        selected = capture_selected_tail(page, capture_context_frame)
+        restored = capture_context_frame(page)
         unchanged = field.input_value() == value
         same_pixels = before.tobytes() == restored.tobytes()
         evidence = (inspect_selection(restored, selected, bounds) if same_pixels
@@ -93,7 +92,7 @@ def _run_case(browser, out, profile, layout, expected, fault):
         success = page.locator("#result").text_content() == "exact"
         name = f"{profile.name}-{layout}-{'trailing-space' if fault else 'clean'}"
         frames = _save_frames(out / name, before=before, selected=selected, restored=restored,
-                              submitted=capture_after_repaint(page))
+                              submitted=capture_context_frame(page))
         row = {"id": name, "profile": profile.name, "layout": layout, "trailing_space": fault,
                "field_interior": bounds, "evidence": evidence, "value_unchanged_by_probe": unchanged,
                "probe_restored_screen": same_pixels, "repaired": repaired, "success": success, "frames": frames}
@@ -113,12 +112,12 @@ def _run_controls(browser, out, profile):
         try:
             if control == "blurred":
                 page.locator("#submit").focus()
-            before = capture_after_repaint(page)
+            before = capture_context_frame(page)
             if control == "blurred":
-                selected = capture_selected_tail(page)
+                selected = capture_selected_tail(page, capture_context_frame)
             else:
                 page.keyboard.press("Meta+A" if sys.platform == "darwin" else "Control+A")
-                selected = capture_after_repaint(page)
+                selected = capture_context_frame(page)
             evidence = inspect_selection(before, selected, bounds)
             name = f"{profile.name}-{control}"
             frames = _save_frames(out / name, before=before, selected=selected)

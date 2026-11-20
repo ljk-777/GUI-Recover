@@ -118,19 +118,22 @@ def evaluate_registered(out, plan, profile_name, regimes, actor, bank_sha, *, ba
     print("completed", out.name, flush=True)
 
 
-def run_active_quickstart(out, seeds, model, revision, runtime, *, tasks=(TASK,)):
+def run_active_quickstart(out, seeds, model, revision, runtime, *, tasks=(TASK,), layouts_per_task=None):
     """Run the paired active-tail demo without historical experiment directories."""
     if not tasks or len(set(tasks)) != len(tasks) or not set(tasks) <= set(NATIVE_TEXT_TASKS):
         raise ValueError("Expected distinct supported native text tasks")
+    count = len(seeds) if layouts_per_task is None else layouts_per_task
+    if type(count) is not int or not 1 <= count <= len(seeds):
+        raise ValueError("Layouts per task must be positive and fit within the seed reserve")
     out.mkdir(parents=True, exist_ok=False)
     regimes = tuple(regime for regime in SUPPORTED_REGIMES
                     if regime != "case-input" or "enter-text-dynamic" not in tasks)
-    profile = {"layouts": len(seeds) * len(tasks), "seeds": seeds, "tasks": tasks, "regimes": regimes}
+    profile = {"layouts": count * len(tasks), "seeds": seeds, "tasks": tasks, "regimes": regimes}
     write_json(out / "protocol.json", {"profile": "quickstart", "config": {"quickstart": profile},
                                       "model": {"identifier": model, "revision": revision}, "runtime": runtime,
                                       "probe_execution": "single_step"})
     write_json(out / "development-layouts.json", [])
-    plan = preflight((), out, [{"task": task, "count": len(seeds), "candidate_seeds": seeds} for task in tasks],
+    plan = preflight((), out, [{"task": task, "count": count, "candidate_seeds": seeds} for task in tasks],
                      include_goal=True)
     bank_sha = prepare_references(out)
     actor = ShowUIPolicy(model, revision=revision, max_new_tokens=32)

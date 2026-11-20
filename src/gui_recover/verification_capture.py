@@ -6,6 +6,16 @@ import io
 from PIL import Image
 
 
+def _wait_for_repaint(page):
+    page.evaluate("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))")
+
+
+def capture_context_frame(page):
+    """Keep the Playwright context's native scale for standalone fixtures."""
+    _wait_for_repaint(page)
+    return Image.open(io.BytesIO(page.screenshot(scale="device", caret="hide"))).convert("RGB")
+
+
 def capture_after_repaint(page):
     viewport=page.viewport_size
     if viewport is None:
@@ -17,7 +27,7 @@ def capture_after_repaint(page):
         cdp.send("Emulation.setDeviceMetricsOverride",{**dimensions,"deviceScaleFactor":scale})
         # BrowserGym 0.14.3 captures immediately after the metric override.
         # Wait for paint at the requested scale without modifying image pixels.
-        page.evaluate("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))")
+        _wait_for_repaint(page)
         result=cdp.send("Page.captureScreenshot",{"format":"png"})
     finally:
         cdp.send("Emulation.setDeviceMetricsOverride",{**dimensions,"deviceScaleFactor":1.0})
@@ -25,11 +35,11 @@ def capture_after_repaint(page):
     return Image.open(io.BytesIO(base64.b64decode(result["data"]))).convert("RGB")
 
 
-def capture_selected_tail(page):
+def capture_selected_tail(page, capture=capture_after_repaint):
     """Capture the final character selection, then collapse it to the right."""
     page.keyboard.press("Shift+ArrowLeft")
     try:
-        return capture_after_repaint(page)
+        return capture(page)
     finally:
         page.keyboard.press("ArrowRight")
 

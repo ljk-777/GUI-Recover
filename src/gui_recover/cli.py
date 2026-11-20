@@ -69,6 +69,7 @@ def main(argv=None, backend=None):
         text_recovery.add_argument("--out", type=Path, required=True)
         if command == "active-text-recovery":
             text_recovery.add_argument("--tasks", nargs="+", choices=NATIVE_TEXT_TASKS, default=["enter-text"])
+            text_recovery.add_argument("--layouts-per-task", type=int, help="Take this many distinct layouts per task from --seeds")
     audit_text = sub.add_parser("audit-text-recovery", help="Audit saved text-recovery traces using only CPU")
     audit_text.add_argument("directory", type=Path)
     audit_active = sub.add_parser("audit-active-text-recovery", help="Audit the active tail probe without model or browser")
@@ -130,7 +131,10 @@ def main(argv=None, backend=None):
 
             if len(set(args.tasks)) != len(args.tasks):
                 parser.error("Tasks must be distinct")
-            run_active_quickstart(args.out, args.seeds, args.model, args.revision, fingerprint(), tasks=args.tasks)
+            if args.layouts_per_task is not None and not 1 <= args.layouts_per_task <= len(args.seeds):
+                parser.error("Layouts per task must be positive and fit within the seed reserve")
+            run_active_quickstart(args.out, args.seeds, args.model, args.revision, fingerprint(),
+                                  tasks=args.tasks, layouts_per_task=args.layouts_per_task)
         else:
             from .visual_text_study import run_text_quickstart
 
