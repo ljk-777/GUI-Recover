@@ -511,6 +511,8 @@ def audit(directory):
                 and summary.get("reference_manifest_sha256") == INPUT_MEDIA_SHA256
                 and summary.get("browser_context") is True and holdout_profile(study, budget, summary["model"], "evidence-cards"),
                 "Run differs from the registered input holdout")
+        require(set(summary["input_manifest"]) == {str(task_id) for task_id in task_ids},
+                "Input manifest differs from the registered task set")
     modes = STUDY_MODES[study]
     require(set(summary["strategies"]) == set(modes), "Unexpected study strategies")
     studies = {mode: [] for mode in modes}
@@ -558,8 +560,12 @@ def audit(directory):
         if use_inputs:
             first, second = paired.values()
             require(first["reset_context"] == second["reset_context"], "Paired reset tabs or references differ")
-            by_task[task_id]["reference_images"] = len(first["reset_context"][1])
-            by_task[task_id]["initial_tabs"] = len(first["reset_context"][0]["tabs"])
+            state, pixels = first["reset_context"]
+            expected = summary["input_manifest"][str(task_id)]
+            require(pixels == expected["reference_pixels"] and len(state["tabs"]) >= expected["start_pages"],
+                    "Reset did not expose the official references and start pages")
+            by_task[task_id]["reference_images"] = len(pixels)
+            by_task[task_id]["initial_tabs"] = len(state["tabs"])
     formats = {}
     for mode, records in studies.items():
         counts = {key: sum(record["counts"][key] for record in records) for key in records[0]["counts"]}

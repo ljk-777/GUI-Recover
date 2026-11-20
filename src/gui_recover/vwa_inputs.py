@@ -12,10 +12,16 @@ from urllib.parse import urlsplit, urlunsplit
 from PIL import Image
 
 
+def reference_name(value, homepage="__HOMEPAGE__"):
+    """Undo BrowserGym's homepage substitution for official relative assets."""
+    prefix = homepage.rstrip("/") + "/"
+    return "environment_docker/webarena-homepage/" + value[len(prefix):] if value.startswith(prefix) else value
+
+
 class LocalReferenceArchive:
     """Resolve an official task's archived reference by its exact manifest name."""
 
-    def __init__(self, directory, manifest_sha256=None):
+    def __init__(self, directory, manifest_sha256=None, *, homepage="__HOMEPAGE__"):
         directory = Path(directory)
         manifest = (directory / "reference-media.json").read_bytes()
         if manifest_sha256 is not None and hashlib.sha256(manifest).hexdigest() != manifest_sha256:
@@ -26,6 +32,7 @@ class LocalReferenceArchive:
             if hashlib.file_digest(stream, "sha256").hexdigest() != record["archive_sha256"]:
                 raise ValueError("Reference archive differs from its manifest")
         self.images = {}
+        self.homepage = homepage
         with tarfile.open(archive, "r:gz") as pack:
             members = pack.getmembers()
             if len(members) != len(record["files"]) or {m.name for m in members} != set(record["files"]):
@@ -41,6 +48,7 @@ class LocalReferenceArchive:
                 self.images[member.name] = data
 
     def __call__(self, name):
+        name = reference_name(name, self.homepage)
         if name not in self.images:
             raise ValueError("Task reference is outside the registered archive")
         # Keep the image's format for BrowserGym, which writes its own local task input.

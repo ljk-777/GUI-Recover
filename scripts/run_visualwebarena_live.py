@@ -21,7 +21,7 @@ from gui_recover.runner import aggregate, render_replay, run_episode, write_json
 from gui_recover.screen_text import RapidScreenReader
 from gui_recover.verification import pixel_hash
 from gui_recover.visible_links import visible_listing_links
-from gui_recover.vwa_inputs import LocalReferenceArchive, contextual_observation
+from gui_recover.vwa_inputs import LocalReferenceArchive, contextual_observation, reference_name
 
 
 BACKEND_VARIABLES = ("VWA_CLASSIFIEDS", "VWA_SHOPPING", "VWA_REDDIT", "VWA_WIKIPEDIA",
@@ -118,22 +118,36 @@ def input_holdout_archive(directory):
     task_ids = TASK_SETS[INPUT_HOLDOUT_TASK_SET]
     native_table = json.loads(files("visualwebarena").joinpath("test_raw.json").read_text())
     entries = sorted((row for row in native_table if row["task_id"] in task_ids), key=lambda row: row["task_id"])
+    for row in entries:
+        image = row.get("image")
+        if isinstance(image, str):
+            row["image"] = reference_name(image)
+        elif image:
+            row["image"] = [reference_name(item) for item in image]
     canonical = json.dumps(entries, sort_keys=True, separators=(",", ":")).encode()
     if (tuple(protocol["task_ids"]) != task_ids
             or hashlib.sha256(canonical).hexdigest() != protocol["entries_sha256"]):
         raise ValueError("Installed VisualWebArena tasks differ from the frozen native entries")
-    archive = LocalReferenceArchive(directory, INPUT_MEDIA_SHA256)
+    archive = LocalReferenceArchive(directory, INPUT_MEDIA_SHA256, homepage=os.environ["VWA_HOMEPAGE"])
+    input_manifest = {}
     references = set()
     for row in entries:
         images = row.get("image") or []
-        references.update([images] if isinstance(images, str) else images)
+        images = [images] if isinstance(images, str) else images
+        references.update(images)
+        fingerprints = []
+        for name in images:
+            with archive(name) as image:
+                fingerprints.append(pixel_hash(image.convert("RGB")))
+        input_manifest[str(row["task_id"])] = {"reference_pixels": fingerprints,
+                                               "start_pages": len(row["start_url"].split(" |AND| "))}
     if references != set(archive.images):
         raise ValueError("Task references differ from the registered file set")
     classifieds, shopping = (urlsplit(os.environ[f"VWA_{site}"]) for site in ("CLASSIFIEDS", "SHOPPING"))
     if (classifieds.scheme, classifieds.netloc) == (shopping.scheme, shopping.netloc):
         raise ValueError("The locked cross-site task requires a separately configured Shopping origin")
     probe_instance("SHOPPING")
-    return archive
+    return archive, input_manifest
 
 
 def expand_listing_view():
@@ -258,11 +272,12 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
                 "links": visible_listing_links(page, os.environ["VWA_CLASSIFIEDS"], positions)}
 
 
-def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None):
+def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None, input_manifest=None):
     if task_set == HOLDOUT_TASK_SET and not holdout_profile(study, max_steps, actor.config):
         raise ValueError("The locked cohort requires the registered 8-decision Qwen 7B NF4 comparison")
     use_inputs = task_set == INPUT_HOLDOUT_TASK_SET
-    if use_inputs and (reference_archive is None or not holdout_profile(study, max_steps, actor.config, "evidence-cards")):
+    if use_inputs and (reference_archive is None or input_manifest is None
+                       or not holdout_profile(study, max_steps, actor.config, "evidence-cards")):
         raise ValueError("The new holdout requires its media archive and registered 8-decision comparison")
     out.mkdir(parents=True, exist_ok=False)
     screen_reader = RapidScreenReader() if study in OCR_MODES else None
@@ -321,7 +336,7 @@ def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None)
         summary["protocol_sha256"] = HOLDOUT_PROTOCOL_SHA256
     if use_inputs:
         summary.update(protocol_sha256=INPUT_PROTOCOL_SHA256, reference_manifest_sha256=INPUT_MEDIA_SHA256,
-                       browser_context=True)
+                       browser_context=True, input_manifest=input_manifest)
     write_json(out / "summary.json", summary)
 
 
@@ -357,7 +372,8 @@ def main():
     if args.qwen_7b_4bit and (args.actor != "qwen" or args.device != "cuda"):
         parser.error("The Qwen 7B 4-bit profile requires --actor qwen --device cuda")
     probe_instance()
-    reference_archive = input_holdout_archive(args.cohort_dir) if args.task_set == INPUT_HOLDOUT_TASK_SET else None
+    reference_archive, input_manifest = (input_holdout_archive(args.cohort_dir)
+                                         if args.task_set == INPUT_HOLDOUT_TASK_SET else (None, None))
     if args.out.exists():
         parser.error("Use a fresh output directory")
     if args.actor == "showui":
@@ -370,7 +386,7 @@ def main():
                                     load_in_4bit=args.qwen_7b_4bit,
                                     native_navigation=args.study in CONFIRM_MODES)
     run_study(actor, out=args.out, study=args.study, task_set=args.task_set, max_steps=args.max_steps,
-              reference_archive=reference_archive)
+              reference_archive=reference_archive, input_manifest=input_manifest)
     return 0
 
 

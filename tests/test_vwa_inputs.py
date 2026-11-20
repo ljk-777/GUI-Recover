@@ -11,13 +11,21 @@ from gui_recover.actions import ActionError, compile_action
 from gui_recover.environment import VisualObservation, frame_key
 from gui_recover.qwen_grounding import QwenGroundingPolicy, normalize_qwen_action
 from gui_recover.verification import pixel_hash
-from gui_recover.vwa_inputs import LocalReferenceArchive, contextual_observation
+from gui_recover.vwa_inputs import LocalReferenceArchive, contextual_observation, reference_name
 
 
 def reference_png():
     stream = io.BytesIO()
     Image.new("RGB", (10, 8), "orange").save(stream, format="PNG")
     return stream.getvalue()
+
+
+def test_official_reference_names_preserve_the_asset_suffix():
+    suffix = "inputs/example.png"
+    expected = "environment_docker/webarena-homepage/" + suffix
+    assert reference_name("__HOMEPAGE__/" + suffix) == expected
+    assert reference_name("http://localhost:5555/" + suffix, "http://localhost:5555/") == expected
+    assert reference_name("http://elsewhere:5555/" + suffix, "http://localhost:5555/") != expected
 
 
 def test_exact_archive_resolves_registered_asset_and_rejects_a_missing_reference(tmp_path):
