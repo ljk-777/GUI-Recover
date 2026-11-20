@@ -4,6 +4,7 @@ import json
 
 from .actions import Action, parse_action
 from .listing_cards import RESULT_VIEW_HEIGHT, card_panel, inspect_card_receipt, read_card_checks, visible_result_range
+from .qwen_grounding import ask_observation
 from .verification import pixel_hash
 
 
@@ -46,10 +47,10 @@ class RankedCardEvidence:
 
         def ask(items, prompt):
             panel = card_panel(items)
-            raw = actor.ask(actor.prepare_image(panel), prompt + (
+            raw = ask_observation(actor, actor.prepare_image(panel), prompt + (
                 f'Return only one JSON object with keys "1" through "{len(items)}". Each value must be '
                 "[true or false, short visual cue], with at most three words for its cue. Use null when the cue is unclear."
-            ))
+            ), observation)
             metrics.update(model_invocations=1, provider_output=raw, ranked_panel_pixels=pixel_hash(panel),
                            peak_cuda_allocated_bytes=actor.last_metrics["peak_cuda_allocated_bytes"])
             try:

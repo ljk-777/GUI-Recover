@@ -136,8 +136,8 @@ class ShowUIPolicy:
 
     def _generate(self, messages):
         text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        screenshot = next(item["image"] for item in messages[0]["content"] if item["type"] == "image")
-        inputs = self.processor(text=[text], images=[screenshot], padding=True,
+        images = [item["image"] for item in messages[0]["content"] if item["type"] == "image"]
+        inputs = self.processor(text=[text], images=images, padding=True,
                                 return_tensors="pt").to(self.device)
         with self.torch.inference_mode():
             ids = self.model.generate(**inputs, max_new_tokens=self.max_new_tokens, do_sample=False)

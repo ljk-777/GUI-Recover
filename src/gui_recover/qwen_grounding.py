@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .actions import ActionError, _unique_dict, parse_action
 from .policies import ShowUIPolicy
+from .verification import pixel_hash
 
 
 QWEN_REVISION = "66285546d2b821cf421d4f5eb2576359d3770cd3"
@@ -88,7 +89,7 @@ def native_action_after_note(raw):
     return read_reply(action)
 
 
-def normalize_qwen_action(data, size, *, native_navigation=False, compact_navigation=True):
+def normalize_qwen_action(data, size, *, native_navigation=False, compact_navigation=True, tab_count=0):
     if native_navigation and compact_navigation and isinstance(data, dict) and isinstance(data.get("action"), str):
         native_kind = data["action"].upper()
         if native_kind == "SCROLL" and set(data) == {"action", "value"}:
@@ -127,10 +128,18 @@ def normalize_qwen_action(data, size, *, native_navigation=False, compact_naviga
             value = "up" if value < 0 else "down"
         position = None
     action = parse_action(json.dumps({"action": kind, "value": value, "position": position}))
+    if action.action == "TAB_FOCUS" and native_navigation and int(action.value) <= tab_count:
+        return action
     if action.action not in ("CLICK", "INPUT", "SCROLL", "ANSWER") and not (
             native_navigation and action.action == "ENTER"):
         raise ActionError("Unsupported Qwen navigation action")
     return action
+
+
+def ask_observation(actor, canvas, request, observation, *, navigation=False):
+    if observation.reference_images or observation.tabs:
+        return actor.ask(canvas, request, observation=observation, navigation=navigation)
+    return actor.ask(canvas, request)
 
 
 class QwenGroundingPolicy:
@@ -206,11 +215,32 @@ class QwenGroundingPolicy:
             min_pixels=self.min_pixels, max_pixels=self.max_pixels)
         return screen.convert("RGB").resize((width, height), Image.Resampling.BICUBIC)
 
-    def ask(self, canvas, request):
-        messages = [{"role": "user", "content": [
-            {"type": "image", "image": canvas}, {"type": "text", "text": request}]}]
+    def ask(self, canvas, request, *, observation=None, navigation=False):
+        content = [{"type": "image", "image": canvas}]
+        context = {}
+        if observation is not None:
+            for reference in observation.reference_images:
+                image = reference.copy()
+                image.thumbnail((512, 512))
+                content.append({"type": "image", "image": self.prepare_image(image)})
+            if observation.reference_images:
+                request += ("\nThe first image is the current browser evidence. The following images are task "
+                            "references in order. Match visual details against them. Action coordinates always use "
+                            "the first image.")
+                context["reference_pixels"] = [pixel_hash(image) for image in observation.reference_images]
+            if observation.tabs:
+                tab_state = {"tabs": [list(tab) for tab in observation.tabs], "active_tab": observation.active_tab}
+                request += ("\nOpen browser tabs in one-based order (title and address): "
+                            + json.dumps(tab_state["tabs"], ensure_ascii=False)
+                            + f". Active tab number: {observation.active_tab + 1}.")
+                if navigation and len(observation.tabs) > 1:
+                    request += (' To inspect a different open tab, return {"action":"TAB_FOCUS",'
+                                '"value":"2","position":null} with its actual one-based number.')
+                context["browser_tabs"] = tab_state
+        content.append({"type": "text", "text": request})
+        messages = [{"role": "user", "content": content}]
         raw = self._generate(messages)
-        self.last_metrics.update(provider_output=raw, provider_image_size=list(canvas.size))
+        self.last_metrics.update(provider_output=raw, provider_image_size=list(canvas.size), **context)
         return raw
 
     def ground(self, screen, query):
@@ -228,7 +258,7 @@ class QwenGroundingPolicy:
 
     def check_answer(self, observation):
         canvas = self.prepare_image(observation.screenshot)
-        raw = self.ask(canvas, f"{VISIBLE_ANSWER_PROMPT}Question: {observation.goal}")
+        raw = ask_observation(self, canvas, f"{VISIBLE_ANSWER_PROMPT}Question: {observation.goal}", observation)
         self.last_metrics["provider_format"] = "answer_invalid"
         try:
             answer = parse_visible_answer(raw)
@@ -269,7 +299,7 @@ class QwenGroundingPolicy:
             "SCROLL has value up or down and null position. "
             f"{allowed_actions} Inspect the image and avoid repeating a failed action."
         )
-        raw = self.ask(canvas, request)
+        raw = ask_observation(self, canvas, request, observation, navigation=native_navigation)
         response_format = "json"
         self.last_metrics["provider_format"] = "invalid"
         try:
@@ -297,7 +327,8 @@ class QwenGroundingPolicy:
                 elif data == {"action": "key", "key": "Enter"} or data == {"action": "key", "key": "Return"}:
                     data = {"action": "ENTER", "value": None, "position": None}
                     response_format = "native_navigation"
-            action = normalize_qwen_action(data, canvas.size, native_navigation=native_navigation)
+            action = normalize_qwen_action(data, canvas.size, native_navigation=native_navigation,
+                                           tab_count=len(observation.tabs))
             if action.action == "ANSWER" and not allow_answer:
                 self.last_metrics["provider_format"] = "answer_blocked"
                 return None

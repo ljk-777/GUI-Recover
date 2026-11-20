@@ -64,7 +64,7 @@ def parse_action(raw: str, mode: str = "strict") -> Action:
     if not isinstance(data, dict) or set(data) != {"action", "value", "position"}:
         raise ActionError("Required keys: action, value, position; no extra keys")
     kind, value, pos = data["action"], data["value"], data["position"]
-    if kind not in ("CLICK", "INPUT", "SEARCH", "TYPE", "HOVER", "ENTER", "SCROLL", "ANSWER", "LISTING_GRID"):
+    if kind not in ("CLICK", "INPUT", "SEARCH", "TYPE", "HOVER", "ENTER", "SCROLL", "ANSWER", "LISTING_GRID", "TAB_FOCUS"):
         raise ActionError(f"Unsupported action: {kind!r}")
     if kind in ("CLICK", "INPUT", "SEARCH", "HOVER", "LISTING_GRID"):
         if not isinstance(pos, (list, tuple)) or len(pos) != 2:
@@ -83,6 +83,10 @@ def parse_action(raw: str, mode: str = "strict") -> Action:
     elif kind == "SCROLL":
         if value not in ("up", "down", "left", "right"):
             raise ActionError("SCROLL value must be up/down/left/right")
+    elif kind == "TAB_FOCUS":
+        if (not isinstance(value, str) or not 1 <= len(value) <= 3
+                or not value.isascii() or not value.isdecimal() or value.startswith("0") or int(value) > 256):
+            raise ActionError("TAB_FOCUS requires a one-based tab number")
     elif value is not None:
         raise ActionError(f"{kind} requires value=None")
     return Action(kind, value, pos)
@@ -114,4 +118,6 @@ def compile_action(action: Action, width: int, height: int) -> str:
         return f"scroll_at({width // 2}, {height // 2}, {dx}, {dy})"
     if action.action == "LISTING_GRID":
         raise ActionError("Listing grid is available only in the Classifieds adapter")
+    if action.action == "TAB_FOCUS":
+        raise ActionError("Tab focus is available only in a tab-aware browser adapter")
     raise ActionError("ANSWER is a local stop request, never an environment success")

@@ -7,8 +7,9 @@ from decimal import Decimal
 from PIL import Image, ImageDraw
 
 from .actions import Action, ActionError
+from .environment import frame_key
 from .listing_cards import ranked_photo_request
-from .qwen_grounding import native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
+from .qwen_grounding import ask_observation, native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
 from .ranked_cards import RankedCardEvidence
 from .screen_text import exact_initial_search, from_readable_control, listing_detail
 from .verification import pixel_hash
@@ -64,7 +65,7 @@ def evidence_clipped(goal, box, size):
     return bool(requires_row and box[3] >= size[1] - 2)
 
 
-def evidence_navigation(raw, size, *, compact_navigation=True, allow_click_box=False):
+def evidence_navigation(raw, size, *, compact_navigation=True, allow_click_box=False, tab_count=0):
     try:
         data = read_reply(raw)
     except json.JSONDecodeError:
@@ -78,7 +79,8 @@ def evidence_navigation(raw, size, *, compact_navigation=True, allow_click_box=F
             raise ActionError("A click box needs a visible region")
         left, top, right, bottom = box
         data = {"action": "CLICK", "value": None, "position": [(left + right) // 2, (top + bottom) // 2]}
-    action = normalize_qwen_action(data, size, native_navigation=True, compact_navigation=compact_navigation)
+    action = normalize_qwen_action(data, size, native_navigation=True, compact_navigation=compact_navigation,
+                                   tab_count=tab_count)
     if action.action == "ANSWER":
         raise ActionError("An evidence search cannot submit an answer")
     return action
@@ -136,7 +138,7 @@ def has_transcribed_answer(answer, box, rows):
 
 
 def parse_evidence_location(raw, goal, size, *, confirm, compact_navigation=True, rows=None, guarded_ocr=False,
-                            navigation_only=False, allow_click_box=False):
+                            navigation_only=False, allow_click_box=False, tab_count=0):
     """Return a browser action or a validated evidence region and optional candidate."""
     candidate = None
     localized = None
@@ -151,7 +153,7 @@ def parse_evidence_location(raw, goal, size, *, confirm, compact_navigation=True
             candidate = None
     else:
         navigation = evidence_navigation(raw, size, compact_navigation=compact_navigation,
-                                         allow_click_box=allow_click_box) if confirm else None
+                                         allow_click_box=allow_click_box, tab_count=tab_count) if confirm else None
         if navigation is not None:
             return navigation, None, None, "evidence_navigation"
         box = evidence_box(raw, size)
@@ -272,6 +274,8 @@ class EvidenceAnswerPolicy:
         self.actor.set_feedback(message)
 
     def observe_transition(self, before, after, action):
+        if action.action == "TAB_FOCUS":
+            self.navigation_context = None
         if (self.use_navigation_context and action.action == "CLICK"
                 and pixel_hash(before.screenshot) != pixel_hash(after.screenshot)):
             self.navigation_context = before.screenshot.copy(), action.position
@@ -372,7 +376,7 @@ class EvidenceAnswerPolicy:
                 f"Return one JSON object.\nPrevious actions: {json.dumps(recent, ensure_ascii=False)}.\n"
                 f"{seen}"
             )
-        raw = self.actor.ask(canvas, prompt)
+        raw = ask_observation(self.actor, canvas, prompt, observation, navigation=self.confirm)
         self.last_metrics.update(evidence_stage="locate", evidence_frame=frame, provider_format="evidence_invalid")
         if rows is not None:
             self.last_metrics["screen_text"] = rows
@@ -381,7 +385,7 @@ class EvidenceAnswerPolicy:
             if selection is None:
                 navigation, box, candidate, status = parse_evidence_location(
                     raw, observation.goal, canvas.size, confirm=self.confirm, rows=navigation_rows, guarded_ocr=True,
-                    navigation_only=link_count is not None, allow_click_box=direct_contact)
+                    navigation_only=link_count is not None, allow_click_box=direct_contact, tab_count=len(observation.tabs))
         except (ValueError, RecursionError):
             return None
         if selection is not None:
@@ -422,7 +426,7 @@ class EvidenceAnswerPolicy:
             'Return one JSON object with exactly two keys: "evidence" (a list of short strings), '
             'then "answer" (short string or null).'
         )
-        raw = self.actor.ask(canvas, prompt)
+        raw = ask_observation(self.actor, canvas, prompt, observation)
         self.last_metrics.update(evidence_stage="read", evidence_frame=frame, evidence_bounds=list(bounds),
                                  evidence_crop_sha256=pixel_hash(crop), provider_format="evidence_invalid")
         try:
@@ -470,7 +474,7 @@ class EvidenceAnswerPolicy:
                 "with the question or the field is unreadable, return {\"answer\":null}. "
                 'Otherwise return one JSON object with key "answer" containing the exact visible email.'
             )
-        raw = self.actor.ask(canvas, prompt)
+        raw = ask_observation(self.actor, canvas, prompt, observation)
         self.last_metrics.update(evidence_stage="confirm", evidence_frame=frame, evidence_bounds=list(bounds),
                                  evidence_panel_sha256=pixel_hash(panel), provider_format="evidence_invalid")
         if self.navigation_context is not None:
@@ -493,7 +497,7 @@ class EvidenceAnswerPolicy:
         canvas = self.actor.prepare_image(observation.screenshot)
         seen = (listing_screen_text(rows, canvas.size) if _PRICE_QUESTION.search(observation.goal)
                 else f"Visible text from the screenshot:\n{indexed_text(rows)}")
-        raw = self.actor.ask(canvas, (
+        raw = ask_observation(self.actor, canvas, (
             f"{seen}\n\n"
             f"Question: {observation.goal}\n"
             "Identify the complete set of matching listing titles using the screenshot. "
@@ -501,7 +505,7 @@ class EvidenceAnswerPolicy:
             'Return one JSON object keyed "listings". Its value must be an array of the actual text indices '
             f"from the listing titles, with {count[0]} to {count[1]} distinct entries. "
             "Use null if any required listing or condition is unverifiable."
-        ))
+        ), observation)
         self.last_metrics.update(evidence_stage="link_confirm", evidence_frame=frame,
                                  provider_format="evidence_link_disagreed")
         try:
@@ -536,7 +540,8 @@ class EvidenceAnswerPolicy:
             self.pending_crop = None
             if frame == pending_frame:
                 return self.read(observation, frame, crop, bounds)
-        if frame not in self.checked_frames:
-            self.checked_frames.add(frame)
+        key = frame_key(frame, observation.tabs, observation.active_tab)
+        if key not in self.checked_frames:
+            self.checked_frames.add(key)
             return self.locate(observation, frame, history)
         return self.actor.predict(observation, history, allow_answer=False)

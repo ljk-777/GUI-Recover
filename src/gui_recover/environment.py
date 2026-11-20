@@ -13,6 +13,14 @@ class VisualObservation:
     goal: str
     screenshot: Image.Image
     last_action_error: str = ""
+    reference_images: tuple[Image.Image, ...] = ()
+    tabs: tuple[tuple[str, str], ...] = ()
+    active_tab: int = 0
+
+
+def frame_key(digest, tabs=(), active_tab=0):
+    """Distinguish identical viewport pixels belonging to different tabs."""
+    return digest, tuple(tuple(tab) for tab in tabs), active_tab
 
 
 class MiniwobEnvironment:

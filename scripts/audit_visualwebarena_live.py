@@ -12,7 +12,7 @@ from gui_recover.answer_evidence import (
     answer_signature, confirmation_image, contact_from_evidence, evidence_answer, native_crop, parse_evidence_location,
     visible_contact_request,
 )
-from gui_recover.environment import VisualObservation
+from gui_recover.environment import VisualObservation, frame_key
 from gui_recover.listing_cards import RESULT_VIEW_HEIGHT, ranked_photo_request
 from gui_recover.qwen_grounding import native_action_after_note, parse_visible_answer, read_reply
 from gui_recover.ranked_cards import RankedCardEvidence
@@ -22,8 +22,9 @@ from gui_recover.verification import pixel_hash
 from gui_recover.visible_links import agreed_listing_answer, link_answer_count, listing_selection, preview_destinations
 from gui_recover.visual_text_audit import checked_file, read_json, require
 from run_visualwebarena_live import (
-    ANSWER_STUDIES, CONFIRM_MODES, EVIDENCE_STUDIES, HOLDOUT_PROTOCOL_SHA256, HOLDOUT_TASK_SET, LINK_MODES,
-    NAVIGATION_CONTEXT_MODES, OCR_MODES, STUDY_MODES, TASK_SETS, exact_vwa_success, holdout_profile,
+    ANSWER_STUDIES, CONFIRM_MODES, EVIDENCE_STUDIES, HOLDOUT_PROTOCOL_SHA256, HOLDOUT_TASK_SET,
+    INPUT_HOLDOUT_TASK_SET, INPUT_MEDIA_SHA256, INPUT_PROTOCOL_SHA256, LINK_MODES, NAVIGATION_CONTEXT_MODES,
+    OCR_MODES, STUDY_MODES, TASK_SETS, exact_vwa_success, holdout_profile,
 )
 
 
@@ -35,6 +36,27 @@ def verify_ocr_rows(rows, size):
                 and len(coords) == 4 and all(type(value) is int for value in coords)
                 and 0 <= coords[0] < coords[2] <= size[0] and 0 <= coords[1] < coords[3] <= size[1],
                 "Invalid OCR bounds")
+
+
+def validate_tab_state(state):
+    require(isinstance(state, dict) and set(state) == {"tabs", "active_tab"}
+            and isinstance(state["tabs"], list) and type(state["active_tab"]) is int
+            and 0 <= state["active_tab"] < len(state["tabs"]) <= 256, "Malformed browser tabs")
+    for tab in state["tabs"]:
+        require(isinstance(tab, list) and len(tab) == 2 and all(isinstance(field, str) for field in tab)
+                and len(tab[0]) <= 160 and len(tab[1]) <= 512, "Malformed browser tab title or address")
+
+
+def check_reference_images(directory, references):
+    hashes = []
+    for index, reference in enumerate(references, start=1):
+        name = f"reference-{index:02d}.png"
+        require(reference["filename"] == name, "Unexpected task reference filename")
+        with Image.open(checked_file(directory / name, reference["sha256"])) as image:
+            require(list(image.size) == reference["size"] and pixel_hash(image) == reference["pixels"],
+                    "Task reference pixels differ from the recorded input")
+        hashes.append(reference["pixels"])
+    return hashes
 
 
 def replay_ranked_decision(scan, request, screen, goal, prediction):
@@ -70,7 +92,8 @@ def replay_ranked_decision(scan, request, screen, goal, prediction):
 
 def audit_evidence(directory, predictions, frame_before_prediction, frames, goal, *,
                    confirm=False, click_origins=None, compact_navigation=False, use_screen_text=False,
-                   guarded_ocr=False, direct_navigation=False, listing_site=None, use_ranked_cards=False):
+                   guarded_ocr=False, direct_navigation=False, listing_site=None, use_ranked_cards=False,
+                   tab_states=None):
     visited = set()
     answers = set()
     stages = Counter()
@@ -84,6 +107,8 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         step = prediction["step"]
         index = frame_before_prediction[step]
         frame = frames[index]
+        tabs = tab_states[index] if tab_states else {}
+        key = frame_key(frame, tabs.get("tabs", ()), tabs.get("active_tab", 0))
         metrics = prediction["metrics"]
         raw = prediction["raw"]
         reply = metrics["provider_output"]
@@ -101,7 +126,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
             stage = "confirm"
         elif pending is not None and frame == pending[0]:
             stage = "read"
-        elif frame not in visited:
+        elif key not in visited:
             stage = "locate"
         else:
             stage = None
@@ -125,7 +150,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         stages[stage] += 1
         status = "evidence_invalid"
         if stage == "locate":
-            visited.add(frame)
+            visited.add(key)
             pending = None
             size = metrics["provider_image_size"]
             require(("screen_text" in metrics) == use_screen_text, "Unexpected OCR mode")
@@ -154,7 +179,8 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                     navigation, box, candidate, status = parse_evidence_location(
                         reply, goal, size, confirm=confirm, compact_navigation=compact_navigation, rows=rows,
                         guarded_ocr=guarded_ocr, navigation_only=link_count is not None,
-                        allow_click_box=use_ranked_cards and step == 0 and visible_contact_request(goal, rows))
+                        allow_click_box=use_ranked_cards and step == 0 and visible_contact_request(goal, rows),
+                        tab_count=len(tabs.get("tabs", ())))
             except (ValueError, RecursionError):
                 require(raw is None and "listing_preview" not in metrics,
                         "Unusable evidence localization generated a browser action or link preview")
@@ -267,7 +293,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
 def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=False, answer_study=False,
                   evidence_check=False, confirm=False, use_navigation_context=False, compact_navigation=False,
                   use_screen_text=False, guarded_ocr=False, direct_navigation=False, listing_site=None,
-                  use_ranked_cards=False):
+                  use_ranked_cards=False, use_browser_context=False):
     events = [json.loads(line) for line in (directory / "trajectory.jsonl").read_text().splitlines()]
     row = read_json(directory / "episode.json")
     require(events[0]["event"] == "reset" and events[-1] == {"event": "episode_end", **row},
@@ -281,6 +307,13 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         by_event.setdefault(event["event"], []).append(event)
     predictions = by_event["prediction"]
     transitions = by_event.get("transition", [])
+    tab_states = [event.get("browser_tabs") for event in [events[0], *transitions]]
+    if use_browser_context:
+        for state in tab_states:
+            validate_tab_state(state)
+    else:
+        require(not any(tab_states) and "reference_images" not in events[0], "Unexpected browser context")
+    reference_hashes = check_reference_images(directory, events[0].get("reference_images", []))
     require(0 < len(predictions) <= budget and [e["step"] for e in predictions] == list(range(len(predictions))),
             f"Invalid prediction budget: {directory.name}")
     stops = [p["step"] for p in predictions if p["metrics"].get("stop_after_evidence") is True]
@@ -305,16 +338,21 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         require(metrics["model_invocations"] in ((0, 1) if ranked else (0 if is_shortcut else 1,)),
                 "Unexpected model invocation count for the decision")
         digest = observation["sha256"]
+        tabs = tab_states[frame_index] or {}
+        key = frame_key(digest, tabs.get("tabs", ()), tabs.get("active_tab", 0))
+        if metrics["model_invocations"] and use_browser_context:
+            require(metrics.get("browser_tabs") == tabs and metrics.get("reference_pixels", []) == reference_hashes,
+                    "Model inputs differ from the task reference images or active tabs")
         frame_before_prediction[step] = frame_index
         if step in transition_by_step:
             observation = transition_by_step[step]
             frame_index += 1
         checking = prediction.get("decision") == "answer_check"
-        require(checking == (answer_check and digest not in checked_frames),
+        require(checking == (answer_check and key not in checked_frames),
                 "Answer check schedule disagrees with the observed frame")
         if checking:
             require(prediction["observation_sha256"] == digest, "Answer check used an unexpected screenshot")
-            checked_frames.add(digest)
+            checked_frames.add(key)
             try:
                 candidate = parse_visible_answer(metrics["provider_output"])
             except (ValueError, RecursionError):
@@ -346,6 +384,12 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         if action["action"] == "LISTING_GRID":
             require(use_ranked_cards and event["size"][1] == RESULT_VIEW_HEIGHT
                     and event["executed_code"].endswith("\nexpand_listing_view()"), "Grid viewport was not expanded")
+        if action["action"] == "TAB_FOCUS":
+            before = frame_before_prediction[event["step"]]
+            target = int(action["value"]) - 1
+            require(use_browser_context and target < len(tab_states[before]["tabs"])
+                    and tab_states[before + 1]["active_tab"] == target and event["executed_code"] == f"tab_focus({target})",
+                    "Tab focus did not reach the requested existing tab")
 
     retries = by_event.get("invalid_action_retry", [])
     repaired = by_event.get("invalid_action_repaired", [])
@@ -386,6 +430,8 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
             click_origins = {}
             origin = None
             for index, event in enumerate(transitions):
+                if event["action"]["action"] == "TAB_FOCUS":
+                    origin = None
                 if event["action"]["action"] == "CLICK" and frames[index] != frames[index + 1]:
                     origin = index, event["action"]["position"]
                 click_origins[index + 1] = origin
@@ -393,7 +439,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
             directory, predictions, frame_before_prediction, frames, events[0]["goal"],
             confirm=confirm, click_origins=click_origins, compact_navigation=compact_navigation,
             use_screen_text=use_screen_text, guarded_ocr=guarded_ocr, direct_navigation=direct_navigation,
-            listing_site=listing_site, use_ranked_cards=use_ranked_cards)
+            listing_site=listing_site, use_ranked_cards=use_ranked_cards, tab_states=tab_states if use_browser_context else None)
     answer_outcome = None
     if answer_study:
         submissions = [event for event in transitions if event["action"]["action"] == "ANSWER"]
@@ -439,6 +485,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
                     break
     return {"row": row, "counts": counts, "formats": formats, "screenshots": len(frames),
             "reset": (events[0]["goal"], events[0]["seed"]), "reset_pixels": frames[0],
+            "reset_context": (tab_states[0], reference_hashes),
             "first_invalid": before_retry, "first_unchanged_scroll": first_unchanged_scroll,
             "first_scroll_followup": first_scroll_followup, "answer_outcome": answer_outcome,
             "evidence_stages": dict(evidence_stages),
@@ -458,6 +505,12 @@ def audit(directory):
     if task_set == HOLDOUT_TASK_SET:
         require(summary.get("protocol_sha256") == HOLDOUT_PROTOCOL_SHA256
                 and holdout_profile(study, budget, summary["model"]), "Run differs from the locked holdout protocol")
+    use_inputs = task_set == INPUT_HOLDOUT_TASK_SET
+    if use_inputs:
+        require(summary.get("protocol_sha256") == INPUT_PROTOCOL_SHA256
+                and summary.get("reference_manifest_sha256") == INPUT_MEDIA_SHA256
+                and summary.get("browser_context") is True and holdout_profile(study, budget, summary["model"], "evidence-cards"),
+                "Run differs from the registered input holdout")
     modes = STUDY_MODES[study]
     require(set(summary["strategies"]) == set(modes), "Unexpected study strategies")
     studies = {mode: [] for mode in modes}
@@ -479,7 +532,7 @@ def audit(directory):
                                    guarded_ocr=summary.get("screen_reader", {}).get("guarded_ocr", False),
                                    direct_navigation=summary.get("screen_reader", {}).get("direct_navigation", False),
                                    listing_site=summary["listing_origin"] if mode in LINK_MODES else None,
-                                   use_ranked_cards=mode == "evidence-cards")
+                                   use_ranked_cards=mode == "evidence-cards", use_browser_context=use_inputs)
             require(record["row"]["task"] == name and record["row"]["seed"] == record["reset"][1] == 0,
                     "Task or seed mismatch")
             studies[mode].append(record)
@@ -502,6 +555,11 @@ def audit(directory):
             by_task[task_id]["answer_outcome"] = {mode: record["answer_outcome"] for mode, record in paired.items()}
         if study in EVIDENCE_STUDIES:
             by_task[task_id]["evidence_calls"] = paired[modes[-1]]["evidence_stages"]
+        if use_inputs:
+            first, second = paired.values()
+            require(first["reset_context"] == second["reset_context"], "Paired reset tabs or references differ")
+            by_task[task_id]["reference_images"] = len(first["reset_context"][1])
+            by_task[task_id]["initial_tabs"] = len(first["reset_context"][0]["tabs"])
     formats = {}
     for mode, records in studies.items():
         counts = {key: sum(record["counts"][key] for record in records) for key in records[0]["counts"]}
@@ -518,14 +576,14 @@ def audit(directory):
             task["answer_outcome"][mode] for task in by_task.values())) for mode in modes}
         successes = {mode: summary["strategies"][mode]["successes"] for mode in modes}
         report["wrong_submissions"] = wrong
-        if task_set == HOLDOUT_TASK_SET:
+        if task_set in (HOLDOUT_TASK_SET, INPUT_HOLDOUT_TASK_SET):
             candidate = modes[-1]
             peak_calls = max(record["counts"]["model_calls"] for records in studies.values() for record in records)
             require(peak_calls <= 8, "Locked holdout exceeded the model call budget")
             gate = {"at_least_two_native_successes": successes[candidate] >= 2,
                     "more_native_successes_than_control": successes[candidate] > successes["answer-check"],
                     "fewer_wrong_submissions_than_control": wrong[candidate] < wrong["answer-check"]}
-            report.update(protocol_sha256=HOLDOUT_PROTOCOL_SHA256, acceptance_checks=gate,
+            report.update(protocol_sha256=summary["protocol_sha256"], acceptance_checks=gate,
                           max_observed_model_calls=peak_calls, target_met=all(gate.values()))
         if task_set in ("evidence-transfer", "evidence-confirm-transfer", "evidence-context-transfer"):
             candidate = modes[-1]
