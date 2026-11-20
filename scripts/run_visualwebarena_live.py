@@ -16,6 +16,8 @@ from gui_recover.policies import MODEL_REVISION, ShowUIPolicy
 from gui_recover.qwen_grounding import QwenGroundingPolicy
 from gui_recover.runner import aggregate, render_replay, run_episode, write_json
 from gui_recover.screen_text import RapidScreenReader
+from gui_recover.verification import pixel_hash
+from gui_recover.visible_links import visible_listing_links
 
 
 BACKEND_VARIABLES = ("VWA_CLASSIFIEDS", "VWA_SHOPPING", "VWA_REDDIT", "VWA_WIKIPEDIA",
@@ -141,6 +143,14 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
         else:
             code = compile_action(checked, *self.obs.screenshot.size)
         return self._step_code(code)
+
+    def preview_listing_links(self, positions):
+        """Read selected visible destinations without opening the listings."""
+        if self.obs is None:
+            raise RuntimeError("Reset the browser before previewing links")
+        page = self.env.unwrapped.page
+        return {"source_pixels": pixel_hash(self.obs.screenshot),
+                "links": visible_listing_links(page, os.environ["VWA_CLASSIFIEDS"], positions)}
 
 
 def run_study(actor, *, out, study, task_set, max_steps):
