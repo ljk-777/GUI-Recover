@@ -36,16 +36,23 @@ def _load_case(browser, profile, layout, expected, value):
     page = browser.new_page(viewport={"width": width, "height": height}, device_scale_factor=profile.scale)
     control = ('<input id="entry" autocomplete="off">' if profile.control == "input"
                else '<textarea id="entry" rows="3"></textarea>')
+    # Four CSS pixels also align at the 1.25 and 1.5 device scales. Avoid
+    # platform-painted outlines and scrollbars in this exact-frame fixture.
+    line_height = 4 * round(profile.size * 1.35 / 4)
     page.set_content(f"""
         <style>
         body {{ margin:0; background:#eceef3; font:14px Arial; }}
-        main {{ position:absolute; left:{35 + layout * 31}px; top:{38 + layout * 19}px; }}
-        #entry {{ display:block; width:{232 + layout * 17}px; box-sizing:border-box;
-            padding:9px 12px; border:2px solid #64748b; border-radius:5px;
+        main {{ position:absolute; left:{36 + layout * 32}px; top:{40 + layout * 20}px; }}
+        #entry {{ display:block; width:{232 + layout * 16}px; box-sizing:border-box;
+            appearance:none; outline:none; resize:none; overflow:hidden;
+            padding:8px 12px; border:4px solid #64748b; border-radius:0;
             background:{profile.background}; color:{profile.foreground};
-            font:{profile.size}px/1.35 '{profile.font}'; caret-color:transparent; }}
+            font:{profile.size}px/{line_height}px '{profile.font}'; caret-color:transparent; }}
         #entry::selection {{ background:{profile.selection}; color:{profile.foreground}; }}
-        button {{ margin-top:15px; }}
+        button {{ appearance:none; outline:none; box-shadow:none; margin-top:16px;
+            padding:4px 12px; border:4px solid #64748b; border-radius:0;
+            background:#fafbfc; color:#161616; font:14px/20px Arial; }}
+        button:focus-visible {{ outline:2px solid #145287; outline-offset:2px; }}
         </style>
         <main><form>{control}<button id="submit">Submit</button></form><output id="result"></output></main>
     """)
