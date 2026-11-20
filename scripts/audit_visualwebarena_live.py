@@ -1,4 +1,4 @@
-"""Reconstruct a live format or scroll study from its saved trajectories on CPU."""
+"""Reconstruct a live VisualWebArena study from its saved trajectories on CPU."""
 
 import argparse
 import json
@@ -8,13 +8,14 @@ from pathlib import Path
 from PIL import Image
 
 from gui_recover.actions import ActionError, parse_action
+from gui_recover.qwen_grounding import parse_visible_answer
 from gui_recover.runner import INVALID_ACTION_FEEDBACK, aggregate, write_json
 from gui_recover.verification import pixel_hash
 from gui_recover.visual_text_audit import checked_file, read_json, require
 from run_visualwebarena_live import STUDY_MODES, TASK_SETS, exact_vwa_success
 
 
-def audit_episode(directory, budget, recovery_mode, retry_mode):
+def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=False, answer_study=False):
     events = [json.loads(line) for line in (directory / "trajectory.jsonl").read_text().splitlines()]
     row = read_json(directory / "episode.json")
     require(events[0]["event"] == "reset" and events[-1] == {"event": "episode_end", **row},
@@ -22,6 +23,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode):
     require(row["reason"] != "runtime_error" and row["recovery"] == recovery_mode and row["fault_kind"] == "none",
             f"Unexpected runtime or intervention: {directory.name}")
     require(row["invalid_action_retry"] == retry_mode, f"Incorrect retry mode: {directory.name}")
+    require(row.get("answer_check", False) == answer_check, f"Incorrect answer check mode: {directory.name}")
     by_event = {}
     for event in events:
         by_event.setdefault(event["event"], []).append(event)
@@ -32,14 +34,49 @@ def audit_episode(directory, budget, recovery_mode, retry_mode):
     invalid_steps = []
     valid_steps = []
     formats = Counter()
+    transition_by_step = {event["step"]: event for event in transitions}
+    frame_before_prediction = {}
+    checked_frames = set()
+    checked_answers = set()
+    observation = events[0]
+    frame_index = 0
     for prediction in predictions:
-        formats[prediction["metrics"]["provider_format"]] += 1
+        step = prediction["step"]
+        metrics = prediction["metrics"]
+        provider_format = metrics["provider_format"]
+        formats[provider_format] += 1
+        require(metrics["model_invocations"] == 1, "Expected one model invocation per prediction")
+        digest = observation["sha256"]
+        frame_before_prediction[step] = frame_index
+        if step in transition_by_step:
+            observation = transition_by_step[step]
+            frame_index += 1
+        checking = prediction.get("decision") == "answer_check"
+        require(checking == (answer_check and digest not in checked_frames),
+                "Answer check schedule disagrees with the observed frame")
+        if checking:
+            require(prediction["observation_sha256"] == digest, "Answer check used an unexpected screenshot")
+            checked_frames.add(digest)
+            try:
+                candidate = parse_visible_answer(metrics["provider_output"])
+            except (ValueError, RecursionError):
+                candidate = None
+                expected_format = "answer_invalid"
+            else:
+                expected_format = "answer_abstained" if candidate is None else "answer_json"
+            require(provider_format == expected_format, "Provider answer status differs from its raw reply")
+            if candidate is None:
+                require(prediction["raw"] is None, "Missing answer generated a browser action")
+                continue
+            action = parse_action(prediction["raw"])
+            require(action.action == "ANSWER" and action.value == candidate, "Answer differs from its raw reply")
+            checked_answers.add(step)
         try:
             parse_action(prediction["raw"])
         except ActionError:
-            invalid_steps.append(prediction["step"])
+            invalid_steps.append(step)
         else:
-            valid_steps.append(prediction["step"])
+            valid_steps.append(step)
     require([e["step"] for e in transitions] == valid_steps, "Unparsed action reached the browser")
     require([e["step"] for e in by_event.get("error", [])] == invalid_steps, "Invalid prediction log differs")
     for event in transitions:
@@ -72,6 +109,17 @@ def audit_episode(directory, budget, recovery_mode, retry_mode):
             "Terminal reward differs from the final transition")
     require(row["success"] == exact_vwa_success(terminal["reward"], terminal["terminated"], terminal["truncated"], {}),
             "Success differs from the native reward")
+    answer_outcome = None
+    if answer_study:
+        submissions = [event for event in transitions if event["action"]["action"] == "ANSWER"]
+        counts.update(answer_checks=len(checked_frames), answers_submitted=len(submissions),
+                      answers_from_checks=len(checked_answers))
+        require(all(row[key] == counts[key] for key in ("answer_checks", "answers_submitted", "answers_from_checks")),
+                "Answer counters differ from trace")
+        if submissions:
+            last = submissions[-1]
+            answer_outcome = {"source": "answer-check" if last["step"] in checked_answers else "navigation",
+                              "prediction": last["step"] + 1, "native_reward": last["reward"]}
     frames = []
     for index, event in enumerate([events[0], *transitions]):
         name = f"{index:04d}.png"
@@ -81,7 +129,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode):
             frames.append(pixel_hash(picture))
     before_retry = None
     if first_invalid is not None:
-        before_retry = (first_invalid, frames[first_invalid],
+        before_retry = (first_invalid, frames[frame_before_prediction[first_invalid]],
                         predictions[first_invalid]["metrics"]["provider_output"])
     first_unchanged_scroll = None
     first_scroll_followup = None
@@ -107,7 +155,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode):
     return {"row": row, "counts": counts, "formats": formats, "screenshots": len(frames),
             "reset": (events[0]["goal"], events[0]["seed"]), "reset_pixels": frames[0],
             "first_invalid": before_retry, "first_unchanged_scroll": first_unchanged_scroll,
-            "first_scroll_followup": first_scroll_followup,
+            "first_scroll_followup": first_scroll_followup, "answer_outcome": answer_outcome,
             "peak_cuda_allocated_bytes": max(e["metrics"]["peak_cuda_allocated_bytes"] for e in predictions)}
 
 
@@ -117,7 +165,7 @@ def audit(directory):
     task_ids = TASK_SETS[task_set]
     budget = summary["max_steps"]
     study = summary["study"]
-    require(study in ("format", "scroll") and summary["budget_unit"] == "predictions"
+    require(study in ("format", "scroll", "answer") and summary["budget_unit"] == "predictions"
             and 1 <= budget <= 12 and list(task_ids) == summary["task_ids"], "Unexpected study manifest")
     modes = STUDY_MODES[study]
     require(set(summary["strategies"]) == set(modes), "Unexpected study strategies")
@@ -125,29 +173,35 @@ def audit(directory):
     by_task = {}
     screenshots = 0
     for task_id in task_ids:
-        trio = {}
+        paired = {}
         for mode in modes:
             name = f"visualwebarena.{task_id}"
-            recovery_mode, retry_mode = ("none", mode) if study == "format" else (mode, "feedback")
-            record = audit_episode(directory / f"{name}-{mode}", budget, recovery_mode, retry_mode)
+            if study == "answer":
+                recovery_mode, retry_mode = "scroll-feedback", "feedback"
+            else:
+                recovery_mode, retry_mode = ("none", mode) if study == "format" else (mode, "feedback")
+            record = audit_episode(directory / f"{name}-{mode}", budget, recovery_mode, retry_mode,
+                                   answer_check=mode == "answer-check", answer_study=study == "answer")
             require(record["row"]["task"] == name and record["row"]["seed"] == record["reset"][1] == 0,
                     "Task or seed mismatch")
             studies[mode].append(record)
-            trio[mode] = record
+            paired[mode] = record
             screenshots += record["screenshots"]
-        require(len({record["reset"] for record in trio.values()}) == 1, "Paired task goals or seeds differ")
-        invalid = {record["first_invalid"] for record in trio.values()}
-        scrolls = {record["first_unchanged_scroll"] for record in trio.values()}
+        require(len({record["reset"] for record in paired.values()}) == 1, "Paired task goals or seeds differ")
+        invalid = {record["first_invalid"] for record in paired.values()}
+        scrolls = {record["first_unchanged_scroll"] for record in paired.values()}
         by_task[task_id] = {
-            "identical_reset_pixels": len({record["reset_pixels"] for record in trio.values()}) == 1,
+            "identical_reset_pixels": len({record["reset_pixels"] for record in paired.values()}) == 1,
             "identical_first_invalid": len(invalid) == 1 and None not in invalid,
             "strategies": {mode: {**record["counts"], "success": record["row"]["success"],
                                   "reason": record["row"]["reason"]}
-                           for mode, record in trio.items()}}
+                           for mode, record in paired.items()}}
         if study == "scroll":
             by_task[task_id]["identical_first_unchanged_scroll"] = len(scrolls) == 1 and None not in scrolls
             by_task[task_id]["first_scroll_followup"] = {
-                mode: record["first_scroll_followup"] for mode, record in trio.items()}
+                mode: record["first_scroll_followup"] for mode, record in paired.items()}
+        if study == "answer":
+            by_task[task_id]["answer_outcome"] = {mode: record["answer_outcome"] for mode, record in paired.items()}
     formats = {}
     for mode, records in studies.items():
         counts = {key: sum(record["counts"][key] for record in records) for key in records[0]["counts"]}
