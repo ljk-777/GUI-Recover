@@ -4,6 +4,7 @@
 
 - Added an installed CPU-only tail-selection demo covering single-line and multiline fields, light and dark themes, and negative controls.
 - Batched both probe keystrokes and the intermediate native screenshot in one BrowserGym step. Version 2 audits accept either execution path and still verify the original physical keys.
+- Added native case-transformation and alphanumeric task variants to the active recovery demo, with reset-only layout deduplication across tasks.
 
 ## 0.2.0rc2 — release candidate
 

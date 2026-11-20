@@ -46,3 +46,12 @@ GUI-Recover 为 MiniWoB 上的视觉 GUI Agent 提供可重复的故障注入、
 主动规则在四个留出布局的七种条件上达到 28/28，正常输入零重输。它与立即重输成功数相同，少重输 8 次，多做 20 次浏览器操作。随后训练了何时探测的在线策略。该策略保留了常规组 14/14 的成功，少探测两次，但两条延迟尾空格挑战均失败。主动规则在挑战组 2/2 成功，因此 RC2 的演示使用主动规则。见 [学习策略和挑战对照](LEARNED_ACTIVE_PROBE.md)。
 
 同一 RC2 wheel 分别在全新 Mac Python 环境和 Linux 单卡环境验收。Mac 上 CPU 诊断 3/3 成功，两个安装后审计命令分别复核既有的 84 条版本 1 和 84 条版本 2 轨迹。Linux 上安装后的主动演示完成 21 条轨迹，复核了 49 个决策、69 次浏览器操作和 76 张分支内截图。[RC2 自动化检查](https://github.com/ljk-777/GUI-Recover/actions/runs/44685082310)
+
+## 0.2.0rc3 验收
+
+- 新命令 `gui-recover demo-tail-probe` 在 macOS 和 Linux 上用同一安装包分别通过 24 条精确提交。每个平台的 12 条正常输入零重输，8 个负例全部停止修复。演示只需要 CPU 和 Chromium。
+- 四个独立 MiniWoB 布局上的配对计时共 56 条轨迹。合并探测的两个按键与中间截图后，28 对结果和视觉证据保持一致。实际探测的 12 对中位耗时降低 33.8%，达到预登记的 30% 门槛。
+- 新增 `enter-text-2` 和 `enter-text-dynamic` 任务。RTX 4090 D 上同一 wheel 跑完 72 条轨迹，主动核验 24/24，字形基线 20/24，无条件重输 24/24。相对无条件重输，主动核验少重输 8 次，多做 8 次 BrowserGym 操作。采样峰值 5309 MiB。
+- Mac 全量测试 143 项通过。Ubuntu 22.04、24.04 和分发包检查通过。安装后的 CPU 审计重算原生任务迁移的 72 条轨迹，且与旧的两个版本各 84 条轨迹的审计结果逐字节相同。
+
+参见[实验协议与复现命令](TAIL_PROBE_PORTABILITY.md)、[结构化结果](../examples/rc3-tail-validation.json)和 [RC3 自动化检查](https://github.com/ljk-777/GUI-Recover/actions/runs/44690409419)。

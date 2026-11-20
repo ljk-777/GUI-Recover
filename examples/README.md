@@ -1,5 +1,7 @@
 # Offline examples
 
+The [RC3 tail selection](rc3-tail-selection/provenance.json) example contains a shared original frame and two native Chromium selections. A glyph appears in the clean selection, and the corresponding injected trailing space produces a blank selection. [RC3 validation results](rc3-tail-validation.json) include the CPU portability demo, paired native latency study and three-controller transfer comparison.
+
 Open `recovered/replay.html` to inspect one successful dropped-input recovery without installing a model or browser.
 `wrong-input/replay.html` is a content-correctness counterexample: visible ink does not prove that the text is correct.
 

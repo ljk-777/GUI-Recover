@@ -1,0 +1,527 @@
+{
+  "release": "0.2.0rc3",
+  "validated_code_commit": "c473cefb728bfb1b38bf0196e29c9ae71bbc0f87",
+  "wheel_sha256": "49c391d884cd8590d9a057cb0c61ff8dbecc8be14b69025ede71c6169da42fd0",
+  "ci_url": "https://github.com/ljk-777/GUI-Recover/actions/runs/44690409419",
+  "shared_native_runtime": {
+    "gpu": "NVIDIA GeForce RTX 4090 D",
+    "device_memory_mib": 12032,
+    "model": "showlab/ShowUI-2B",
+    "model_revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+    "model_weights_sha256": "68080df785764e98976eb9cc93a07c6c69cf8a6933738496e02aef55b53d2aa3",
+    "miniwob_git_commit": "7fd85d71a4b60325c6585396ec4f48377d049838"
+  },
+  "portable_cpu": {
+    "macos_arm64": {
+      "browser_version": "125.0.6422.26",
+      "profiles": [
+        "light-input",
+        "dark-input",
+        "light-textarea",
+        "dark-textarea"
+      ],
+      "layout_pairs": 12,
+      "browser_cases": 24,
+      "identical_unselected_pairs": 12,
+      "clean_successes": 12,
+      "clean_rewrites": 0,
+      "trailing_space_successes": 12,
+      "negative_control_abstentions": 8,
+      "negative_controls": 8,
+      "selection_preserved_input": 24,
+      "probe_restored_original_frame": 24
+    },
+    "linux_x86_64": {
+      "browser_version": "125.0.6422.26",
+      "profiles": [
+        "light-input",
+        "dark-input",
+        "light-textarea",
+        "dark-textarea"
+      ],
+      "layout_pairs": 12,
+      "browser_cases": 24,
+      "identical_unselected_pairs": 12,
+      "clean_successes": 12,
+      "clean_rewrites": 0,
+      "trailing_space_successes": 12,
+      "negative_control_abstentions": 8,
+      "negative_controls": 8,
+      "selection_preserved_input": 24,
+      "probe_restored_original_frame": 24
+    }
+  },
+  "registered_native_latency": {
+    "code_commit": "5c78d51d898f8fd9c3cc1ebd0d85c2013013b9f9",
+    "config": "configs/tail_probe_latency.json",
+    "preflight": {
+      "actor_calls": 0,
+      "outcomes_observed": false,
+      "selected": [
+        {
+          "task": "enter-text",
+          "seed": 80000,
+          "initial_sha256": "859a0c939a5fc29a53702bb654c37af1a7ac5a79df065bb008dabaa7c078ac12",
+          "goal": "Enter \"Olin\" into the text field and press Submit."
+        },
+        {
+          "task": "enter-text",
+          "seed": 80001,
+          "initial_sha256": "12b2fcd35cb1444466709155b3ac7989e0ac80fb6d640209f4e913d7de10dcb5",
+          "goal": "Enter \"Nathalie\" into the text field and press Submit."
+        },
+        {
+          "task": "enter-text",
+          "seed": 80002,
+          "initial_sha256": "ce8d503da46a0614aa0ae798edbaf13e484f977897f080db4fa32cabbac3eb34",
+          "goal": "Enter \"Lyda\" into the text field and press Submit."
+        },
+        {
+          "task": "enter-text",
+          "seed": 80003,
+          "initial_sha256": "64296c3709acf18fb058abeb6cc5e1a9e09924164ef662e49b73a73533104238",
+          "goal": "Enter \"Karrie\" into the text field and press Submit."
+        }
+      ]
+    },
+    "plan_sha256": "2fb5155ab16ca6105f5a227415ce40822e2db3ea222b7999c36a90bacedd6949",
+    "index_sha256": "1dfed205f114a50f28674b499cabe7d2e7790b4bb3f450737b87578e8500d9d4",
+    "gpu_peak_sample_mib": 5309,
+    "minimum_median_paired_latency_reduction": 0.3,
+    "inference": {
+      "logical_requests": 152,
+      "actual_generations": 28,
+      "actual_input_tokens": 10237,
+      "actual_generated_tokens": 362,
+      "scope": "Actual token totals exclude cached/reused original predictions with unavailable token counts"
+    },
+    "audit": {
+      "status": "passed",
+      "layouts": 4,
+      "rollouts": 56,
+      "matching_visual_pairs": 28,
+      "decisions": 152,
+      "browser_operations": 204,
+      "screenshots": 256,
+      "restored_probes": 24,
+      "comparison": {
+        "pairs": 28,
+        "matching_outcome_pairs": 28,
+        "executed_probe_pairs": 12,
+        "median_paired_latency_reduction": 0.33752144061868233,
+        "by_policy": {
+          "active_tail": {
+            "successes": 28,
+            "median_probe_seconds": 1.925500395707786,
+            "probes": 12,
+            "browser_operations": 108,
+            "actor_requests": 76
+          },
+          "batched_tail": {
+            "successes": 28,
+            "median_probe_seconds": 1.2704602349549532,
+            "probes": 12,
+            "browser_operations": 96,
+            "actor_requests": 76
+          }
+        },
+        "gate": {
+          "identical_outcomes": true,
+          "median_paired_reduction": true
+        }
+      }
+    }
+  },
+  "native_task_transfer": {
+    "preflight": {
+      "actor_calls": 0,
+      "outcomes_observed": false,
+      "selected": [
+        {
+          "task": "enter-text-2",
+          "seed": 84000,
+          "initial_sha256": "ea331e757bd5a65511760e0250ea7af2929fc1dda6659ecc4a341bd1b840df2d",
+          "goal": "Type \"chas\" in all upper case letters in the text input and press Submit."
+        },
+        {
+          "task": "enter-text-2",
+          "seed": 84004,
+          "initial_sha256": "52dde2590ed1525072dc8fc9e7cd97a9733d027cb970b22f95454f9d9c208346",
+          "goal": "Type \"TRUMAN\" in all lower case letters in the text input and press Submit."
+        },
+        {
+          "task": "enter-text-dynamic",
+          "seed": 84005,
+          "initial_sha256": "cf441190946b5b2b3db71457c1b8b325650b3b751fb6f9ee2bfcb0e7f1203093",
+          "goal": "Enter \"28\" into the text field and press Submit."
+        },
+        {
+          "task": "enter-text-dynamic",
+          "seed": 84002,
+          "initial_sha256": "d9db2dab4cebc95b2399d35b5877de801355c28075d775413f05ed1d1e7f5e11",
+          "goal": "Enter \"PEmk\" into the text field and press Submit."
+        }
+      ]
+    },
+    "config": {
+      "layouts": 4,
+      "seeds": [
+        84000,
+        84004,
+        84005,
+        84002
+      ],
+      "tasks": [
+        "enter-text-2",
+        "enter-text-dynamic"
+      ],
+      "regimes": [
+        "none",
+        "deferred-input",
+        "drop-input",
+        "partial-input",
+        "wrong-input",
+        "trailing-space-input"
+      ]
+    },
+    "plan_sha256": "ff5cf7e4fa9d236d148368a915375d573d1da1f1c00cec99c1ed8e123af229d9",
+    "index_sha256": "a3f5cfe4ae5d351ef5f4c3678f3c8aaafcc366068b6603c17116bb12aca4340c",
+    "gpu_peak_sample_mib": 5309,
+    "exact_submission_gate": {
+      "preserved_glyph_successes": true,
+      "no_clean_repairs": true,
+      "added_trailing_space_success": true
+    },
+    "by_task": {
+      "enter-text-2": {
+        "glyph_check": {
+          "episodes": 12,
+          "successes": 10,
+          "clean_successes": 2,
+          "clean_rewrites": 0,
+          "trailing_space_successes": 0,
+          "repairs": 6,
+          "probes": 0,
+          "actor_requests": 30,
+          "browser_operations": 34
+        },
+        "fixed_zoom": {
+          "episodes": 12,
+          "successes": 12,
+          "clean_successes": 2,
+          "clean_rewrites": 2,
+          "trailing_space_successes": 2,
+          "repairs": 12,
+          "probes": 0,
+          "actor_requests": 36,
+          "browser_operations": 38
+        },
+        "active_tail": {
+          "episodes": 12,
+          "successes": 12,
+          "clean_successes": 2,
+          "clean_rewrites": 0,
+          "trailing_space_successes": 2,
+          "repairs": 8,
+          "probes": 6,
+          "actor_requests": 32,
+          "browser_operations": 42
+        }
+      },
+      "enter-text-dynamic": {
+        "glyph_check": {
+          "episodes": 12,
+          "successes": 10,
+          "clean_successes": 2,
+          "clean_rewrites": 0,
+          "trailing_space_successes": 0,
+          "repairs": 6,
+          "probes": 0,
+          "actor_requests": 30,
+          "browser_operations": 34
+        },
+        "fixed_zoom": {
+          "episodes": 12,
+          "successes": 12,
+          "clean_successes": 2,
+          "clean_rewrites": 2,
+          "trailing_space_successes": 2,
+          "repairs": 12,
+          "probes": 0,
+          "actor_requests": 36,
+          "browser_operations": 38
+        },
+        "active_tail": {
+          "episodes": 12,
+          "successes": 12,
+          "clean_successes": 2,
+          "clean_rewrites": 0,
+          "trailing_space_successes": 2,
+          "repairs": 8,
+          "probes": 6,
+          "actor_requests": 32,
+          "browser_operations": 42
+        }
+      }
+    },
+    "by_regime": {
+      "none": {
+        "glyph_check": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 0,
+          "probes": 0,
+          "actor_requests": 8,
+          "browser_operations": 8
+        },
+        "fixed_zoom": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "active_tail": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 12,
+          "waits": 0,
+          "repairs": 0,
+          "probes": 4,
+          "actor_requests": 8,
+          "browser_operations": 12
+        },
+        "active_vs_glyph_check": {
+          "gains": 0,
+          "losses": 0
+        },
+        "active_vs_fixed_zoom": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "deferred-input": {
+        "glyph_check": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 12,
+          "waits": 4,
+          "repairs": 0,
+          "probes": 0,
+          "actor_requests": 8,
+          "browser_operations": 12
+        },
+        "fixed_zoom": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 16
+        },
+        "active_tail": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 16,
+          "waits": 4,
+          "repairs": 0,
+          "probes": 4,
+          "actor_requests": 8,
+          "browser_operations": 16
+        },
+        "active_vs_glyph_check": {
+          "gains": 0,
+          "losses": 0
+        },
+        "active_vs_fixed_zoom": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "drop-input": {
+        "glyph_check": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 12,
+          "waits": 4,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 16
+        },
+        "fixed_zoom": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "active_tail": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 12,
+          "waits": 4,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 16
+        },
+        "active_vs_glyph_check": {
+          "gains": 0,
+          "losses": 0
+        },
+        "active_vs_fixed_zoom": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "partial-input": {
+        "glyph_check": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "fixed_zoom": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "active_tail": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "active_vs_glyph_check": {
+          "gains": 0,
+          "losses": 0
+        },
+        "active_vs_fixed_zoom": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "wrong-input": {
+        "glyph_check": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "fixed_zoom": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "active_tail": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "active_vs_glyph_check": {
+          "gains": 0,
+          "losses": 0
+        },
+        "active_vs_fixed_zoom": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "trailing-space-input": {
+        "glyph_check": {
+          "episodes": 4,
+          "successes": 0,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 0,
+          "probes": 0,
+          "actor_requests": 8,
+          "browser_operations": 8
+        },
+        "fixed_zoom": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "active_tail": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 12,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 4,
+          "actor_requests": 12,
+          "browser_operations": 16
+        },
+        "active_vs_glyph_check": {
+          "gains": 4,
+          "losses": 0
+        },
+        "active_vs_fixed_zoom": {
+          "gains": 0,
+          "losses": 0
+        }
+      }
+    },
+    "inference": {
+      "logical_requests": 196,
+      "actual_generations": 24,
+      "actual_input_tokens": 8704,
+      "actual_generated_tokens": 310,
+      "scope": "Actual token totals exclude cached/reused original predictions with unavailable token counts"
+    },
+    "audit": {
+      "status": "passed",
+      "episodes": 72,
+      "layouts": 4,
+      "decisions": 172,
+      "browser_operations": 228,
+      "screenshots": 268,
+      "restored_probes": 12,
+      "normal_trailing_alias_pairs": 4
+    }
+  }
+}
