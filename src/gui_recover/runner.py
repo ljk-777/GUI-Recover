@@ -34,7 +34,7 @@ def is_success(reward, terminated, truncated, task_info):
 def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict",
                 fault_kind="none", fault_seed=0, recovery="none", *,
                 submit_answer=False, success_check=is_success, invalid_action_retry="none",
-                answer_check=False):
+                answer_check=False, allow_observation_only=False):
     """Run up to max_steps predictions, including answer checks and action retries."""
     if invalid_action_retry not in ("none", "retry", "feedback"):
         raise ValueError("Unknown invalid-action retry mode")
@@ -112,7 +112,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
             if checking_answer:
                 prediction.update(decision="answer_check", observation_sha256=frame_digest)
             emit(prediction)
-            if checking_answer and raw is None:
+            if raw is None and (checking_answer or allow_observation_only):
                 continue
             try:
                 action = parse_action(raw, mode=parser_mode)
