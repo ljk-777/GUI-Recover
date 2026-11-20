@@ -64,9 +64,9 @@ def parse_action(raw: str, mode: str = "strict") -> Action:
     if not isinstance(data, dict) or set(data) != {"action", "value", "position"}:
         raise ActionError("Required keys: action, value, position; no extra keys")
     kind, value, pos = data["action"], data["value"], data["position"]
-    if kind not in ("CLICK", "INPUT", "SEARCH", "TYPE", "HOVER", "ENTER", "SCROLL", "ANSWER"):
+    if kind not in ("CLICK", "INPUT", "SEARCH", "TYPE", "HOVER", "ENTER", "SCROLL", "ANSWER", "LISTING_GRID"):
         raise ActionError(f"Unsupported action: {kind!r}")
-    if kind in ("CLICK", "INPUT", "SEARCH", "HOVER"):
+    if kind in ("CLICK", "INPUT", "SEARCH", "HOVER", "LISTING_GRID"):
         if not isinstance(pos, (list, tuple)) or len(pos) != 2:
             raise ActionError("Position must be [x, y]")
         if any(type(p) not in (int, float) or not 0 <= p <= 1 or not math.isfinite(p) for p in pos):
@@ -112,4 +112,6 @@ def compile_action(action: Action, width: int, height: int) -> str:
     if action.action == "SCROLL":
         dx, dy = {"up": (0, -300), "down": (0, 300), "left": (-300, 0), "right": (300, 0)}[action.value]
         return f"scroll_at({width // 2}, {height // 2}, {dx}, {dy})"
+    if action.action == "LISTING_GRID":
+        raise ActionError("Listing grid is available only in the Classifieds adapter")
     raise ActionError("ANSWER is a local stop request, never an environment success")

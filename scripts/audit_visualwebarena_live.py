@@ -9,23 +9,68 @@ from PIL import Image
 
 from gui_recover.actions import ActionError, parse_action
 from gui_recover.answer_evidence import (
-    answer_signature, confirmation_image, evidence_answer, native_crop, parse_evidence_location,
+    answer_signature, confirmation_image, contact_from_evidence, evidence_answer, native_crop, parse_evidence_location,
+    visible_contact_request,
 )
+from gui_recover.environment import VisualObservation
+from gui_recover.listing_cards import RESULT_VIEW_HEIGHT, ranked_photo_request
 from gui_recover.qwen_grounding import native_action_after_note, parse_visible_answer, read_reply
+from gui_recover.ranked_cards import RankedCardEvidence
 from gui_recover.runner import INVALID_ACTION_FEEDBACK, aggregate, write_json
 from gui_recover.screen_text import exact_initial_search, listing_detail
 from gui_recover.verification import pixel_hash
 from gui_recover.visible_links import agreed_listing_answer, link_answer_count, listing_selection, preview_destinations
 from gui_recover.visual_text_audit import checked_file, read_json, require
 from run_visualwebarena_live import (
-    ANSWER_STUDIES, CONFIRM_MODES, EVIDENCE_STUDIES, HOLDOUT_PROTOCOL_SHA256, HOLDOUT_TASK_SET,
+    ANSWER_STUDIES, CONFIRM_MODES, EVIDENCE_STUDIES, HOLDOUT_PROTOCOL_SHA256, HOLDOUT_TASK_SET, LINK_MODES,
     NAVIGATION_CONTEXT_MODES, OCR_MODES, STUDY_MODES, TASK_SETS, exact_vwa_success, holdout_profile,
 )
 
 
+def verify_ocr_rows(rows, size):
+    require(isinstance(rows, list) and len(rows) <= 56, "Unexpected OCR row count")
+    for line in rows:
+        coords = line["bounds"]
+        require(isinstance(line["text"], str) and 0 < len(line["text"]) <= 100
+                and len(coords) == 4 and all(type(value) is int for value in coords)
+                and 0 <= coords[0] < coords[2] <= size[0] and 0 <= coords[1] < coords[3] <= size[1],
+                "Invalid OCR bounds")
+
+
+def replay_ranked_decision(scan, request, screen, goal, prediction):
+    metrics = prediction["metrics"]
+
+    class RecordedActor:
+        last_metrics = {}
+
+        def prepare_image(self, image):
+            return image.resize(tuple(metrics["ranked_canvas_size"])) if image is screen else image
+
+        def ask(self, _image, _prompt):
+            require(not self.last_metrics and isinstance(metrics["provider_output"], str),
+                    "Ranked evidence needs exactly one recorded provider reply")
+            self.last_metrics = {"peak_cuda_allocated_bytes": metrics["peak_cuda_allocated_bytes"]}
+            return metrics["provider_output"]
+
+    def ocr(_screen, size):
+        rows = metrics["ranked_screen_text"]
+        verify_ocr_rows(rows, size)
+        return rows
+
+    actor = RecordedActor()
+    raw = scan.decide(VisualObservation(goal, screen), request, actor, ocr, lambda: metrics["ranked_receipt"])
+    require(raw == prediction["raw"], "Ranked evidence does not reproduce the recorded action")
+    keys = {key for key in metrics if key.startswith("ranked_") or key in (
+        "model_invocations", "provider_output", "provider_format", "stop_after_evidence", "evidence_stage", "evidence_frame")}
+    require({key: metrics[key] for key in keys} == {key: value for key, value in actor.last_metrics.items()
+                                                   if key != "peak_cuda_allocated_bytes"},
+            "Ranked evidence panel, viewport or reply differs from the recorded decision")
+    return raw
+
+
 def audit_evidence(directory, predictions, frame_before_prediction, frames, goal, *,
                    confirm=False, click_origins=None, compact_navigation=False, use_screen_text=False,
-                   guarded_ocr=False, direct_navigation=False, listing_site=None):
+                   guarded_ocr=False, direct_navigation=False, listing_site=None, use_ranked_cards=False):
     visited = set()
     answers = set()
     stages = Counter()
@@ -33,6 +78,8 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
     pending_confirmation = None
     pending_links = None
     link_count = link_answer_count(goal) if listing_site is not None else None
+    ranked_request = ranked_photo_request(goal) if use_ranked_cards else None
+    scan = None
     for prediction in predictions:
         step = prediction["step"]
         index = frame_before_prediction[step]
@@ -40,6 +87,14 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         metrics = prediction["metrics"]
         raw = prediction["raw"]
         reply = metrics["provider_output"]
+        if scan is not None:
+            with Image.open(directory / f"{index:04d}.png") as picture:
+                screen = picture.convert("RGB")
+            reconstructed = replay_ranked_decision(scan, ranked_request, screen, goal, prediction)
+            stages[metrics["provider_format"]] += 1
+            if reconstructed is not None and parse_action(reconstructed).action == "ANSWER":
+                answers.add(step)
+            continue
         if pending_links is not None and frame == pending_links[0]:
             stage = "link_confirm"
         elif pending_confirmation is not None and frame == pending_confirmation[0]:
@@ -76,13 +131,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
             require(("screen_text" in metrics) == use_screen_text, "Unexpected OCR mode")
             rows = metrics.get("screen_text")
             if rows is not None:
-                require(isinstance(rows, list) and len(rows) <= 56, "Unexpected OCR row count")
-                for line in rows:
-                    coords = line["bounds"]
-                    require(isinstance(line["text"], str) and 0 < len(line["text"]) <= 100
-                            and len(coords) == 4 and all(type(value) is int for value in coords)
-                            and 0 <= coords[0] < coords[2] <= size[0] and 0 <= coords[1] < coords[3] <= size[1],
-                            "Invalid OCR bounds")
+                verify_ocr_rows(rows, size)
             shortcut = None
             if direct_navigation and rows is not None and step == 0:
                 try:
@@ -94,6 +143,8 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                         and parse_action(raw) == shortcut and "listing_preview" not in metrics,
                         "Search action differs from the visible field and task text")
                 stages["grounded_search"] += 1
+                if ranked_request is not None:
+                    scan = RankedCardEvidence(listing_site)
                 continue
             if direct_navigation and link_count is None and rows is not None and listing_detail(rows):
                 rows = None
@@ -102,7 +153,8 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                 if selected is None:
                     navigation, box, candidate, status = parse_evidence_location(
                         reply, goal, size, confirm=confirm, compact_navigation=compact_navigation, rows=rows,
-                        guarded_ocr=guarded_ocr, navigation_only=link_count is not None)
+                        guarded_ocr=guarded_ocr, navigation_only=link_count is not None,
+                        allow_click_box=use_ranked_cards and step == 0 and visible_contact_request(goal, rows))
             except (ValueError, RecursionError):
                 require(raw is None and "listing_preview" not in metrics,
                         "Unusable evidence localization generated a browser action or link preview")
@@ -142,6 +194,11 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                 candidate, status = evidence_answer(reply, goal, allow_string_abstention=confirm)
             except (ValueError, RecursionError):
                 pass
+            if (status == "evidence_abstained" and use_ranked_cards and click_origins is not None
+                    and click_origins.get(index) is not None):
+                address = contact_from_evidence(reply, goal)
+                if address is not None:
+                    candidate, status = address, "evidence_contact_candidate"
             if candidate is None:
                 require(raw is None, "Unsupported answer reached the browser")
             elif confirm:
@@ -209,7 +266,8 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
 
 def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=False, answer_study=False,
                   evidence_check=False, confirm=False, use_navigation_context=False, compact_navigation=False,
-                  use_screen_text=False, guarded_ocr=False, direct_navigation=False, listing_site=None):
+                  use_screen_text=False, guarded_ocr=False, direct_navigation=False, listing_site=None,
+                  use_ranked_cards=False):
     events = [json.loads(line) for line in (directory / "trajectory.jsonl").read_text().splitlines()]
     row = read_json(directory / "episode.json")
     require(events[0]["event"] == "reset" and events[-1] == {"event": "episode_end", **row},
@@ -225,6 +283,9 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
     transitions = by_event.get("transition", [])
     require(0 < len(predictions) <= budget and [e["step"] for e in predictions] == list(range(len(predictions))),
             f"Invalid prediction budget: {directory.name}")
+    stops = [p["step"] for p in predictions if p["metrics"].get("stop_after_evidence") is True]
+    require(stops == ([len(predictions) - 1] if row["reason"] == "evidence_abstained" and use_ranked_cards else []),
+            "Evidence abstention disagrees with the final decision")
     invalid_steps = []
     valid_steps = []
     formats = Counter()
@@ -240,7 +301,8 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         provider_format = metrics["provider_format"]
         formats[provider_format] += 1
         is_shortcut = direct_navigation and use_screen_text and provider_format == "evidence_exact_search" and step == 0
-        require(metrics["model_invocations"] == (0 if is_shortcut else 1),
+        ranked = use_ranked_cards and metrics.get("evidence_stage") == "ranked_cards"
+        require(metrics["model_invocations"] in ((0, 1) if ranked else (0 if is_shortcut else 1,)),
                 "Unexpected model invocation count for the decision")
         digest = observation["sha256"]
         frame_before_prediction[step] = frame_index
@@ -281,6 +343,9 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         action = parse_action(predictions[event["step"]]["raw"]).to_dict()
         require(json.loads(json.dumps(action)) == event["action"] == event["proposed_action"],
                 "Executed action differs from prediction")
+        if action["action"] == "LISTING_GRID":
+            require(use_ranked_cards and event["size"][1] == RESULT_VIEW_HEIGHT
+                    and event["executed_code"].endswith("\nexpand_listing_view()"), "Grid viewport was not expanded")
 
     retries = by_event.get("invalid_action_retry", [])
     repaired = by_event.get("invalid_action_repaired", [])
@@ -328,7 +393,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
             directory, predictions, frame_before_prediction, frames, events[0]["goal"],
             confirm=confirm, click_origins=click_origins, compact_navigation=compact_navigation,
             use_screen_text=use_screen_text, guarded_ocr=guarded_ocr, direct_navigation=direct_navigation,
-            listing_site=listing_site)
+            listing_site=listing_site, use_ranked_cards=use_ranked_cards)
     answer_outcome = None
     if answer_study:
         submissions = [event for event in transitions if event["action"]["action"] == "ANSWER"]
@@ -344,6 +409,8 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
                 if use_navigation_context:
                     source = "evidence-links" if listing_site is not None else (
                         "evidence-ocr" if use_screen_text else "evidence-context")
+                if use_ranked_cards:
+                    source = "evidence-cards"
             answer_outcome = {"source": source, "prediction": last["step"] + 1, "native_reward": last["reward"]}
     before_retry = None
     if first_invalid is not None:
@@ -387,7 +454,7 @@ def audit(directory):
     compact_navigation = summary["model"].get("compact_navigation_replies", task_set == "evidence-navigation-diagnostic")
     require(study in ("format", "scroll", *ANSWER_STUDIES) and summary["budget_unit"] == "predictions"
             and 1 <= budget <= 12 and list(task_ids) == summary["task_ids"], "Unexpected study manifest")
-    require(("listing_origin" in summary) == (study == "evidence-links"), "Unexpected listing preview mode")
+    require(("listing_origin" in summary) == (study in LINK_MODES), "Unexpected listing preview mode")
     if task_set == HOLDOUT_TASK_SET:
         require(summary.get("protocol_sha256") == HOLDOUT_PROTOCOL_SHA256
                 and holdout_profile(study, budget, summary["model"]), "Run differs from the locked holdout protocol")
@@ -411,7 +478,8 @@ def audit(directory):
                                    compact_navigation=compact_navigation, use_screen_text=mode in OCR_MODES,
                                    guarded_ocr=summary.get("screen_reader", {}).get("guarded_ocr", False),
                                    direct_navigation=summary.get("screen_reader", {}).get("direct_navigation", False),
-                                   listing_site=summary["listing_origin"] if mode == "evidence-links" else None)
+                                   listing_site=summary["listing_origin"] if mode in LINK_MODES else None,
+                                   use_ranked_cards=mode == "evidence-cards")
             require(record["row"]["task"] == name and record["row"]["seed"] == record["reset"][1] == 0,
                     "Task or seed mismatch")
             studies[mode].append(record)

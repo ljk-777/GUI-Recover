@@ -7,7 +7,9 @@ from decimal import Decimal
 from PIL import Image, ImageDraw
 
 from .actions import Action, ActionError
+from .listing_cards import ranked_photo_request
 from .qwen_grounding import native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
+from .ranked_cards import RankedCardEvidence
 from .screen_text import exact_initial_search, from_readable_control, listing_detail
 from .verification import pixel_hash
 from .visible_links import agreed_listing_answer, link_answer_count, listing_selection, preview_destinations, priced_titles
@@ -15,6 +17,10 @@ from .visible_links import agreed_listing_answer, link_answer_count, listing_sel
 
 _AMOUNT = re.compile(r"(?<![\w.])(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]+)?(?![\w.])")
 _PRICE_QUESTION = re.compile(r"\b(?:cheapest|costliest|expensive|prices?|priced|budget|costs?)\b|\$", re.IGNORECASE)
+_CONTACT = re.compile(r"\b(?:seller|lister|publisher)\b", re.IGNORECASE)
+_PHOTO = re.compile(r"\b(?:image|photo|picture)\b", re.IGNORECASE)
+_EMAIL_REQUEST = re.compile(r"\be-?mail\b", re.IGNORECASE)
+_EMAIL = re.compile(r"[\w.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 
 
 def evidence_box(raw, size):
@@ -58,13 +64,20 @@ def evidence_clipped(goal, box, size):
     return bool(requires_row and box[3] >= size[1] - 2)
 
 
-def evidence_navigation(raw, size, *, compact_navigation=True):
+def evidence_navigation(raw, size, *, compact_navigation=True, allow_click_box=False):
     try:
         data = read_reply(raw)
     except json.JSONDecodeError:
         data = native_action_after_note(raw)
     if not isinstance(data, dict) or "action" not in data:
         return None
+    if (allow_click_box and data["action"] == "CLICK" and set(data) == {"action", "value"}
+            and isinstance(data["value"], dict) and set(data["value"]) == {"bbox_2d"}):
+        box = evidence_box(json.dumps(data["value"]), size)
+        if box is None:
+            raise ActionError("A click box needs a visible region")
+        left, top, right, bottom = box
+        data = {"action": "CLICK", "value": None, "position": [(left + right) // 2, (top + bottom) // 2]}
     action = normalize_qwen_action(data, size, native_navigation=True, compact_navigation=compact_navigation)
     if action.action == "ANSWER":
         raise ActionError("An evidence search cannot submit an answer")
@@ -123,7 +136,7 @@ def has_transcribed_answer(answer, box, rows):
 
 
 def parse_evidence_location(raw, goal, size, *, confirm, compact_navigation=True, rows=None, guarded_ocr=False,
-                            navigation_only=False):
+                            navigation_only=False, allow_click_box=False):
     """Return a browser action or a validated evidence region and optional candidate."""
     candidate = None
     localized = None
@@ -137,7 +150,8 @@ def parse_evidence_location(raw, goal, size, *, confirm, compact_navigation=True
         if guarded_ocr and candidate is not None and not has_transcribed_answer(candidate, box, rows):
             candidate = None
     else:
-        navigation = evidence_navigation(raw, size, compact_navigation=compact_navigation) if confirm else None
+        navigation = evidence_navigation(raw, size, compact_navigation=compact_navigation,
+                                         allow_click_box=allow_click_box) if confirm else None
         if navigation is not None:
             return navigation, None, None, "evidence_navigation"
         box = evidence_box(raw, size)
@@ -199,11 +213,27 @@ def listing_screen_text(rows, size):
     return text
 
 
+def visible_contact_request(goal, rows):
+    return bool(rows and _CONTACT.search(goal) and _PHOTO.search(goal)
+                and any(row["text"].casefold() == "latest listings" for row in rows))
+
+
+def contact_from_evidence(raw, goal):
+    """Recover one literal contact fact from a validated evidence reply."""
+    if not (_CONTACT.search(goal) and _EMAIL_REQUEST.search(goal)):
+        return None
+    data = read_reply(raw)
+    if data["answer"] is not None or len(data["evidence"]) != 1:
+        return None
+    address = data["evidence"][0].strip()
+    return address if _EMAIL.fullmatch(address) else None
+
+
 class EvidenceAnswerPolicy:
     """Use one model invocation per prediction, including crop localization."""
 
     def __init__(self, actor, *, confirm=False, use_navigation_context=False, screen_reader=None,
-                 listing_preview=None, listing_site=None):
+                 listing_preview=None, listing_site=None, ranked_capture=None):
         if screen_reader is not None and not confirm:
             raise ValueError("The OCR policy needs independent confirmation")
         if listing_preview is not None and (screen_reader is None or listing_site is None):
@@ -214,6 +244,9 @@ class EvidenceAnswerPolicy:
         self.screen_reader = screen_reader
         self.listing_preview = listing_preview
         self.listing_site = listing_site
+        self.ranked_capture = ranked_capture
+        self.ranked_evidence = RankedCardEvidence(listing_site) if ranked_capture is not None else None
+        self.ranked_request = None
         self.checked_frames = set()
         self.pending_crop = None
         self.pending_answer = None
@@ -231,6 +264,9 @@ class EvidenceAnswerPolicy:
         self.pending_answer = None
         self.pending_links = None
         self.navigation_context = None
+        self.ranked_request = None
+        if self.ranked_capture is not None:
+            self.ranked_evidence = RankedCardEvidence(self.listing_site)
 
     def set_feedback(self, message):
         self.actor.set_feedback(message)
@@ -277,6 +313,8 @@ class EvidenceAnswerPolicy:
                 except ActionError:
                     shortcut = None
                 if shortcut is not None:
+                    if self.ranked_capture is not None:
+                        self.ranked_request = ranked_photo_request(observation.goal)
                     self.actor.last_metrics = {
                         "model_invocations": 0, "provider_output": None, "provider_image_size": list(canvas.size),
                         "evidence_stage": "locate", "evidence_frame": frame, "screen_text": rows,
@@ -305,6 +343,11 @@ class EvidenceAnswerPolicy:
                 "and other visual details, return the box only. A separate read will confirm the answer. Do not guess. "
                 f"Previous browser actions: {json.dumps(recent, ensure_ascii=False)}.\nVisible text:\n{controls}"
             )
+        direct_contact = self.ranked_capture is not None and not history and visible_contact_request(observation.goal, rows)
+        if direct_contact:
+            prompt += ("\nLook at the photos in the visible Latest Listings cards before choosing the next action. "
+                       "If a card's pictured subject and title identify a strong candidate, click that card now "
+                       "to verify the listing details. Open a category only if a matching card is absent.")
         if link_count is not None:
             price_question = bool(_PRICE_QUESTION.search(observation.goal))
             selection_format = ('as an array in a JSON object keyed "listings". ' if price_question else
@@ -338,7 +381,7 @@ class EvidenceAnswerPolicy:
             if selection is None:
                 navigation, box, candidate, status = parse_evidence_location(
                     raw, observation.goal, canvas.size, confirm=self.confirm, rows=navigation_rows, guarded_ocr=True,
-                    navigation_only=link_count is not None)
+                    navigation_only=link_count is not None, allow_click_box=direct_contact)
         except (ValueError, RecursionError):
             return None
         if selection is not None:
@@ -386,6 +429,10 @@ class EvidenceAnswerPolicy:
             answer, status = evidence_answer(raw, observation.goal, allow_string_abstention=self.confirm)
         except (ValueError, RecursionError):
             return None
+        if status == "evidence_abstained" and self.ranked_capture is not None and self.navigation_context is not None:
+            address = contact_from_evidence(raw, observation.goal)
+            if address is not None:
+                answer, status = address, "evidence_contact_candidate"
         self.last_metrics["provider_format"] = status
         if answer is not None:
             if self.confirm:
@@ -412,6 +459,17 @@ class EvidenceAnswerPolicy:
             "If anything required is missing, return {\"answer\":null}. "
             "Otherwise return one JSON object with one key answer and a short string value."
         )
+        if (self.ranked_capture is not None and self.navigation_context is not None
+                and _EMAIL.fullmatch(candidate) and _EMAIL_REQUEST.search(observation.goal)):
+            prompt = (
+                f"Question: {observation.goal}\n"
+                "The upper-left overview shows the opened listing. The blue outline is enlarged on the right. "
+                f"{context_description}"
+                "Check that the listing and its pictured subject are consistent with the question. "
+                "Then read the displayed seller email verbatim from the right crop. If the listing clearly conflicts "
+                "with the question or the field is unreadable, return {\"answer\":null}. "
+                'Otherwise return one JSON object with key "answer" containing the exact visible email.'
+            )
         raw = self.actor.ask(canvas, prompt)
         self.last_metrics.update(evidence_stage="confirm", evidence_frame=frame, evidence_bounds=list(bounds),
                                  evidence_panel_sha256=pixel_hash(panel), provider_format="evidence_invalid")
@@ -457,6 +515,11 @@ class EvidenceAnswerPolicy:
         return json.dumps(answer.to_dict(), ensure_ascii=False)
 
     def predict(self, observation, history):
+        if self.ranked_request is not None and history:
+            first = history[0]["action"]
+            if first["action"] == "SEARCH" and first["value"] == self.ranked_request[0]:
+                return self.ranked_evidence.decide(observation, self.ranked_request, self.actor,
+                                                   self.screen_reader, self.ranked_capture)
         frame = pixel_hash(observation.screenshot)
         if self.pending_links is not None:
             pending_frame, rows, indices, destinations, count = self.pending_links
