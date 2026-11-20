@@ -103,7 +103,11 @@ def holdout_profile(study, budget, model):
 
 
 def expand_listing_view():
-    """Expand the browser viewport to inspect the rendered results grid."""
+    """Expand the browser viewport to inspect the rendered results grid.
+
+    Examples:
+        expand_listing_view()
+    """
     page.set_viewport_size({"width": page.viewport_size["width"], "height": 1800})
 
 

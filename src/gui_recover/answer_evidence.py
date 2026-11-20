@@ -220,6 +220,7 @@ class EvidenceAnswerPolicy:
         self.listing_site = listing_site
         self.ranked_capture = ranked_capture
         self.ranked_evidence = RankedCardEvidence(listing_site) if ranked_capture is not None else None
+        self.ranked_request = None
         self.checked_frames = set()
         self.pending_crop = None
         self.pending_answer = None
@@ -237,6 +238,7 @@ class EvidenceAnswerPolicy:
         self.pending_answer = None
         self.pending_links = None
         self.navigation_context = None
+        self.ranked_request = None
         if self.ranked_capture is not None:
             self.ranked_evidence = RankedCardEvidence(self.listing_site)
 
@@ -285,6 +287,8 @@ class EvidenceAnswerPolicy:
                 except ActionError:
                     shortcut = None
                 if shortcut is not None:
+                    if self.ranked_capture is not None:
+                        self.ranked_request = ranked_photo_request(observation.goal)
                     self.actor.last_metrics = {
                         "model_invocations": 0, "provider_output": None, "provider_image_size": list(canvas.size),
                         "evidence_stage": "locate", "evidence_frame": frame, "screen_text": rows,
@@ -471,11 +475,11 @@ class EvidenceAnswerPolicy:
         return json.dumps(answer.to_dict(), ensure_ascii=False)
 
     def predict(self, observation, history):
-        if self.ranked_evidence is not None and history:
-            request = ranked_photo_request(observation.goal)
+        if self.ranked_request is not None and history:
             first = history[0]["action"]
-            if request is not None and first["action"] == "SEARCH" and first["value"] == request[0]:
-                return self.ranked_evidence.decide(observation, request, self.actor, self.screen_reader, self.ranked_capture)
+            if first["action"] == "SEARCH" and first["value"] == self.ranked_request[0]:
+                return self.ranked_evidence.decide(observation, self.ranked_request, self.actor,
+                                                   self.screen_reader, self.ranked_capture)
         frame = pixel_hash(observation.screenshot)
         if self.pending_links is not None:
             pending_frame, rows, indices, destinations, count = self.pending_links
