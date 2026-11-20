@@ -1,0 +1,28 @@
+{
+  "study": "multistep-checkpoint-recovery-v1",
+  "miniwob_commit": "7fd85d71a4b60325c6585396ec4f48377d049838",
+  "showui_weights_sha256": "68080df785764e98976eb9cc93a07c6c69cf8a6933738496e02aef55b53d2aa3",
+  "maximum_healthy_repair_fraction": 0.05,
+  "minimum_extra_operations_budget": 3,
+  "transfer_task": "click-checkboxes",
+  "profiles": {
+    "smoke": [
+      {"split": "train", "task": "click-button-sequence", "start": 97100, "reserve": 10, "count": 1},
+      {"split": "train", "task": "enter-text", "start": 97200, "reserve": 10, "count": 2},
+      {"split": "validation", "task": "enter-text", "start": 97300, "reserve": 10, "count": 1},
+      {"split": "test", "task": "click-button-sequence", "start": 97400, "reserve": 10, "count": 1},
+      {"split": "test", "task": "enter-text", "start": 97500, "reserve": 10, "count": 1},
+      {"split": "transfer", "task": "click-checkboxes", "start": 97600, "reserve": 10, "count": 1}
+    ],
+    "formal": [
+      {"split": "train", "task": "click-button-sequence", "start": 98000, "reserve": 50, "count": 8},
+      {"split": "train", "task": "enter-text", "start": 98100, "reserve": 50, "count": 8},
+      {"split": "validation", "task": "click-button-sequence", "start": 98200, "reserve": 40, "count": 4},
+      {"split": "validation", "task": "enter-text", "start": 98300, "reserve": 40, "count": 4},
+      {"split": "test", "task": "click-button-sequence", "start": 98400, "reserve": 60, "count": 12},
+      {"split": "test", "task": "enter-text", "start": 98500, "reserve": 60, "count": 12},
+      {"split": "transfer", "task": "click-checkboxes", "start": 98600, "reserve": 60, "count": 12}
+    ]
+  },
+  "learning": {"seed": 20261120, "epsilon": 0.25, "minimum_action_visits": 2, "passes": 2}
+}
