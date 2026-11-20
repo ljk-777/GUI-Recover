@@ -355,6 +355,10 @@ If Shopping is temporarily unavailable, add `--input-phase classifieds` to the r
 
 [Second registered holdout protocol](../examples/vwa-input-heldout-protocol.json)
 
+The paired holdout finished on an RTX 4090 D with 16 trajectories and 90 screenshots. Both strategies scored 0/8, with zero submissions of any answer. The evidence policy performed 41 scrolls and reached zero evidence reads or confirmations. All seven single-site pairs started from identical pixels. The two cross-site reset screenshots differed by one pixel. The protocol's three acceptance checks all failed. This cohort has now been inspected for development, so subsequent acceptance requires fresh tasks.
+
+[Audited per-task results](../examples/vwa-input-heldout-results.json)
+
 On a synthetic development fixture derived from an already used Classifieds task, both strategies started from the same screenshot, tab state, and reference image. Each switched browser tabs once, made three model calls, and earned native reward `1.0`. The evidence policy also recorded the thumbnail match, title crop read, and independent confirmation. The registered holdout does not include this fixture.
 
 [Audited development smoke results](../examples/vwa-input-context-smoke-results.json)
