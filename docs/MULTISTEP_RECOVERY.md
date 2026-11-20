@@ -279,7 +279,7 @@ All three comparisons reused previously observed tasks and the same 7B checkpoin
 
 ### Verify links from visible listing titles
 
-For a link question, the evidence policy selects up to three visible listing titles by OCR index. A visible price directly below a single aligned title can resolve to that title. The browser reads the same-origin link under each selected title and records the title position, exact destination, and source pixel digest. A separate model call identifies the requested listing set from the same screenshot and indexed text. The second call receives the task and screenshot evidence without the first selection or the destinations. The policy submits the captured destinations only if both selections cover the same distinct listings. The auditor checks pointer coordinates, frame provenance, both selections, the submitted URLs, and the native reward.
+For a link question, the evidence policy selects up to three visible listing titles by OCR index or by a unique literal match to rendered text. A visible price directly below a single aligned title can resolve to that title. The browser reads the same-origin link under each selected title and records the title position, exact destination, and source pixel digest. A separate model call identifies the requested listing set from the same screenshot and indexed text. The second call receives the task and screenshot evidence without the first selection or the destinations. The policy submits the captured destinations only if both selections cover the same distinct listings. The auditor checks pointer coordinates, frame provenance, both selections, the submitted URLs, and the native reward.
 
 The locked comparison uses eight previously unrun official Classifieds tasks with `answer-check` as the control and the same pinned Qwen 7B NF4 model in both arms. It uses an eight-decision cap with at most eight model calls per episode. Acceptance needs at least two native full-credit tasks, more successes than the control, and fewer submitted answers without full credit. Screenshots and raw trajectories stay in the run folder. The audit reports each paired start, model call count, submission outcome, and native success.
 
@@ -292,5 +292,16 @@ python scripts/audit_visualwebarena_live.py runs/visualwebarena-links-holdout \
 ```
 
 [Locked task IDs, upstream provenance, and scoring criteria](../examples/vwa-classifieds-heldout-protocol.json)
+
+Two synthetic prompts on the previously observed task 14 gallery requested three listings by title and two listings by visible price. Each took two model calls. All five returned destinations matched the actual clicks. The eight-task official comparison then ran from frozen commit `827e42c515fca9ab82d16cc1df6f2ca523ca07a4`.
+
+| Strategy | Native full credit | Wrong submissions | Model calls across eight tasks |
+| --- | ---: | ---: | ---: |
+| Existing answer check | 1/8 | 0 | 50 |
+| Listing-link evidence | 0/8 | 1 | 61 |
+
+The audit reconstructed 16 trajectories and 76 screenshots, verified identical starting pixels for all eight pairs, and verified the eight-call cap. The comparison missed all three acceptance thresholds. On task 34, both model calls chose the same three paintings, but only one satisfied the native reference. On task 106, the control opened a matching card directly from the homepage and received full credit. The evidence policy opened a category menu and spent its remaining calls without reaching the target. These diagnosed tasks now belong to development. Subsequent acceptance needs a new isolated cohort.
+
+[Paired results, native rewards, and evidence archive digest](../examples/vwa-classifieds-link-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
