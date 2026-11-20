@@ -3,6 +3,7 @@
 from enum import IntEnum
 import json
 from string import printable
+from time import perf_counter
 
 import gymnasium as gym
 from gymnasium import spaces
@@ -28,6 +29,14 @@ class Decision(IntEnum):
     WAIT = 1
     RETRY_PLAIN = 2
     RETRY_FIXED_ZOOM = 3
+
+
+class ProbeDecision(IntEnum):
+    CONTINUE = Decision.CONTINUE
+    WAIT = Decision.WAIT
+    RETRY_PLAIN = Decision.RETRY_PLAIN
+    RETRY_FIXED_ZOOM = Decision.RETRY_FIXED_ZOOM
+    PROBE_LAST_CHAR = 4
 
 
 class Phase(IntEnum):
@@ -62,18 +71,26 @@ class RecoveryDecisionEnv(gym.Env):
     """
     metadata = {"render_modes": []}
 
-    def __init__(self, task, grounder, *, regime="none", max_decisions=3, input_repair="legacy"):
+    def __init__(self, task, grounder, *, regime="none", max_decisions=None, input_repair="legacy",
+                 enable_tail_probe=False):
         super().__init__()
         if task not in TASKS or regime not in SUPPORTED_REGIMES or (regime != "none" and task != "enter-text"):
             raise ValueError("Unsupported task or fault for the recovery environment")
         if input_repair not in INPUT_REPAIR_PROFILES or (input_repair == "replace" and task != "enter-text"):
             raise ValueError("Unsupported input repair profile for the task")
-        if type(max_decisions) is not int or not 1 <= max_decisions <= 3:
-            raise ValueError("The decision budget must be between one and three")
+        if enable_tail_probe and task != "enter-text":
+            raise ValueError("Tail selection requires Enter Text")
+        max_budget = 4 if enable_tail_probe else 3
+        if max_decisions is None:
+            max_decisions = max_budget
+        if type(max_decisions) is not int or not 1 <= max_decisions <= max_budget:
+            raise ValueError(f"The decision budget must be between 1 and {max_budget}")
         self.task, self.grounder = task, grounder
         self.regime, self.max_decisions = regime, max_decisions
         self.input_repair = input_repair
-        self.action_space = spaces.Discrete(len(Decision))
+        self.enable_tail_probe = enable_tail_probe
+        self.decision_type = ProbeDecision if enable_tail_probe else Decision
+        self.action_space = spaces.Discrete(len(self.decision_type))
         image_shape = (FRAME_SIZE[1], FRAME_SIZE[0], 3)
         self.observation_space = spaces.Dict({
             "before": spaces.Box(0, 255, image_shape, dtype=np.uint8),
@@ -83,9 +100,13 @@ class RecoveryDecisionEnv(gym.Env):
             "proposed_action": spaces.Text(8192, min_length=0, charset=printable),
             "phase": spaces.Discrete(len(Phase)),
             "waited": spaces.Discrete(2),
-            "remaining_decisions": spaces.Discrete(4),
-            "action_mask": spaces.MultiBinary(len(Decision)),
+            "remaining_decisions": spaces.Discrete(max_budget + 1),
+            "action_mask": spaces.MultiBinary(len(self.decision_type)),
         })
+        if enable_tail_probe:
+            self.observation_space["selected"] = spaces.Box(0, 255, image_shape, dtype=np.uint8)
+            self.observation_space["probed"] = spaces.Discrete(2)
+            self.observation_space["probe_restored"] = spaces.Discrete(2)
         self.execution = None
 
     def reset(self, *, seed=None, options=None):
@@ -97,6 +118,9 @@ class RecoveryDecisionEnv(gym.Env):
             self.target, self.action_kind, self.value = task_request(self.task, self.execution.obs.goal)
             self.phase = Phase.SOURCE
             self.decisions = self.waits = self.repairs = self.actor_requests = 0
+            self.selected = None
+            self.probe_restored = False
+            self.probe_seconds = 0.
             self.terminated = self.truncated = self.success = False
             obs = self._observation()
         except Exception:
@@ -105,22 +129,35 @@ class RecoveryDecisionEnv(gym.Env):
         return obs, {}
 
     def _mask(self):
+        mask = np.zeros(len(self.decision_type), dtype=np.int8)
         if self.phase == Phase.CLOSED:
-            return np.zeros(len(Decision), dtype=np.int8)
+            return mask
+        mask[Decision.CONTINUE] = 1
         if self.phase == Phase.SOURCE:
-            return np.array([1, 0, 0, 0], dtype=np.int8)
-        return np.array([1, not self.waits, 1, 1], dtype=np.int8)
+            return mask
+        mask[Decision.WAIT] = not self.waits and self.selected is None
+        mask[Decision.RETRY_PLAIN] = mask[Decision.RETRY_FIXED_ZOOM] = 1
+        if self.enable_tail_probe:
+            mask[ProbeDecision.PROBE_LAST_CHAR] = self.selected is None
+        return mask
 
     def _observation(self):
         x = self.execution
         if x.obs.screenshot.size != FRAME_SIZE or x.before.screenshot.size != FRAME_SIZE:
             raise RuntimeError("Browser screenshot shape differs from the declared observation space")
-        return {"before": np.array(x.before.screenshot, dtype=np.uint8),
+        obs = {"before": np.array(x.before.screenshot, dtype=np.uint8),
                 "current": np.array(x.obs.screenshot, dtype=np.uint8),
                 "goal": x.obs.goal, "target": self.target,
                 "proposed_action": json.dumps(x.proposed.to_dict()) if x.proposed else "",
                 "phase": int(self.phase), "waited": int(bool(self.waits)),
                 "remaining_decisions": self.max_decisions-self.decisions, "action_mask": self._mask()}
+        if self.enable_tail_probe:
+            if self.selected is not None and self.selected.size != FRAME_SIZE:
+                raise RuntimeError("Probe screenshot shape differs from the declared observation space")
+            obs.update(selected=(np.array(self.selected, dtype=np.uint8) if self.selected is not None
+                                 else np.zeros_like(obs["current"])),
+                       probed=int(self.selected is not None), probe_restored=int(self.probe_restored))
+        return obs
 
     def _finish(self, reason, *, truncated=False, success=False):
         self.phase = Phase.CLOSED
@@ -162,7 +199,7 @@ class RecoveryDecisionEnv(gym.Env):
             raise gym.error.ResetNeeded("Reset before taking another action")
         if not self.action_space.contains(action):
             raise ValueError("Action outside the discrete recovery space")
-        decision = Decision(int(action))
+        decision = self.decision_type(int(action))
         predictions = {}
         x = self.execution
         n_events = len(x.events)
@@ -182,6 +219,11 @@ class RecoveryDecisionEnv(gym.Env):
         elif decision == Decision.WAIT:
             self.waits += 1
             x.wait_once()
+            reason = self._browser_outcome()
+        elif decision == ProbeDecision.PROBE_LAST_CHAR:
+            started = perf_counter()
+            self.selected, self.probe_restored = x.probe_text_tail()
+            self.probe_seconds = perf_counter() - started
             reason = self._browser_outcome()
         elif decision == Decision.CONTINUE:
             reason = self._continue_task(predictions)
@@ -203,6 +245,8 @@ class RecoveryDecisionEnv(gym.Env):
         info = {"outcome": reason, "success": self.success, "browser_events": x.events[n_events:],
                 "predictions": predictions, "actor_requests": self.actor_requests,
                 "decisions": self.decisions, "repairs": self.repairs, "waits": self.waits}
+        if self.enable_tail_probe:
+            info.update(probes=int(self.selected is not None), probe_seconds=self.probe_seconds)
         return self._observation(), float(self.success), self.terminated, self.truncated, info
 
     def close(self):

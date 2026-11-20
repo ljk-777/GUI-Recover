@@ -1,0 +1,345 @@
+{
+  "runtime": {
+    "python": "3.11.18",
+    "platform": "Linux-5.15.0-156-generic-x86_64-with-glibc2.39",
+    "packages": {
+      "gui-recover": "0.2.0a1",
+      "browsergym-core": "0.14.3",
+      "browsergym-miniwob": "0.14.3",
+      "gymnasium": "1.4.0",
+      "playwright": "1.44.0",
+      "torch": "2.6.0",
+      "transformers": "4.49.0",
+      "pillow": "13.0.0",
+      "numpy": "2.4.6"
+    },
+    "git_commit": "da736661ecfd0a64df4577566b78cc7195061baf",
+    "git_dirty": false,
+    "miniwob_commit": "7fd85d71a4b60325c6585396ec4f48377d049838",
+    "cuda_visible_devices": "0"
+  },
+  "registered_config_sha256": "728387b9af614573838d023da98f830937422baf77a2af6b56c0b65763d2f493",
+  "summary": {
+    "profile": "formal",
+    "layouts": 4,
+    "episodes": 84,
+    "conditions": {
+      "none": {
+        "glyph_check": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 0,
+          "probes": 0,
+          "actor_requests": 8,
+          "browser_operations": 8
+        },
+        "fixed_zoom": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "active_tail": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 12,
+          "waits": 0,
+          "repairs": 0,
+          "probes": 4,
+          "actor_requests": 8,
+          "browser_operations": 16
+        },
+        "active_vs_glyph_check": {
+          "gains": 0,
+          "losses": 0
+        },
+        "active_vs_fixed_zoom": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "deferred-input": {
+        "glyph_check": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 12,
+          "waits": 4,
+          "repairs": 0,
+          "probes": 0,
+          "actor_requests": 8,
+          "browser_operations": 12
+        },
+        "fixed_zoom": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 16
+        },
+        "active_tail": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 16,
+          "waits": 4,
+          "repairs": 0,
+          "probes": 4,
+          "actor_requests": 8,
+          "browser_operations": 20
+        },
+        "active_vs_glyph_check": {
+          "gains": 0,
+          "losses": 0
+        },
+        "active_vs_fixed_zoom": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "drop-input": {
+        "glyph_check": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 12,
+          "waits": 4,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 16
+        },
+        "fixed_zoom": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "active_tail": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 12,
+          "waits": 4,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 16
+        },
+        "active_vs_glyph_check": {
+          "gains": 0,
+          "losses": 0
+        },
+        "active_vs_fixed_zoom": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "partial-input": {
+        "glyph_check": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "fixed_zoom": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "active_tail": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "active_vs_glyph_check": {
+          "gains": 0,
+          "losses": 0
+        },
+        "active_vs_fixed_zoom": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "wrong-input": {
+        "glyph_check": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "fixed_zoom": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "active_tail": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "active_vs_glyph_check": {
+          "gains": 0,
+          "losses": 0
+        },
+        "active_vs_fixed_zoom": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "case-input": {
+        "glyph_check": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "fixed_zoom": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "active_tail": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "active_vs_glyph_check": {
+          "gains": 0,
+          "losses": 0
+        },
+        "active_vs_fixed_zoom": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "trailing-space-input": {
+        "glyph_check": {
+          "episodes": 4,
+          "successes": 0,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 0,
+          "probes": 0,
+          "actor_requests": 8,
+          "browser_operations": 8
+        },
+        "fixed_zoom": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 8,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 0,
+          "actor_requests": 12,
+          "browser_operations": 12
+        },
+        "active_tail": {
+          "episodes": 4,
+          "successes": 4,
+          "decisions": 12,
+          "waits": 0,
+          "repairs": 4,
+          "probes": 4,
+          "actor_requests": 12,
+          "browser_operations": 20
+        },
+        "active_vs_glyph_check": {
+          "gains": 4,
+          "losses": 0
+        },
+        "active_vs_fixed_zoom": {
+          "gains": 0,
+          "losses": 0
+        }
+      }
+    },
+    "plan_sha256": "eba5a4f2e666474e1c1e2f81040fad5402a70c0818a0ad9533726685ea6e2d00",
+    "bank_sha256": "a9189bd7abb8ddbc6ec64f0f9c53e47d2b7dbb6cb3aacd1f9790662066b241b7",
+    "index_sha256": "c1833731abd34c9fefaab7ce8882c687463020901a515c52acc84cab04a24657",
+    "selection_statuses": {
+      "visible_tail": 8,
+      "blank_tail": 4
+    },
+    "probe_time_seconds": {
+      "total": 22.864961033686996,
+      "median": 1.9037092998623848
+    },
+    "gate": {
+      "preserved_glyph_successes": true,
+      "no_clean_repairs": true,
+      "added_trailing_space_success": true
+    },
+    "inference": {
+      "logical_requests": 232,
+      "actual_generations": 28,
+      "actual_input_tokens": 10232,
+      "actual_generated_tokens": 359,
+      "scope": "Actual token totals exclude cached/reused original predictions with unavailable token counts"
+    },
+    "peak_cuda_reserved_bytes": 5192548352
+  },
+  "audit": {
+    "status": "passed",
+    "episodes": 84,
+    "layouts": 4,
+    "decisions": 196,
+    "browser_operations": 276,
+    "screenshots": 304,
+    "restored_probes": 12,
+    "normal_trailing_alias_pairs": 4
+  },
+  "peak_sampled_gpu_mib": 5309,
+  "implementation_ci": "https://github.com/ljk-777/GUI-Recover/actions/runs/44682986024"
+}
