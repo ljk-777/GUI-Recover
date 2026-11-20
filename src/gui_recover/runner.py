@@ -34,7 +34,7 @@ def is_success(reward, terminated, truncated, task_info):
 def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict",
                 fault_kind="none", fault_seed=0, recovery="none", *,
                 submit_answer=False, success_check=is_success, invalid_action_retry="none",
-                answer_check=False):
+                answer_check=False, allow_observation_only=False):
     """Run up to max_steps predictions, including answer checks and action retries."""
     if invalid_action_retry not in ("none", "retry", "feedback"):
         raise ValueError("Unknown invalid-action retry mode")
@@ -60,7 +60,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
     metadata = {}
     normalized_outputs = 0
     invalid_predictions = invalid_action_retries = repaired_predictions = 0
-    answers_submitted = answers_from_checks = 0
+    answer_checks = answers_submitted = answers_from_checks = 0
     checked_frames = set()
     retrying_invalid = False
     injector = ActionFault(fault_kind, fault_seed)
@@ -111,8 +111,11 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
                           "inference_seconds": latency, "metrics": getattr(policy, "last_metrics", {})}
             if checking_answer:
                 prediction.update(decision="answer_check", observation_sha256=frame_digest)
+            evidence_stage = prediction["metrics"].get("evidence_stage") if allow_observation_only else None
+            answer_checks += checking_answer or evidence_stage == "locate"
             emit(prediction)
-            if checking_answer and raw is None:
+            if raw is None and (checking_answer or allow_observation_only):
+                retrying_invalid = False
                 continue
             try:
                 action = parse_action(raw, mode=parser_mode)
@@ -151,7 +154,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
             steps += 1
             if executed.action == "ANSWER":
                 answers_submitted += 1
-                answers_from_checks += checking_answer
+                answers_from_checks += checking_answer or evidence_stage == "read"
             signal = detect(before_obs, obs, action)
             detection_signals += signal.unchanged_after_click or bool(signal.execution_error)
             scroll_detection_signals += signal.unchanged_after_scroll
@@ -198,7 +201,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
     result["normalized_outputs"] = normalized_outputs
     result.update({"invalid_action_retry": invalid_action_retry, "invalid_predictions": invalid_predictions,
                    "invalid_action_retries": invalid_action_retries, "repaired_predictions": repaired_predictions})
-    result.update({"answer_check": answer_check, "answer_checks": len(checked_frames),
+    result.update({"answer_check": answer_check, "answer_checks": answer_checks,
                    "answers_submitted": answers_submitted, "answers_from_checks": answers_from_checks})
     result["model_calls"] = model_calls if model_calls_known else None
     result["input_guard"] = getattr(policy, "guard_metrics", None)

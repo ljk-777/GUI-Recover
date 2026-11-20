@@ -167,4 +167,28 @@ A separate native judge check used answers built from the official references on
 
 [Live answer-check results and run provenance](../examples/vwa-answer-check-results.json)
 
+### Locate and read answer evidence
+
+The evidence study runs the existing answer-check controller and a controller that first locates a relevant region, then reads that region from the original screenshot pixels. Localization and crop reading each use one prediction. Navigation can seek missing evidence. Only a crop read can submit an answer in the evidence arm. For price ranges, the answer must contain two endpoints present in the reported visual facts. A row region clipped at the bottom of the viewport sends control back to navigation.
+
+```bash
+python scripts/run_visualwebarena_live.py --actor qwen --model models/Qwen2.5-VL-3B-Instruct \
+  --study evidence --task-set evidence-transfer --max-steps 8 --out runs/visualwebarena-evidence-transfer
+python scripts/audit_visualwebarena_live.py runs/visualwebarena-evidence-transfer \
+  --out runs/visualwebarena-evidence-transfer-audit.json
+```
+
+The evidence transfer set was frozen before observing model outcomes. It contains tasks 23, 40, 43, 110, 161, 173, 174 and 199. The paired comparison uses the same Qwen checkpoint and a cap of eight calls per episode. The acceptance check requires at least two native successes, more successes than the existing answer check, and fewer wrong submissions. The CPU audit recomputes every evidence crop from its recorded screenshot and traces the final answer to the crop-reading response.
+
+Development used the six screenshots that previously led to wrong first-frame submissions. The final development replay withheld three answers through the clipping and range checks. One other reply reached the model's token limit and could not be parsed. Two wrong candidates remained. Both the crop localization and the reported facts come from the model, so these checks leave visual recognition errors possible.
+
+| Transfer strategy | Model calls | Wrong submissions | Native successes |
+| --- | ---: | ---: | ---: |
+| Answer check | 18 | 4 | 0/8 |
+| Evidence localization and crop read | 22 | 5 | 0/8 |
+
+All eight pairs started from pixel-identical resets. The crop-read arm submitted five incorrect answers from the initial viewport and executed zero navigation actions. The other three episodes ended after invalid navigation replies. The audit verified 16 live trajectories and 26 screenshots. The study missed the acceptance gate.
+
+[Frozen plan and per-task evidence study results](../examples/vwa-evidence-results.json)
+
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)

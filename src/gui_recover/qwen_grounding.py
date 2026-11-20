@@ -139,20 +139,33 @@ class QwenGroundingPolicy:
         self.last_metrics["provider_format"] = "answer_abstained" if answer is None else "answer_json"
         return answer
 
-    def predict(self, observation, history):
+    def predict(self, observation, history, *, allow_answer=True):
         canvas = self.prepare_image(observation.screenshot)
         width, height = canvas.size
+        history = history[-4:]
+        if not allow_answer:
+            pixel_history = []
+            for entry in history:
+                action = dict(entry["action"])
+                if action["position"] is not None:
+                    x, y = action["position"]
+                    action["position"] = [min(width - 1, int(x * width)), min(height - 1, int(y * height))]
+                pixel_history.append({**entry, "action": action})
+            history = pixel_history
+        allowed_actions = ("ANSWER has the exact short answer as value and null position. Use only these four actions."
+                           if allow_answer else "Use only CLICK, INPUT or SCROLL to find the missing visual evidence. "
+                           'For example, {"action":"SCROLL","value":"down","position":null}. '
+                           "Click a relevant photo or listing to inspect it, or scroll to reveal more of the page.")
         request = (
             f"Task: {observation.goal}\n"
-            f"Previous actions: {json.dumps(history[-4:], ensure_ascii=False)}\n"
+            f"Previous actions: {json.dumps(history, ensure_ascii=False)}\n"
             f"Latest execution error: {observation.last_action_error}\n"
             f"{self.recovery_feedback or ''}\n"
             "Return exactly one JSON object with keys action, value, position. "
             f"Use integer pixel positions in this {width} by {height} image. "
             "CLICK has null value and [x,y] position. INPUT has string value and [x,y]. "
             "SCROLL has value up or down and null position. "
-            "ANSWER has the exact short answer as value and null position. "
-            "Use only these four actions. Inspect the image and avoid repeating a failed action."
+            f"{allowed_actions} Inspect the image and avoid repeating a failed action."
         )
         raw = self.ask(canvas, request)
         response_format = "json"
@@ -190,6 +203,9 @@ class QwenGroundingPolicy:
             action = parse_action(json.dumps(data))
             if action.action not in ("CLICK", "INPUT", "SCROLL", "ANSWER"):
                 raise ValueError("Unsupported Qwen navigation action")
+            if action.action == "ANSWER" and not allow_answer:
+                self.last_metrics["provider_format"] = "answer_blocked"
+                return None
             self.last_metrics["provider_format"] = response_format
             return json.dumps(action.to_dict())
         except (ValueError, RecursionError):
