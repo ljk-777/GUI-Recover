@@ -34,7 +34,12 @@ HOLDOUT_PROTOCOL_SHA256 = "df60ebc2e7cb257d63b22a1d6eac4322e5ea53eed75f695850efc
 INPUT_HOLDOUT_TASK_SET = "evidence-cards-input-holdout"
 INPUT_PROTOCOL_SHA256 = "d97cc17118a061eb822879c109bdd6202431f60a41ad4dc0d1970e45ca2087fe"
 INPUT_MEDIA_SHA256 = "88a7fcad2505d581b266427896265c71367cbc067ed1da461eba127a45b20f58"
-INPUT_SHOPPING_TASKS = (36,)
+INPUT_CROSS_SITE_TASKS = (36, 233)
+INPUT_SITE_TOKENS = {
+    "__CLASSIFIEDS__": "classifieds",
+    "__SHOPPING__": "shopping",
+    "__REDDIT__": "reddit",
+}
 TASK_SETS = {
     "diagnostic": READ_ONLY_TASKS,
     "transfer": TRANSFER_TASKS,
@@ -111,6 +116,16 @@ def holdout_profile(study, budget, model, expected_study="evidence-links"):
             and model.get("do_sample") is False and model.get("native_navigation") is True)
 
 
+def registered_start_sites(start_url):
+    sites = []
+    for url in start_url.split(" |AND| "):
+        token = url.split("/", 1)[0]
+        if token not in INPUT_SITE_TOKENS:
+            raise ValueError("An official start page uses an unsupported site")
+        sites.append(INPUT_SITE_TOKENS[token])
+    return sites
+
+
 def input_holdout_archive(directory):
     """Authenticate the registration and exact official task table before any rollout."""
     protocol_bytes = (directory / "cohort.json").read_bytes()
@@ -128,8 +143,7 @@ def input_holdout_archive(directory):
             row["image"] = [reference_name(item) for item in image]
     canonical = json.dumps(entries, sort_keys=True, separators=(",", ":")).encode()
     if (tuple(protocol["task_ids"]) != task_ids
-            or hashlib.sha256(canonical).hexdigest() != protocol["entries_sha256"]
-            or tuple(row["task_id"] for row in entries if "shopping" in row["sites"]) != INPUT_SHOPPING_TASKS):
+            or hashlib.sha256(canonical).hexdigest() != protocol["entries_sha256"]):
         raise ValueError("Installed VisualWebArena tasks differ from the frozen native entries")
     archive = LocalReferenceArchive(directory, INPUT_MEDIA_SHA256, homepage=os.environ["VWA_HOMEPAGE"])
     input_manifest = {}
@@ -142,18 +156,29 @@ def input_holdout_archive(directory):
         for name in images:
             with archive(name) as image:
                 fingerprints.append(pixel_hash(image.convert("RGB")))
+        start_sites = registered_start_sites(row["start_url"])
         input_manifest[str(row["task_id"])] = {"reference_pixels": fingerprints,
-                                               "start_pages": len(row["start_url"].split(" |AND| "))}
+                                               "start_pages": len(start_sites), "start_sites": start_sites}
     if references != set(archive.images):
         raise ValueError("Task references differ from the registered file set")
+    cross_site = tuple(int(task) for task, item in input_manifest.items()
+                       if set(item["start_sites"]) != {"classifieds"})
+    if cross_site != INPUT_CROSS_SITE_TASKS:
+        raise ValueError("The registered cross-site start pages no longer match the staged schedule")
     return archive, input_manifest
 
 
-def probe_shopping():
-    classifieds, shopping = (urlsplit(os.environ[f"VWA_{site}"]) for site in ("CLASSIFIEDS", "SHOPPING"))
-    if (classifieds.scheme, classifieds.netloc) == (shopping.scheme, shopping.netloc):
-        raise ValueError("The locked cross-site task requires a separately configured Shopping origin")
-    probe_instance("SHOPPING")
+def url_origin(url):
+    parsed = urlsplit(url)
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
+def holdout_backend_origins(input_manifest):
+    sites = {site for item in input_manifest.values() for site in item["start_sites"]}
+    origins = {site: url_origin(os.environ[f"VWA_{site.upper()}"]) for site in sorted(sites)}
+    if len(set(origins.values())) != len(origins):
+        raise ValueError("Registered benchmark sites require distinct origins")
+    return origins
 
 
 def expand_listing_view():
@@ -168,7 +193,8 @@ def expand_listing_view():
 class VisualWebArenaEnvironment(MiniwobEnvironment):
     """Use BrowserGym's screenshot and action contract with native VWA answers."""
 
-    def __init__(self, task_id, *, enable_card_view=False, enable_browser_context=False, reference_archive=None):
+    def __init__(self, task_id, *, enable_card_view=False, enable_browser_context=False, reference_archive=None,
+                 start_sites=None):
         from browsergym.core.action.highlevel import HighLevelActionSet
         from browsergym.core.env import BrowserEnv
         from browsergym.visualwebarena.task import GenericVisualWebArenaTask
@@ -181,7 +207,7 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
         os.environ["OPENAI_BASE_URL"] = "http://127.0.0.1:1/v1"
         class StringOnlyTask(GenericVisualWebArenaTask):
             def setup(self, page):
-                permitted = {"classifieds", "shopping"} if enable_browser_context else {"classifieds"}
+                permitted = set(INPUT_SITE_TOKENS.values()) if enable_browser_context else {"classifieds"}
                 sites = set()
                 for config in self.task_configs:
                     evaluation = config["eval"]
@@ -193,6 +219,12 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
                     if config.get("image") and reference_archive is None:
                         raise ValueError("Task requires a registered local reference archive")
                     sites.update(config_sites)
+                    if start_sites is not None:
+                        actual = [url_origin(url) for url in config["start_url"].split(" |AND| ")]
+                        expected = [url_origin(self.webarena_instance.urls[site]) for site in start_sites]
+                        if actual != expected:
+                            raise ValueError("BrowserGym start pages do not match the registered sites")
+                        sites.update(start_sites)
 
                 origins = {(url.scheme, url.netloc)
                            for url in (urlsplit(self.webarena_instance.urls[site]) for site in sites)}
@@ -309,13 +341,13 @@ def stage_input_holdout(out, phase, model, input_manifest):
         out.mkdir(parents=True)
         write_json(state, plan)
     classifieds_tasks = tuple(task_id for task_id in TASK_SETS[INPUT_HOLDOUT_TASK_SET]
-                              if task_id not in INPUT_SHOPPING_TASKS)
+                              if task_id not in INPUT_CROSS_SITE_TASKS)
     if phase == "classifieds":
         return classifieds_tasks
     finished_pairs = all((out / f"visualwebarena.{task_id}-{mode}" / "episode.json").is_file()
                          for task_id in classifieds_tasks for mode in STUDY_MODES["evidence-cards"])
     if not finished_pairs:
-        raise ValueError("Complete all seven Classifieds pairs before the cross-site phase")
+        raise ValueError("Complete the single-site Classifieds pairs before the cross-site phase")
     return TASK_SETS[INPUT_HOLDOUT_TASK_SET]
 
 
@@ -327,6 +359,8 @@ def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None,
     if use_inputs and (reference_archive is None or input_manifest is None
                        or not holdout_profile(study, max_steps, actor.config, "evidence-cards")):
         raise ValueError("The new holdout requires its media archive and registered 8-decision comparison")
+    if use_inputs and input_phase != "classifieds":
+        backend_origins = holdout_backend_origins(input_manifest)
     staged = input_phase != "all"
     if staged:
         if not use_inputs or input_phase not in ("classifieds", "finish"):
@@ -338,7 +372,7 @@ def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None,
     screen_reader = RapidScreenReader() if study in OCR_MODES else None
     listing_site = os.environ["VWA_CLASSIFIEDS"] if study in LINK_MODES else None
     strategies = {mode: [] for mode in STUDY_MODES[study]}
-    new_pairs = INPUT_SHOPPING_TASKS if input_phase == "finish" else task_ids
+    new_pairs = INPUT_CROSS_SITE_TASKS if input_phase == "finish" else task_ids
     for task_id in task_ids:
         for mode in strategies:
             task = f"visualwebarena.{task_id}"
@@ -359,7 +393,8 @@ def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None,
                 recovery = mode
                 invalid_retry = "feedback" if study == "scroll" else "none"
             env = VisualWebArenaEnvironment(task_id, enable_card_view=mode == "evidence-cards",
-                                            enable_browser_context=use_inputs, reference_archive=reference_archive)
+                                            enable_browser_context=use_inputs, reference_archive=reference_archive,
+                                            start_sites=input_manifest[str(task_id)]["start_sites"] if use_inputs else None)
             try:
                 pending = Path(mkdtemp(prefix=".episode-", dir=out)) / branch.name if staged else branch
                 using_evidence = study in EVIDENCE_STUDIES and mode != "answer-check"
@@ -388,7 +423,8 @@ def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None,
             finally:
                 env.close()
     if input_phase == "classifieds":
-        print("Seven Classifieds pairs recorded. Finish the registered run when Shopping is ready.", flush=True)
+        print(f"{len(task_ids)} single-site pairs recorded. Finish the run when the cross-site backends are ready.",
+              flush=True)
         return
     counts = ("predictions", "model_calls", "steps", "invalid_predictions",
               "invalid_action_retries", "repaired_predictions")
@@ -410,7 +446,8 @@ def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None,
         summary["protocol_sha256"] = HOLDOUT_PROTOCOL_SHA256
     if use_inputs:
         summary.update(protocol_sha256=INPUT_PROTOCOL_SHA256, reference_files_sha256=INPUT_MEDIA_SHA256,
-                       browser_context=True, input_manifest=input_manifest)
+                       browser_context=True, input_manifest=input_manifest,
+                       backend_origins=backend_origins)
     final_summary = out / "summary.json"
     if staged:
         pending_summary = Path(mkdtemp(prefix=".summary-", dir=out)) / final_summary.name
@@ -434,7 +471,7 @@ def main():
     parser.add_argument("--study", choices=STUDY_MODES, default="visual")
     parser.add_argument("--cohort-dir", type=Path, help="Registered input holdout protocol and reference archive")
     parser.add_argument("--input-phase", choices=("all", "classifieds", "finish"), default="all",
-                        help="Record the seven single-site pairs first or finish the same run with Shopping")
+                        help="Record the single-site pairs first or finish the same run with both cross-site backends")
     args = parser.parse_args()
     ready = live_preflight()
     if args.preflight:
@@ -460,7 +497,9 @@ def main():
     reference_archive, input_manifest = (input_holdout_archive(args.cohort_dir)
                                          if args.task_set == INPUT_HOLDOUT_TASK_SET else (None, None))
     if args.task_set == INPUT_HOLDOUT_TASK_SET and args.input_phase != "classifieds":
-        probe_shopping()
+        for site in holdout_backend_origins(input_manifest):
+            if site != "classifieds":
+                probe_instance(site.upper())
     if args.out.exists() and args.input_phase == "all":
         parser.error("Use a fresh output directory")
     if args.actor == "showui":

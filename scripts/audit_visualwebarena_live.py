@@ -24,7 +24,7 @@ from gui_recover.visual_text_audit import checked_file, read_json, require
 from run_visualwebarena_live import (
     ANSWER_STUDIES, CONFIRM_MODES, EVIDENCE_STUDIES, HOLDOUT_PROTOCOL_SHA256, HOLDOUT_TASK_SET,
     INPUT_HOLDOUT_TASK_SET, INPUT_MEDIA_SHA256, INPUT_PROTOCOL_SHA256, LINK_MODES, NAVIGATION_CONTEXT_MODES,
-    OCR_MODES, STUDY_MODES, TASK_SETS, exact_vwa_success, holdout_profile,
+    OCR_MODES, STUDY_MODES, TASK_SETS, exact_vwa_success, holdout_profile, url_origin,
 )
 
 
@@ -527,6 +527,11 @@ def audit(directory):
                 "Run differs from the registered input holdout")
         require(set(summary["input_manifest"]) == {str(task_id) for task_id in task_ids},
                 "Input manifest differs from the registered task set")
+        if "backend_origins" in summary:
+            origins = summary["backend_origins"]
+            registered_sites = {site for entry in summary["input_manifest"].values() for site in entry["start_sites"]}
+            require(set(origins) == registered_sites and len(set(origins.values())) == len(origins),
+                    "Registered benchmark sites require distinct origins")
     modes = STUDY_MODES[study]
     require(set(summary["strategies"]) == set(modes), "Unexpected study strategies")
     studies = {mode: [] for mode in modes}
@@ -578,6 +583,10 @@ def audit(directory):
             expected = summary["input_manifest"][str(task_id)]
             require(pixels == expected["reference_pixels"] and len(state["tabs"]) >= expected["start_pages"],
                     "Reset did not expose the official references and start pages")
+            if "backend_origins" in summary:
+                wanted = [origins[site] for site in expected["start_sites"]]
+                observed = [url_origin(tab[1]) for tab in state["tabs"][:len(wanted)]]
+                require(observed == wanted, "Browser reset opened an unexpected origin")
             by_task[task_id]["reference_images"] = len(pixels)
             by_task[task_id]["initial_tabs"] = len(state["tabs"])
     formats = {}

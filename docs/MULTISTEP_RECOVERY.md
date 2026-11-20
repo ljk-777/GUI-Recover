@@ -328,7 +328,7 @@ The second eight-task registration adds official task reference images and multi
 
 For a request for a listing title, the evidence policy can use a strong and distinct visual match among rendered card thumbnails to localize the title and thumbnail crop. Qwen reads that crop and independently checks the title before submitting. Weak or ambiguous image matches continue through the standard evidence policy.
 
-Prepare the reference archive from the upstream checkout at revision 89f5af29305c3d1e9f97ce4421462060a70c9a03. Configure the usual VisualWebArena variables and a genuine Shopping instance at a distinct origin for the cross-site task. The cohort retains the original local native scoring rules. Both arms use the pinned Qwen 7B NF4 profile.
+Prepare the reference archive from the upstream checkout at revision 89f5af29305c3d1e9f97ce4421462060a70c9a03. Configure the usual VisualWebArena variables and genuine Shopping and Reddit instances at distinct origins. The runner derives required sites from the official start URLs. BrowserGym's login metadata can omit public pages that a task needs. For example, task 233 logs in only to Classifieds and also opens a Reddit post. Both arms use the pinned Qwen 7B NF4 profile and the original local native scoring rules.
 
 On a host with Docker, the WebArena-Verified Shopping image can provide the storefront and seeded catalog. The following pins the Linux amd64 publisher image and puts the storefront on loopback. Use this origin for `VWA_SHOPPING`. Wait until BrowserGym's original Shopping login, a catalog search, and a product image load succeed before running the pair. [Upstream Shopping environment](https://servicenow.github.io/webarena-verified/v1.2.3/environments/shopping/)
 
@@ -339,6 +339,8 @@ docker run --detach --name gui-recover-shopping --platform linux/amd64 \
   am1n3e/webarena-verified-shopping@sha256:3e8cb9b945ea9b1c94ab26dba53e8d12dd0406abbf4bf686fd3bb2b6a5908feb
 export VWA_SHOPPING=http://127.0.0.1:19981
 ~~~
+
+Set `VWA_REDDIT` to the origin that serves the real forum and its post images. The audit verifies the origin of each initial browser tab. [Upstream Reddit environment](https://servicenow.github.io/webarena-verified/v1.2.3/environments/reddit/)
 
 ~~~bash
 python scripts/prepare_vwa_input_holdout.py --upstream /path/to/visualwebarena \
@@ -351,11 +353,11 @@ python scripts/audit_visualwebarena_live.py runs/visualwebarena-input-holdout \
   --out runs/visualwebarena-input-holdout-audit.json
 ~~~
 
-If Shopping is temporarily unavailable, add `--input-phase classifieds` to the run command to record the seven single-site pairs. BrowserGym still expects all site variables to contain valid URLs. During this phase, `VWA_SHOPPING` can use the Classifieds URL as a placeholder. Once Shopping is available, set `VWA_SHOPPING` to its actual URL and run the same command with `--input-phase finish` and the same output directory. The saved plan requires the original rollout code, model configuration, package versions, shared backend URLs, and registered inputs. Each completed trajectory is kept so an interrupted phase can be retried. The full summary and the acceptance report require all eight pairs.
+If Shopping or Reddit is temporarily unavailable, add `--input-phase classifieds` to the run command to record the six single-site pairs. BrowserGym expects all site variables to contain valid URLs. During this phase, `VWA_SHOPPING` and `VWA_REDDIT` can use the Classifieds URL as a placeholder. Once both backends are available, set their actual URLs and run the same command with `--input-phase finish` and the same output directory. The saved plan requires the original rollout code, model configuration, package versions, shared backend URLs, and registered inputs. Each completed trajectory is kept so an interrupted phase can be retried. The full summary and the acceptance report require all eight pairs.
 
 [Second registered holdout protocol](../examples/vwa-input-heldout-protocol.json)
 
-The paired holdout finished on an RTX 4090 D with 16 trajectories and 90 screenshots. Both strategies scored 0/8, with zero submissions of any answer. The evidence policy performed 41 scrolls and reached zero evidence reads or confirmations. All seven single-site pairs started from identical pixels. The two cross-site reset screenshots differed by one pixel. The protocol's three acceptance checks all failed. This cohort has now been inspected for development, so subsequent acceptance requires fresh tasks.
+The first attempt at this registration recorded 16 trajectories and 90 screenshots on an RTX 4090 D. The fixture for task 233 substituted the Classifieds origin for the required Reddit post. Its pair is invalid. Both strategies scored 0/7 on the seven valid pairs, with zero answer submissions. The two Shopping reset screenshots differed by one pixel. Across the archived attempt the evidence policy performed 41 scrolls and reached zero evidence reads or confirmations. Even a full score on the remaining pair would leave this attempt below the two-success threshold. This cohort has been inspected for development, so subsequent acceptance requires fresh tasks.
 
 [Audited per-task results](../examples/vwa-input-heldout-results.json)
 

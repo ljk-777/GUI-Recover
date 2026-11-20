@@ -1,5 +1,5 @@
 {
-  "scope": "registered_input_holdout",
+  "scope": "registered_input_holdout_attempt",
   "rollout_source": "6451af2e1e493063ac63dfbb0cd9f676f4e74cf2",
   "protocol_sha256": "d97cc17118a061eb822879c109bdd6202431f60a41ad4dc0d1970e45ca2087fe",
   "trajectory_archive_sha256": "1ade4b0054f9eaba3f1dc283b32d5ae8768bbb51c4d1a3c861d5137b3b0381a1",
@@ -210,7 +210,8 @@
           "reason": "step_limit",
           "answers_submitted": 0
         }
-      }
+      },
+      "environment_valid": false
     }
   },
   "cross_site_reset_different_pixels": 1,
@@ -219,5 +220,19 @@
     "more_native_successes_than_control": false,
     "fewer_wrong_submissions_than_control": false
   },
-  "target_met": false
+  "target_met": false,
+  "environment_validity": {
+    "valid_pairs": 7,
+    "invalid_task_id": 233,
+    "reason": "The raw Reddit start page was resolved to the Classifieds origin.",
+    "required_sites": [
+      "classifieds",
+      "reddit"
+    ],
+    "native_successes_among_valid_pairs": {
+      "answer-check": 0,
+      "evidence-cards": 0
+    },
+    "max_possible_candidate_successes_after_repairing_invalid_pair": 1
+  }
 }
