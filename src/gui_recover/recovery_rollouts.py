@@ -45,7 +45,7 @@ def _save_state(directory, index, obs, before):
             "action_mask": obs["action_mask"].tolist(), "before": before, "current": current}
 
 
-def record_rollout(env, scene, policy, directory, *, choose=None):
+def record_rollout(env, scene, policy, directory, *, choose=None, on_transition=None):
     """Write a sequence of observation/action/reward/next-observation records."""
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=False)
@@ -59,12 +59,15 @@ def record_rollout(env, scene, policy, directory, *, choose=None):
             action = baseline_decision(observation, policy) if choose is None else Decision(choose(observation))
             if not observation["action_mask"][action]:
                 raise ValueError("The rollout policy selected a masked decision")
+            previous = observation
             observation, reward, terminated, truncated, info = env.step(action)
             following = _save_state(directory, step, observation, state["before"])
             stream.write(json.dumps({"schema_version": 1, "step": step, "observation": state,
                 "action": int(action), "decision": action.name, "reward": reward, "terminated": terminated,
                 "truncated": truncated, "next_observation": following, "evidence": info})+"\n")
             stream.flush()
+            if on_transition is not None:
+                on_transition(previous, action, reward, observation, terminated, truncated)
             state = following
             if terminated or truncated:
                 break

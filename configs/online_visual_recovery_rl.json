@@ -1,0 +1,25 @@
+{
+  "model_revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+  "weights_sha256": "68080df785764e98976eb9cc93a07c6c69cf8a6933738496e02aef55b53d2aa3",
+  "miniwob_commit": "7fd85d71a4b60325c6585396ec4f48377d049838",
+  "prior_plan_sha256": [
+    "5a13ba7759bcc5088a400465f71266ec7c063a64b9ac18c5a23cd24eeb9c43f7",
+    "77be47d4a3a2dee36b384b5918fc97fd1980240cccaabe9596d344d0f8db0a34",
+    "3e015aa24693ed51aaf7bcbfd0b9c4ceae84d819d2a2c039a3421b4864378ece",
+    "e2627758f5c51527ce07e9687e081a3b5e4345f8ef0ffaf1eb8214f354225ee1"
+  ],
+  "seed": 20261120,
+  "epsilon": 0.2,
+  "smoke": {
+    "train": {"start": 73000, "reserve": 40, "count": 1},
+    "test": {"start": 73100, "reserve": 40, "count": 1},
+    "passes": 2,
+    "regimes": ["none", "deferred-input", "drop-input", "case-input"]
+  },
+  "formal": {
+    "train": {"start": 71000, "reserve": 100, "count": 3},
+    "test": {"start": 72000, "reserve": 100, "count": 2},
+    "passes": 2,
+    "regimes": ["none", "deferred-input", "drop-input", "partial-input", "wrong-input", "case-input", "trailing-space-input"]
+  }
+}
