@@ -7,7 +7,9 @@ from decimal import Decimal
 from PIL import Image, ImageDraw
 
 from .actions import Action, ActionError
+from .listing_cards import ranked_photo_request
 from .qwen_grounding import native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
+from .ranked_cards import RankedCardEvidence
 from .screen_text import exact_initial_search, from_readable_control, listing_detail
 from .verification import pixel_hash
 from .visible_links import agreed_listing_answer, link_answer_count, listing_selection, preview_destinations, priced_titles
@@ -15,6 +17,8 @@ from .visible_links import agreed_listing_answer, link_answer_count, listing_sel
 
 _AMOUNT = re.compile(r"(?<![\w.])(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]+)?(?![\w.])")
 _PRICE_QUESTION = re.compile(r"\b(?:cheapest|costliest|expensive|prices?|priced|budget|costs?)\b|\$", re.IGNORECASE)
+_CONTACT = re.compile(r"\b(?:seller|lister|publisher)\b", re.IGNORECASE)
+_PHOTO = re.compile(r"\b(?:image|photo|picture)\b", re.IGNORECASE)
 
 
 def evidence_box(raw, size):
@@ -203,7 +207,7 @@ class EvidenceAnswerPolicy:
     """Use one model invocation per prediction, including crop localization."""
 
     def __init__(self, actor, *, confirm=False, use_navigation_context=False, screen_reader=None,
-                 listing_preview=None, listing_site=None):
+                 listing_preview=None, listing_site=None, ranked_capture=None):
         if screen_reader is not None and not confirm:
             raise ValueError("The OCR policy needs independent confirmation")
         if listing_preview is not None and (screen_reader is None or listing_site is None):
@@ -214,6 +218,8 @@ class EvidenceAnswerPolicy:
         self.screen_reader = screen_reader
         self.listing_preview = listing_preview
         self.listing_site = listing_site
+        self.ranked_capture = ranked_capture
+        self.ranked_evidence = RankedCardEvidence(listing_site) if ranked_capture is not None else None
         self.checked_frames = set()
         self.pending_crop = None
         self.pending_answer = None
@@ -231,6 +237,8 @@ class EvidenceAnswerPolicy:
         self.pending_answer = None
         self.pending_links = None
         self.navigation_context = None
+        if self.ranked_capture is not None:
+            self.ranked_evidence = RankedCardEvidence(self.listing_site)
 
     def set_feedback(self, message):
         self.actor.set_feedback(message)
@@ -305,6 +313,12 @@ class EvidenceAnswerPolicy:
                 "and other visual details, return the box only. A separate read will confirm the answer. Do not guess. "
                 f"Previous browser actions: {json.dumps(recent, ensure_ascii=False)}.\nVisible text:\n{controls}"
             )
+        if (self.ranked_capture is not None and not history and rows is not None
+                and _CONTACT.search(observation.goal) and _PHOTO.search(observation.goal)
+                and any(row["text"].casefold() == "latest listings" for row in rows)):
+            prompt += ("\nLook at the photos in the visible Latest Listings cards before choosing the next action. "
+                       "If a card's pictured subject and title identify a strong candidate, click that card now "
+                       "to verify the listing details. Open a category only if a matching card is absent.")
         if link_count is not None:
             price_question = bool(_PRICE_QUESTION.search(observation.goal))
             selection_format = ('as an array in a JSON object keyed "listings". ' if price_question else
@@ -457,6 +471,11 @@ class EvidenceAnswerPolicy:
         return json.dumps(answer.to_dict(), ensure_ascii=False)
 
     def predict(self, observation, history):
+        if self.ranked_evidence is not None and history:
+            request = ranked_photo_request(observation.goal)
+            first = history[0]["action"]
+            if request is not None and first["action"] == "SEARCH" and first["value"] == request[0]:
+                return self.ranked_evidence.decide(observation, request, self.actor, self.screen_reader, self.ranked_capture)
         frame = pixel_hash(observation.screenshot)
         if self.pending_links is not None:
             pending_frame, rows, indices, destinations, count = self.pending_links

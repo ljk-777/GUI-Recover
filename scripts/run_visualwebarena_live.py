@@ -12,6 +12,7 @@ from urllib.request import urlopen
 from gui_recover.actions import Action, compile_action, parse_action
 from gui_recover.answer_evidence import EvidenceAnswerPolicy
 from gui_recover.environment import MiniwobEnvironment
+from gui_recover.listing_cards import capture_listing_cards
 from gui_recover.policies import MODEL_REVISION, ShowUIPolicy
 from gui_recover.qwen_grounding import QWEN_7B_MIRROR_REVISION, QWEN_7B_MODEL, QwenGroundingPolicy
 from gui_recover.runner import aggregate, render_replay, run_episode, write_json
@@ -39,6 +40,7 @@ TASK_SETS = {
     "evidence-ocr-diagnostic": (14, 15, 40, 83, 98, 221),
     "evidence-search-diagnostic": (14, 40, 98, 221),
     "evidence-direct-search-diagnostic": (40, 98, 221),
+    "evidence-card-diagnostic": (34, 106),
     HOLDOUT_TASK_SET: (6, 7, 34, 35, 38, 39, 106, 108),
 }
 STUDY_MODES = {
@@ -51,8 +53,10 @@ STUDY_MODES = {
     "evidence-context": ("answer-check", "evidence-context"),
     "evidence-ocr": ("answer-check", "evidence-ocr"),
     "evidence-links": ("answer-check", "evidence-links"),
+    "evidence-cards": ("answer-check", "evidence-cards"),
 }
-OCR_MODES = ("evidence-ocr", "evidence-links")
+LINK_MODES = ("evidence-links", "evidence-cards")
+OCR_MODES = ("evidence-ocr", *LINK_MODES)
 NAVIGATION_CONTEXT_MODES = ("evidence-context", *OCR_MODES)
 CONFIRM_MODES = ("evidence-confirm", *NAVIGATION_CONTEXT_MODES)
 EVIDENCE_STUDIES = ("evidence", *CONFIRM_MODES)
@@ -98,10 +102,15 @@ def holdout_profile(study, budget, model):
             and model.get("do_sample") is False and model.get("native_navigation") is True)
 
 
+def expand_listing_view():
+    """Expand the browser viewport to inspect the rendered results grid."""
+    page.set_viewport_size({"width": page.viewport_size["width"], "height": 1800})
+
+
 class VisualWebArenaEnvironment(MiniwobEnvironment):
     """Use BrowserGym's screenshot and action contract with native VWA answers."""
 
-    def __init__(self, task_id):
+    def __init__(self, task_id, *, enable_card_view=False):
         from browsergym.core.action.highlevel import HighLevelActionSet
         from browsergym.core.env import BrowserEnv
         from browsergym.visualwebarena.task import GenericVisualWebArenaTask
@@ -147,7 +156,10 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
         self.task = f"visualwebarena.{task_id}"
         self.visual_variant = "default"
         self.obs = None
-        actions = HighLevelActionSet(subsets=["coord", "chat"], strict=True, multiaction=True)
+        self.enable_card_view = enable_card_view
+        subsets = ["coord", "chat", "custom"] if enable_card_view else ["coord", "chat"]
+        actions = HighLevelActionSet(subsets=subsets, strict=True, multiaction=True,
+                                     custom_actions=[expand_listing_view] if enable_card_view else None)
         self.env = BrowserEnv(StringOnlyTask, task_kwargs={"task_id": task_id}, headless=True,
                               action_mapping=actions.to_python_code)
 
@@ -155,9 +167,20 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
         checked = parse_action(json.dumps(action.to_dict()))
         if checked.action == "ANSWER":
             code = f"send_msg_to_user({checked.value!r})"
+        elif checked.action == "LISTING_GRID":
+            grid = self.capture_cards()["grid"] if self.enable_card_view else None
+            if grid is None or tuple(grid) != checked.position:
+                raise ValueError("Listing grid action must point to a visible grid control")
+            code = compile_action(Action("CLICK", position=checked.position), *self.obs.screenshot.size)
+            code += "\nexpand_listing_view()"
         else:
             code = compile_action(checked, *self.obs.screenshot.size)
         return self._step_code(code)
+
+    def capture_cards(self):
+        if not self.enable_card_view or self.obs is None:
+            raise ValueError("Card capture requires a registered live viewport")
+        return capture_listing_cards(self.env.unwrapped.page, os.environ["VWA_CLASSIFIEDS"], self.obs.screenshot)
 
     def preview_listing_links(self, positions):
         """Read selected visible destinations without opening the listings."""
@@ -173,7 +196,7 @@ def run_study(actor, *, out, study, task_set, max_steps):
         raise ValueError("The locked cohort requires the registered 8-decision Qwen 7B NF4 comparison")
     out.mkdir(parents=True, exist_ok=False)
     screen_reader = RapidScreenReader() if study in OCR_MODES else None
-    listing_site = os.environ["VWA_CLASSIFIEDS"] if study == "evidence-links" else None
+    listing_site = os.environ["VWA_CLASSIFIEDS"] if study in LINK_MODES else None
     task_ids = TASK_SETS[task_set]
     strategies = {mode: [] for mode in STUDY_MODES[study]}
     for task_id in task_ids:
@@ -185,7 +208,7 @@ def run_study(actor, *, out, study, task_set, max_steps):
             else:
                 recovery = mode
                 invalid_retry = "feedback" if study == "scroll" else "none"
-            env = VisualWebArenaEnvironment(task_id)
+            env = VisualWebArenaEnvironment(task_id, enable_card_view=mode == "evidence-cards")
             try:
                 branch = out / f"{env.task}-{mode}"
                 using_evidence = study in EVIDENCE_STUDIES and mode != "answer-check"
@@ -195,6 +218,7 @@ def run_study(actor, *, out, study, task_set, max_steps):
                         actor, confirm=mode in CONFIRM_MODES, use_navigation_context=mode in NAVIGATION_CONTEXT_MODES,
                         screen_reader=screen_reader, listing_site=listing_site,
                         listing_preview=env.preview_listing_links if listing_site is not None else None,
+                        ranked_capture=env.capture_cards if mode == "evidence-cards" else None,
                     )
                 row = run_episode(env, policy, env.task, 0, max_steps, branch,
                                   recovery=recovery, invalid_action_retry=invalid_retry,

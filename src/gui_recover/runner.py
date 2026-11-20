@@ -114,6 +114,9 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
             evidence_stage = prediction["metrics"].get("evidence_stage") if allow_observation_only else None
             answer_checks += checking_answer or evidence_stage == "locate"
             emit(prediction)
+            if allow_observation_only and raw is None and prediction["metrics"].get("stop_after_evidence") is True:
+                reason = "evidence_abstained"
+                break
             if raw is None and (checking_answer or allow_observation_only):
                 retrying_invalid = False
                 continue
@@ -154,7 +157,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
             steps += 1
             if executed.action == "ANSWER":
                 answers_submitted += 1
-                answers_from_checks += checking_answer or evidence_stage in ("read", "confirm", "link_confirm")
+                answers_from_checks += checking_answer or evidence_stage in ("read", "confirm", "link_confirm", "ranked_cards")
             signal = detect(before_obs, obs, action)
             detection_signals += signal.unchanged_after_click or bool(signal.execution_error)
             scroll_detection_signals += signal.unchanged_after_scroll
