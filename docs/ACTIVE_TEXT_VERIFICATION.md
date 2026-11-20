@@ -27,3 +27,23 @@ CUDA_VISIBLE_DEVICES=0 python scripts/run_active_text_verification.py \
 ```
 
 先在独立目录运行 `--profile smoke`，省略 `--exclude-run`。当前使用单行短 ASCII 输入和固定 Chromium 视口。光标由之前的输入动作留在行尾。
+
+## 正式结果
+
+实现冻结于 `da73666`。留出种子为 75000–75003，均与工程样本分离。三组共执行 84 条真实浏览器轨迹。
+
+| 策略 | 总成功 | 正常输入重输 | 尾空格成功 | 等待 | 重输 | 探测 | 逻辑模型请求 | 浏览器操作 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 字形核验 | 24/28 | 0/4 | 0/4 | 8 | 16 | 0 | 72 | 80 |
+| 立即重输 | 28/28 | 4/4 | 4/4 | 0 | 28 | 0 | 84 | 88 |
+| 主动核验 | 28/28 | 0/4 | 4/4 | 8 | 20 | 12 | 76 | 108 |
+
+主动核验保留了字形规则的全部成功，并修复了四个尾空格错误。与立即重输相比，它少重输 8 次、少发出 8 次定位请求，并多做 20 次浏览器操作。12 次探测共耗时 22.86 秒，中位数为 1.90 秒，包含两次按键、BrowserGym 步进及截图。12 次均恢复原画面，8 次识别到字形，4 次识别到空白，未发生弃权。四个布局的正常与尾空格截图在探测前逐对相同。
+
+CPU 审计复核了 196 次决策、276 次浏览器操作和 304 张分支内截图。共享缓存下共 232 次逻辑定位与 28 次实际生成，RTX 4090 D 设备采样显存峰值为 5309 MiB。结果覆盖这四个 MiniWoB 留出布局和固定视口。
+
+```bash
+python scripts/audit_active_text_verification.py runs/active-text-verification-001
+```
+
+[结构化结果](../examples/active-text-verification-results.json) · [同图与选区对照](../examples/active-text-verification-pair/provenance.json) · [实现 CI](https://github.com/ljk-777/GUI-Recover/actions/runs/44682986024)
