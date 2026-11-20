@@ -42,3 +42,7 @@ GUI-Recover 为 MiniWoB 上的视觉 GUI Agent 提供可重复的故障注入、
 ## 0.2.0rc2 扩展
 
 发布候选增加 `gui-recover active-text-recovery` 和 `gui-recover audit-active-text-recovery`。前者运行字形、立即重输和主动探测三路对照，后者从磁盘核验相同布局、恢复决策、选区截图和精确奖励。新命令可从安装包直接执行。正式证据和当前适用范围见 [主动核验报告](ACTIVE_TEXT_VERIFICATION.md)。
+
+主动规则在四个留出布局的七种条件上达到 28/28，正常输入零重输。它与立即重输成功数相同，少重输 8 次，多做 20 次浏览器操作。随后训练了何时探测的在线策略。该策略保留了常规组 14/14 的成功，少探测两次，但两条延迟尾空格挑战均失败。主动规则在挑战组 2/2 成功，因此 RC2 的演示使用主动规则。见 [学习策略和挑战对照](LEARNED_ACTIVE_PROBE.md)。
+
+同一 RC2 wheel 分别在全新 Mac Python 环境和 Linux 单卡环境验收。Mac 上 CPU 诊断 3/3 成功，两个安装后审计命令分别复核既有的 84 条版本 1 和 84 条版本 2 轨迹。Linux 上安装后的主动演示完成 21 条轨迹，复核了 49 个决策、69 次浏览器操作和 76 张分支内截图。[RC2 自动化检查](https://github.com/ljk-777/GUI-Recover/actions/runs/44685082310)
