@@ -9,6 +9,8 @@ from urllib.parse import quote
 from PIL import Image
 
 from gui_recover.multistep_recovery import EXTRA_BUDGET, METHODS, regimes, summarize, validate_plan
+from gui_recover.probe_learning import ProbeLearner, adjusted_return
+from gui_recover.recovery_env import ProbeDecision
 from gui_recover.runner import is_success, write_json
 from gui_recover.verification import pixel_hash
 from gui_recover.visual_text_audit import checked_file
@@ -88,6 +90,39 @@ def audit(out):
             "metrics": metrics, "gate": saved["gate"]}, rows
 
 
+def audit_probe_learning(out):
+    out = Path(out)
+    root = out / "probe-training"
+    receipt = read(root / "before-evaluation.json")
+    if receipt["test_started"] is not False:
+        raise ValueError("Invalid checkpoint freeze")
+    records = checked_file(root / "train.jsonl", receipt["train_index_sha256"])
+    checkpoint = read(checked_file(root / "probe-q.json", receipt["probe_q_sha256"]))
+    settings = read(out / "protocol.json")["config"]["learning"]
+    learner = ProbeLearner(seed=settings["seed"], epsilon=settings["epsilon"], min_visits=settings["minimum_action_visits"])
+    plan = read(out / "preflight.json")
+    allowed = {(row["task"], row["seed"]) for row in plan["selected"] if row["split"] == "train"}
+    queried = 0
+    for line in records.read_text().splitlines():
+        row = json.loads(line)
+        if row["split"] != "train" or (row["task"], row["seed"]) not in allowed:
+            raise ValueError("Probe-learning trace crossed a split")
+        skipped = any(entry["status"] == "skipped_probe" for entry in row["decisions"])
+        if row["probes"] or skipped:
+            expected = ProbeDecision.PROBE_LAST_CHAR if row["probes"] else ProbeDecision.CONTINUE
+            if learner.choose({"waited": bool(row["waits"])}) != expected:
+                raise ValueError("Seeded probe exploration differs from its trace")
+            queried += 1
+        score = adjusted_return({**row, "return": float(row["success"])})
+        if score != row["adjusted_return"]:
+            raise ValueError("Probe reward or action costs differ")
+        learner.finish_episode(score)
+    if learner.checkpoint() != checkpoint:
+        raise ValueError("Frozen probe values do not reproduce")
+    return {"training_episodes": learner.episodes, "sampled_probe_decisions": queried,
+            "checkpoint_sha256": receipt["probe_q_sha256"], "checkpoint_reproduced": True}
+
+
 def html(summary, rows):
     columns = ("Method", "Exact success", "Healthy rewrites", "Natural failures recovered", "Extra operations")
     metrics = summary["metrics"]["all"]
@@ -127,8 +162,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("run", type=Path)
     parser.add_argument("--report", action="store_true", help="Write report.html into the audited run")
+    parser.add_argument("--verify-training", action="store_true", help="Recompute the frozen probe-learning values")
     args = parser.parse_args()
     summary, rows = audit(args.run)
+    if args.verify_training:
+        summary["probe_learning_audit"] = audit_probe_learning(args.run)
     if args.report:
         path = args.run / "report.html"
         if path.exists():

@@ -125,6 +125,15 @@ class QwenGroundingPolicy:
             data = read_reply(raw)
             if not isinstance(data, dict) or set(data) != {"action", "value", "position"}:
                 raise ValueError("Expected one action dictionary")
+            if not isinstance(data["action"], str):
+                raise ValueError("Expected one named action")
+            data["action"] = data["action"].upper()
+            if data["action"] == "LEFT_CLICK":
+                data["action"] = "CLICK"
+            if data["action"] == "CLICK" and isinstance(data["value"], str):
+                # The model sometimes echoes an observed label beside a click.
+                # The trusted executor consumes only the verified position.
+                data["value"] = None
             if data["action"] in ("CLICK", "INPUT"):
                 data["position"] = parse_pixel_point(json.dumps({"point_2d": data["position"]}), width, height)
             action = parse_action(json.dumps(data))

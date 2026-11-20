@@ -106,5 +106,7 @@ def test_qwen_navigation_translates_one_action_and_keeps_the_raw_reply():
     assert json.loads(policy.predict(obs, [])) == {"action": "CLICK", "value": None, "position": [0.45, 0.25]}
     assert policy.last_metrics["provider_image_size"] == [10, 10]
     assert '"position":[4, 2]' in policy.last_metrics["provider_output"]
+    policy._generate = lambda messages: '{"action":"left_click","value":"visible label","position":[4, 2]}'
+    assert json.loads(policy.predict(obs, [])) == {"action": "CLICK", "value": None, "position": [0.45, 0.25]}
     policy._generate = lambda messages: '{"action":"CLICK","value":null,"position":[false, 2]}'
     assert policy.predict(obs, []) == ""
