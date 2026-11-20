@@ -19,6 +19,8 @@ _AMOUNT = re.compile(r"(?<![\w.])(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]+)
 _PRICE_QUESTION = re.compile(r"\b(?:cheapest|costliest|expensive|prices?|priced|budget|costs?)\b|\$", re.IGNORECASE)
 _CONTACT = re.compile(r"\b(?:seller|lister|publisher)\b", re.IGNORECASE)
 _PHOTO = re.compile(r"\b(?:image|photo|picture)\b", re.IGNORECASE)
+_EMAIL_REQUEST = re.compile(r"\be-?mail\b", re.IGNORECASE)
+_EMAIL = re.compile(r"[\w.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 
 
 def evidence_box(raw, size):
@@ -214,6 +216,17 @@ def listing_screen_text(rows, size):
 def visible_contact_request(goal, rows):
     return bool(rows and _CONTACT.search(goal) and _PHOTO.search(goal)
                 and any(row["text"].casefold() == "latest listings" for row in rows))
+
+
+def contact_from_evidence(raw, goal):
+    """Recover one literal contact fact from a validated evidence reply."""
+    if not (_CONTACT.search(goal) and _EMAIL_REQUEST.search(goal)):
+        return None
+    data = read_reply(raw)
+    if data["answer"] is not None or len(data["evidence"]) != 1:
+        return None
+    address = data["evidence"][0].strip()
+    return address if _EMAIL.fullmatch(address) else None
 
 
 class EvidenceAnswerPolicy:
@@ -416,6 +429,10 @@ class EvidenceAnswerPolicy:
             answer, status = evidence_answer(raw, observation.goal, allow_string_abstention=self.confirm)
         except (ValueError, RecursionError):
             return None
+        if status == "evidence_abstained" and self.ranked_capture is not None and self.navigation_context is not None:
+            address = contact_from_evidence(raw, observation.goal)
+            if address is not None:
+                answer, status = address, "evidence_contact_candidate"
         self.last_metrics["provider_format"] = status
         if answer is not None:
             if self.confirm:
@@ -442,6 +459,17 @@ class EvidenceAnswerPolicy:
             "If anything required is missing, return {\"answer\":null}. "
             "Otherwise return one JSON object with one key answer and a short string value."
         )
+        if (self.ranked_capture is not None and self.navigation_context is not None
+                and _EMAIL.fullmatch(candidate) and _EMAIL_REQUEST.search(observation.goal)):
+            prompt = (
+                f"Question: {observation.goal}\n"
+                "The upper-left overview shows the opened listing. The blue outline is enlarged on the right. "
+                f"{context_description}"
+                "Check that the listing and its pictured subject are consistent with the question. "
+                "Then read the displayed seller email verbatim from the right crop. If the listing clearly conflicts "
+                "with the question or the field is unreadable, return {\"answer\":null}. "
+                'Otherwise return one JSON object with key "answer" containing the exact visible email.'
+            )
         raw = self.actor.ask(canvas, prompt)
         self.last_metrics.update(evidence_stage="confirm", evidence_frame=frame, evidence_bounds=list(bounds),
                                  evidence_panel_sha256=pixel_hash(panel), provider_format="evidence_invalid")

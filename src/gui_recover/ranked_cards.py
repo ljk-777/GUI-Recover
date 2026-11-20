@@ -22,6 +22,7 @@ class RankedCardEvidence:
         self.offset = 0
         self.page_frame = None
         self.selected = []
+        self.verified = 0
         self.seen = set()
 
     def decide(self, observation, request, actor, screen_reader, capture):
@@ -41,17 +42,11 @@ class RankedCardEvidence:
                 actor.last_metrics = metrics
             return json.dumps(action.to_dict()) if action is not None else None
 
-        def ask(items, stage):
+        subject = "an animal" if criterion.casefold() == "animals" else criterion
+
+        def ask(items, prompt):
             panel = card_panel(items)
-            instruction = "Independently recheck these proposed results before any submission. " if stage == "confirm" else ""
-            subject = "an animal" if criterion.casefold() == "animals" else criterion
-            predicate = f"visibly depicts {subject}"
-            if query.casefold() in ARTWORK_QUERIES:
-                predicate = f"is an artwork that {predicate}"
-            raw = actor.ask(actor.prepare_image(panel), (
-                f"Task: {observation.goal}\n{instruction}"
-                f"For each numbered card, judge if the item {predicate}. "
-                "Look at the image first and use the rendered title for context. Inspect each card independently. "
+            raw = actor.ask(actor.prepare_image(panel), prompt + (
                 f'Return only one JSON object with keys "1" through "{len(items)}". Each value must be '
                 "[true or false, short visual cue], with at most three words for its cue. Use null when the cue is unclear."
             ))
@@ -63,10 +58,17 @@ class RankedCardEvidence:
                 return None
 
         if len(self.selected) == count:
-            ranked = self.selected[::-1]
-            results = ask(ranked, "confirm")
-            if results is None or not all(value is True for value in results):
+            item = self.selected[self.verified]
+            results = ask([item], (
+                f"Inspect the single photo. Does the pictured subject visibly include {subject}? "
+                "A subject portrayed in a painting, drawing or photo counts. Judge the pictured subject using "
+                "a specific visible feature. Do not decide anything about price, date, relevance or result order. "
+            ))
+            if results != [True]:
                 return finish("ranked_confirmation_withheld", stop=True)
+            self.verified += 1
+            if self.verified < count:
+                return finish("ranked_card_confirmed")
             answer = Action("ANSWER", "\n".join(card["destination"] for _, card in self.selected))
             return finish("ranked_confirmed", parse_action(json.dumps(answer.to_dict())))
 
@@ -104,7 +106,13 @@ class RankedCardEvidence:
         batch = cards[self.offset:self.offset + BATCH_SIZE]
         self.offset += len(batch)
         items = [(screen, card) for card in batch]
-        results = ask(items, "scan")
+        predicate = f"visibly depicts {subject}"
+        if query.casefold() in ARTWORK_QUERIES:
+            predicate = f"is an artwork that {predicate}"
+        results = ask(items, (
+            f"Task: {observation.goal}\nFor each numbered card, judge if the item {predicate}. "
+            "Look at the image first and use the rendered title for context. Inspect each card independently. "
+        ))
         if results is None:
             return finish("ranked_unverified_prefix", stop=True)
         for item, matches in zip(items, results, strict=True):

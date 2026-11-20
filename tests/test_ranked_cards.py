@@ -27,7 +27,7 @@ def test_ranked_cards_only_submits_after_contiguous_pages_and_confirmation(first
     class Actor:
         last_metrics = {}
         replies = iter((first_reply, '{"1":[true,"owl"],"2":[true,"duck"]}',
-                        '{"1":[true,"owl"],"2":[true,"eagle"]}'))
+                        '{"1":[true,"eagle"]}', '{"1":[true,"owl"]}'))
 
         def prepare_image(self, image):
             return image
@@ -59,6 +59,7 @@ def test_ranked_cards_only_submits_after_contiguous_pages_and_confirmation(first
     next_action = decide(1, RESULT_VIEW_HEIGHT, "white")
     if should_continue:
         assert next_action == Action("CLICK", position=(0.5, 0.75))
+        assert decide(3, RESULT_VIEW_HEIGHT, "pink") is None
         assert decide(3, RESULT_VIEW_HEIGHT, "pink") is None
         assert decide(3, RESULT_VIEW_HEIGHT, "pink") == Action("ANSWER", f"{first_url}\n{second_url}")
     else:

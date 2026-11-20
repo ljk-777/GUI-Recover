@@ -9,7 +9,8 @@ from PIL import Image
 
 from gui_recover.actions import ActionError, parse_action
 from gui_recover.answer_evidence import (
-    answer_signature, confirmation_image, evidence_answer, native_crop, parse_evidence_location, visible_contact_request,
+    answer_signature, confirmation_image, contact_from_evidence, evidence_answer, native_crop, parse_evidence_location,
+    visible_contact_request,
 )
 from gui_recover.environment import VisualObservation
 from gui_recover.listing_cards import RESULT_VIEW_HEIGHT, ranked_photo_request
@@ -193,6 +194,11 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                 candidate, status = evidence_answer(reply, goal, allow_string_abstention=confirm)
             except (ValueError, RecursionError):
                 pass
+            if (status == "evidence_abstained" and use_ranked_cards and click_origins is not None
+                    and click_origins.get(index) is not None):
+                address = contact_from_evidence(reply, goal)
+                if address is not None:
+                    candidate, status = address, "evidence_contact_candidate"
             if candidate is None:
                 require(raw is None, "Unsupported answer reached the browser")
             elif confirm:
