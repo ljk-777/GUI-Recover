@@ -250,4 +250,31 @@ python scripts/run_visualwebarena_live.py --actor qwen --qwen-7b-4bit \
 
 [Frozen click-context results and native replay receipt](../examples/vwa-context-evidence-results.json)
 
+### Navigate from rendered text
+
+The optional OCR profile supplies indexed text boxes from the current screenshot during navigation. Clicking a text box uses its validated center in the prepared canvas. A task that begins with an exact quoted search query can submit the OCR-identified empty keyword box without calling Qwen. The action clicks the field, enters the query, and presses Enter. It consumes one decision from the eight-decision limit, so every trajectory still makes at most eight model calls.
+
+The profile preserves image-based crop reading on listing detail pages. A fast response from a navigation page can propose a crop and a candidate together when the candidate is literally present in OCR text within the proposed region. The candidate still requires a separate matching visual read. The logs record OCR coordinates and the decision type. The audit reconstructs indexed actions from those records and distinguishes the deterministic search from a model invocation. [RapidOCR usage](https://rapidai.github.io/RapidOCRDocs/main/en/install_usage/rapidocr/usage/)
+
+```bash
+python -m pip install -e '.[ocr]'
+python scripts/run_visualwebarena_live.py --actor qwen --qwen-7b-4bit \
+  --model models/Qwen2.5-VL-7B-Instruct --study evidence-ocr \
+  --task-set evidence-direct-search-diagnostic --max-steps 8 --out runs/visualwebarena-ocr
+python scripts/audit_visualwebarena_live.py runs/visualwebarena-ocr \
+  --out runs/visualwebarena-ocr-audit.json
+```
+
+The Classifieds adapter also exposes a bounded browser link preview at specific viewport positions. A live test read two same-origin listing destinations without changing the page. A subsequent click reached the first previewed destination. This probe used a known gallery and zero model calls. It verifies the browser observation needed for link-returning tasks.
+
+| Diagnostic profile | Existing answer check | OCR candidate | Wrong submissions, existing and candidate |
+| --- | ---: | ---: | ---: |
+| Indexed OCR with fast candidates | 0/6 | 0/6 | 1 and 0 |
+| Literal text guard and submitted search action | 0/4 | 0/4 | 1 and 0 |
+| Exact query routing and detail-page reading | 0/3 | 1/3 | 1 and 0 |
+
+All three comparisons reused previously observed tasks and the same 7B checkpoint within each pair. The final variant submitted the exact dishwasher search without a Qwen call, reached genuine results, and ran out of decisions before finding a verified answer. It earned full native reward on task 221 with three model calls. The diagnostics cover 26 trajectories and 103 screenshots. The held-out success gate remains open.
+
+[OCR diagnostic metrics and browser action receipts](../examples/vwa-ocr-navigation-results.json)
+
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)

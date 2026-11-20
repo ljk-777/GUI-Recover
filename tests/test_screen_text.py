@@ -79,3 +79,21 @@ def test_explicit_search_needs_visible_empty_form_and_exact_task_phrase():
     assert action.action == "SEARCH" and action.value == "dishwasher"
     assert exact_initial_search(goal, rows[:-1], (100, 60)) is None
     assert exact_initial_search("What brand is the dishwasher?", rows, (100, 60)) is None
+
+
+def test_policy_can_submit_a_literal_task_query_without_a_model_call():
+    class Actor:
+        def prepare_image(self, screen):
+            return screen
+
+        def ask(self, screen, prompt):
+            raise AssertionError("An exact search should not use the model")
+
+    rows = [{"text": "Keyword", "bounds": [10, 5, 20, 9]},
+            {"text": "e.g., an item", "bounds": [10, 12, 40, 20]},
+            {"text": "Search", "bounds": [60, 12, 80, 20]}]
+    actor = Actor()
+    policy = EvidenceAnswerPolicy(actor, confirm=True, screen_reader=lambda screen, size: rows)
+    observation = VisualObservation('Search for "dishwasher" and find the brand.', Image.new("RGB", (100, 60)))
+    assert parse_action(policy.predict(observation, [])).action == "SEARCH"
+    assert actor.last_metrics["model_invocations"] == 0
