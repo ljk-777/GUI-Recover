@@ -1,0 +1,18 @@
+{
+  "task": "enter-text",
+  "seed": 69000,
+  "split": "test",
+  "regime": "case-input",
+  "policy": "presence_wait",
+  "success": false,
+  "return": 0.0,
+  "terminated": true,
+  "truncated": false,
+  "outcome": "browser_failure",
+  "decisions": 2,
+  "actor_requests": 2,
+  "waits": 0,
+  "repairs": 0,
+  "initial_sha256": "3f9228c29359cc115dc8ef522ed3f4dc46cd51d8787cd9311654351e4c74bfcb",
+  "trace_sha256": "3919d0a249ffaa8dd3c24434fb712ea8bf495de258e5dc66d932d7d33514b856"
+}

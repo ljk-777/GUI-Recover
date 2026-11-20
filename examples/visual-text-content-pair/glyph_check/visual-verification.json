@@ -1,0 +1,19 @@
+[
+  {
+    "status": "different",
+    "reason": "rendered_text_comparison",
+    "region": [
+      9,
+      86,
+      198,
+      114
+    ],
+    "score": 0.2740740740740741,
+    "ink_shape": [
+      15,
+      50
+    ],
+    "waited": false,
+    "decision": "RETRY_FIXED_ZOOM"
+  }
+]

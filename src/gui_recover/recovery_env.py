@@ -10,13 +10,14 @@ import numpy as np
 from PIL import Image
 
 from .actions import Action, parse_action
+from .recovery import INPUT_FAULTS
 from .verification import TransitionView
 from .verification_env import INPUT_REPAIR_PROFILES, TransitionExecution, task_request
 
 
 TASKS = ("click-button", "click-dialog", "click-tab", "enter-text")
 REGIMES = ("none", "drop-input", "deferred-input")
-SUPPORTED_REGIMES = (*REGIMES, "partial-input", "wrong-input")
+SUPPORTED_REGIMES = ("none", "deferred-input", *INPUT_FAULTS)
 FRAME_SIZE = (498, 321)
 FIXED_CROP = (0., 0., .6, .6)
 REWARD_PROFILE = "exact_terminal_v1"
