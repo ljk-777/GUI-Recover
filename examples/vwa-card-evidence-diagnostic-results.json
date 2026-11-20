@@ -1,0 +1,345 @@
+{
+  "scope": "development_reuse",
+  "source_commit": "73216f9745f3eb87541d67a467c737e75cf30a20",
+  "model": {
+    "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+    "revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+    "dtype": "bfloat16",
+    "device": "cuda",
+    "min_pixels": 3136,
+    "max_pixels": 614656,
+    "max_new_tokens": 128,
+    "do_sample": false,
+    "coordinate_format": "integer pixels in the resized image",
+    "quantization": "bitsandbytes NF4 double quantization",
+    "asset_provenance": {
+      "repository": "Qwen/Qwen2.5-VL-7B-Instruct",
+      "source": "ModelScope",
+      "weight_revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+      "files": [
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "chat_template.json",
+          "Path": "chat_template.json",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "ad60d90252ed0b0705ba14e2d0ad0fec0beac1ea955642b54059b36052d8bc96",
+          "Size": 1050,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "config.json",
+          "Path": "config.json",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+          "Size": 1374,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Update generation_config.json",
+          "CommittedDate": 1742731506,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "generation_config.json",
+          "Path": "generation_config.json",
+          "Revision": "595c93811c6f7b0cb81c5efdbcb7e6ca19f6566f",
+          "Sha256": "0a3aea82869fe29f20dc95ccf3e2bcff380eca1f5ad6447a4a4b37110b08e43e",
+          "Size": 216,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "merges.txt",
+          "Path": "merges.txt",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3",
+          "Size": 1671839,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": true,
+          "Mode": "33188",
+          "Name": "model-00001-of-00005.safetensors",
+          "Path": "model-00001-of-00005.safetensors",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "e97b877e47fde53a6c6e77aafb36e58e91ee9d95c4a3eeac6f1b5c0e6a1c986e",
+          "Size": 3900233256,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": true,
+          "Mode": "33188",
+          "Name": "model-00002-of-00005.safetensors",
+          "Path": "model-00002-of-00005.safetensors",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "a9a300a43b4724eee2abe7c18ceb26768d0ab011eb0cad19d9bfd2476a24d024",
+          "Size": 3864726320,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": true,
+          "Mode": "33188",
+          "Name": "model-00003-of-00005.safetensors",
+          "Path": "model-00003-of-00005.safetensors",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "111223d173e00bbee81cba1216fad28668df3476706b7fd26f4d5b50f8b3a507",
+          "Size": 3864726424,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": true,
+          "Mode": "33188",
+          "Name": "model-00004-of-00005.safetensors",
+          "Path": "model-00004-of-00005.safetensors",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "ef47f634fa57d46ee134edcc09f34085a47da1e16c12a2abe0d67118be6d72ed",
+          "Size": 3864733680,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": true,
+          "Mode": "33188",
+          "Name": "model-00005-of-00005.safetensors",
+          "Path": "model-00005-of-00005.safetensors",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "0c859795ad3a627a9b95bcb762e059d5b768a4a36fdd4affeff269d93fdecc67",
+          "Size": 1089994880,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "model.safetensors.index.json",
+          "Path": "model.safetensors.index.json",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "73b333b0b16e5286ddba615d2caebcd495cf7e616f52eb217a81781393d79de9",
+          "Size": 57619,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Update preprocessor_config.json",
+          "CommittedDate": 1739621177,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "preprocessor_config.json",
+          "Path": "preprocessor_config.json",
+          "Revision": "78d6bca5309f4e513181315c9ad3e68db4243a73",
+          "Sha256": "f2058c716eef96ccaed1cc1e2d0c08306b62586d535b28d9d08e691b2fab7ca0",
+          "Size": 350,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "tokenizer.json",
+          "Path": "tokenizer.json",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "Size": 7031645,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Update tokenizer_config.json",
+          "CommittedDate": 1743977800,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "tokenizer_config.json",
+          "Path": "tokenizer_config.json",
+          "Revision": "643fa78f70fc5f7c445f6deedf27338629e464ea",
+          "Sha256": "4abd3520120e266da84c0864fee064d1fb10806f02225911a47253dd38dc5f56",
+          "Size": 5702,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "vocab.json",
+          "Path": "vocab.json",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+          "Size": 2776833,
+          "Type": "blob"
+        }
+      ]
+    },
+    "native_navigation": true,
+    "compact_navigation_replies": true
+  },
+  "screen_reader": {
+    "rapidocr": "3.10.0",
+    "onnxruntime": "1.23.2",
+    "guarded_ocr": true,
+    "direct_navigation": true
+  },
+  "audited_screenshots": 17,
+  "task_ids": [
+    34,
+    106
+  ],
+  "max_predictions": 8,
+  "model_calls_cap": 8,
+  "by_task": {
+    "34": {
+      "identical_reset_pixels": true,
+      "identical_first_invalid": false,
+      "strategies": {
+        "answer-check": {
+          "predictions": 8,
+          "model_calls": 8,
+          "steps": 3,
+          "invalid_predictions": 1,
+          "invalid_action_retries": 1,
+          "repaired_predictions": 1,
+          "answer_checks": 4,
+          "answers_submitted": 0,
+          "answers_from_checks": 0,
+          "scroll_detection_signals": 0,
+          "scroll_feedbacks": 0,
+          "success": false,
+          "reason": "step_limit"
+        },
+        "evidence-cards": {
+          "predictions": 8,
+          "model_calls": 6,
+          "steps": 4,
+          "invalid_predictions": 0,
+          "invalid_action_retries": 0,
+          "repaired_predictions": 0,
+          "answer_checks": 1,
+          "answers_submitted": 1,
+          "answers_from_checks": 1,
+          "scroll_detection_signals": 0,
+          "scroll_feedbacks": 0,
+          "success": true,
+          "reason": "success"
+        }
+      },
+      "answer_outcome": {
+        "answer-check": null,
+        "evidence-cards": {
+          "source": "evidence-cards",
+          "prediction": 8,
+          "native_reward": 1.0
+        }
+      },
+      "evidence_calls": {
+        "locate": 1,
+        "grounded_search": 1,
+        "ranked_expand": 1,
+        "ranked_batch": 1,
+        "ranked_next_page": 1,
+        "ranked_prefix_found": 1,
+        "ranked_card_confirmed": 2,
+        "ranked_confirmed": 1
+      }
+    },
+    "106": {
+      "identical_reset_pixels": true,
+      "identical_first_invalid": false,
+      "strategies": {
+        "answer-check": {
+          "predictions": 8,
+          "model_calls": 8,
+          "steps": 4,
+          "invalid_predictions": 0,
+          "invalid_action_retries": 0,
+          "repaired_predictions": 0,
+          "answer_checks": 4,
+          "answers_submitted": 0,
+          "answers_from_checks": 0,
+          "scroll_detection_signals": 0,
+          "scroll_feedbacks": 0,
+          "success": false,
+          "reason": "step_limit"
+        },
+        "evidence-cards": {
+          "predictions": 4,
+          "model_calls": 4,
+          "steps": 2,
+          "invalid_predictions": 0,
+          "invalid_action_retries": 0,
+          "repaired_predictions": 0,
+          "answer_checks": 2,
+          "answers_submitted": 1,
+          "answers_from_checks": 1,
+          "scroll_detection_signals": 0,
+          "scroll_feedbacks": 0,
+          "success": true,
+          "reason": "success"
+        }
+      },
+      "answer_outcome": {
+        "answer-check": null,
+        "evidence-cards": {
+          "source": "evidence-cards",
+          "prediction": 4,
+          "native_reward": 1.0
+        }
+      },
+      "evidence_calls": {
+        "locate": 2,
+        "read": 1,
+        "confirm": 1,
+        "navigation_context": 1
+      }
+    }
+  },
+  "wrong_submissions": {
+    "answer-check": 0,
+    "evidence-cards": 0
+  },
+  "private_archive_sha256": "075d298547222e0885e4ab742c44a88480b8aea7fc50a5bf4b147c7d9ed84006"
+}

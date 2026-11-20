@@ -304,4 +304,22 @@ The audit reconstructed 16 trajectories and 76 screenshots, verified identical s
 
 [Paired results, native rewards, and evidence archive digest](../examples/vwa-classifieds-link-results.json)
 
+### Inspect ranked visual results across pages
+
+The `evidence-cards` study handles explicit keyword searches for recently listed items with a pictured subject requirement. After submitting the visible search field, it verifies the rendered query, sort label, and result range. A browser action selects the visible grid and expands the viewport to 1,800 pixels so the complete result page can be inspected. The adapter pairs visible title and thumbnail rectangles with their actual listing destinations. Qwen reads numbered screenshot crops in groups of six. Only complete consecutive result pages contribute to the ordered prefix, and each selected photo receives a separate confirmation before the policy submits the links.
+
+The study also supports direct navigation to an evidently relevant listing on the homepage for seller photo questions. A single bounds-checked model box can supply the click. On the opened listing, a literal email in the reader's evidence can become a candidate for a separate read. The confirmation checks the opened item and the displayed field using the crop and the previous click context.
+
+The auditor reconstructs page ranges, crop panels, visible navigation, the reviewed result prefix, submitted actions, and native rewards from the screenshots and saved replies. The development comparison reused tasks 34 and 106. The card policy earned native full credit on both tasks in six and four Qwen calls respectively. The concurrent control scored 0/2. Both arms made zero wrong submissions, and both pairs had identical reset pixels. The previous locked comparison recorded a control success on task 106. This development result records progress on the two diagnosed failures.
+
+```bash
+python scripts/run_visualwebarena_live.py --actor qwen --qwen-7b-4bit \
+  --model models/Qwen2.5-VL-7B-Instruct --study evidence-cards \
+  --task-set evidence-card-diagnostic --max-steps 8 --out runs/visualwebarena-card-diagnostic
+python scripts/audit_visualwebarena_live.py runs/visualwebarena-card-diagnostic \
+  --out runs/visualwebarena-card-diagnostic-audit.json
+```
+
+[Development scores, calls, and archive digest](../examples/vwa-card-evidence-diagnostic-results.json)
+
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
