@@ -277,4 +277,20 @@ All three comparisons reused previously observed tasks and the same 7B checkpoin
 
 [OCR diagnostic metrics and browser action receipts](../examples/vwa-ocr-navigation-results.json)
 
+### Verify links from visible listing titles
+
+For a link question, the evidence policy selects up to three visible listing titles by OCR index. The browser reads the same-origin link under each selected title and records the title position, exact destination, and source pixel digest. A separate model call identifies the requested listing set from the same screenshot and indexed text. Both calls receive the task and the visible text. The second call receives neither the first selection nor the destinations. The policy submits the captured destinations only if both selections cover the same distinct listings. The auditor checks pointer coordinates, frame provenance, both selections, the submitted URLs, and the native reward.
+
+The locked comparison uses eight previously unrun official Classifieds tasks with `answer-check` as the control and the same pinned Qwen 7B NF4 model in both arms. It uses an eight-decision cap with at most eight model calls per episode. Acceptance needs at least two native full-credit tasks, more successes than the control, and fewer submitted answers without full credit. Screenshots and raw trajectories stay in the run folder. The audit reports each paired start, model call count, submission outcome, and native success.
+
+```bash
+python scripts/run_visualwebarena_live.py --actor qwen --qwen-7b-4bit \
+  --model models/Qwen2.5-VL-7B-Instruct --study evidence-links \
+  --task-set evidence-links-holdout --max-steps 8 --out runs/visualwebarena-links-holdout
+python scripts/audit_visualwebarena_live.py runs/visualwebarena-links-holdout \
+  --out runs/visualwebarena-links-holdout-audit.json
+```
+
+[Locked task IDs, upstream provenance, and scoring criteria](../examples/vwa-classifieds-heldout-protocol.json)
+
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)

@@ -452,14 +452,13 @@ def audit(directory):
         report["wrong_submissions"] = wrong
         if task_set == HOLDOUT_TASK_SET:
             candidate = modes[-1]
-            gate = {"paired_initial_pixels": all(task["identical_reset_pixels"] for task in by_task.values()),
-                    "within_call_cap": all(record["counts"]["model_calls"] <= 8
-                                           for records in studies.values() for record in records),
-                    "at_least_two_native_successes": successes[candidate] >= 2,
+            peak_calls = max(record["counts"]["model_calls"] for records in studies.values() for record in records)
+            require(peak_calls <= 8, "Locked holdout exceeded the model call budget")
+            gate = {"at_least_two_native_successes": successes[candidate] >= 2,
                     "more_native_successes_than_control": successes[candidate] > successes["answer-check"],
                     "fewer_wrong_submissions_than_control": wrong[candidate] < wrong["answer-check"]}
             report.update(protocol_sha256=HOLDOUT_PROTOCOL_SHA256, acceptance_checks=gate,
-                          target_met=all(gate.values()))
+                          max_observed_model_calls=peak_calls, target_met=all(gate.values()))
         if task_set in ("evidence-transfer", "evidence-confirm-transfer", "evidence-context-transfer"):
             candidate = modes[-1]
             report["target_met"] = (len(task_ids) == 8 and budget == 8
