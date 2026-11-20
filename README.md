@@ -2,7 +2,7 @@
 
 Fault injection, visual recovery experiments, and traceable evaluation for GUI agents.
 
-**0.2.0rc1 发布候选。** 基于 ShowUI + BrowserGym/MiniWoB，保存截图、预测、执行动作和奖励，并核查恢复实验的配对与成本。[发布候选验证](docs/RELEASE_CANDIDATE.md)
+**0.2.0rc2 发布候选。** 基于 ShowUI + BrowserGym/MiniWoB，保存截图、预测、执行动作和奖励，并核查恢复实验的配对与成本。[发布候选验证](docs/RELEASE_CANDIDATE.md)
 
 [下载源码与安装包](https://github.com/ljk-777/GUI-Recover/releases/tag/v0.2.0a1) · [发布版本测试](https://github.com/ljk-777/GUI-Recover/actions/runs/44449374272)
 
@@ -72,6 +72,15 @@ gui-recover audit-text-recovery runs/text-recovery-demo
 ```
 
 默认用单个示范布局执行七种条件和两种恢复策略，共 14 条轨迹。示范可通过 `--seeds` 指定布局，使用自包含输出目录，无需历史实验数据。审计命令可在没有 GPU、模型和浏览器的机器上运行。报告保存在 `summary.json`，每条轨迹下有 PNG 和 JSONL。留出集复现命令和结果见 [视觉文本核验](docs/VISUAL_TEXT_CONTENT.md)。
+
+主动核验演示加入可逆的末尾选区操作。默认同一布局执行七种条件和三条策略，共 21 条轨迹。
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 gui-recover active-text-recovery --model models/ShowUI-2B --out runs/active-tail-demo
+gui-recover audit-active-text-recovery runs/active-tail-demo
+```
+
+选区截图及两次按键都保存在轨迹中。见 [主动核验实验](docs/ACTIVE_TEXT_VERIFICATION.md)。
 
 Alpha 的输入出现检查仍可复现。
 

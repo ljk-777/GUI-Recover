@@ -57,13 +57,19 @@ def main(argv=None, backend=None):
     compare.add_argument("--recovered", required=True)
     compare.add_argument("--clean-recovered")
     compare.add_argument("--out", required=True)
-    text_recovery = sub.add_parser("text-recovery", help="Run a paired MiniWoB text-recovery demo")
-    text_recovery.add_argument("--model", default=MODEL_ID)
-    text_recovery.add_argument("--revision", default=MODEL_REVISION)
-    text_recovery.add_argument("--seeds", nargs="+", type=int, default=[70000])
-    text_recovery.add_argument("--out", type=Path, required=True)
+    for command, seed, description in (
+        ("text-recovery", 70000, "Run a paired MiniWoB text-recovery demo"),
+        ("active-text-recovery", 76000, "Compare a reversible tail probe with two text-recovery rules"),
+    ):
+        text_recovery = sub.add_parser(command, help=description)
+        text_recovery.add_argument("--model", default=MODEL_ID)
+        text_recovery.add_argument("--revision", default=MODEL_REVISION)
+        text_recovery.add_argument("--seeds", nargs="+", type=int, default=[seed])
+        text_recovery.add_argument("--out", type=Path, required=True)
     audit_text = sub.add_parser("audit-text-recovery", help="Audit saved text-recovery traces using only CPU")
     audit_text.add_argument("directory", type=Path)
+    audit_active = sub.add_parser("audit-active-text-recovery", help="Audit the active tail probe without model or browser")
+    audit_active.add_argument("directory", type=Path)
     run = sub.add_parser("run")
     run.add_argument("--policy", choices=["oracle-smoke", "showui", "showui-scripted"], required=True)
     run.add_argument("--tasks", nargs="+", default=["click-test"])
@@ -102,18 +108,22 @@ def main(argv=None, backend=None):
         write_json(args.out, result)
         print(json.dumps(result, indent=2))
         return
-    if args.command == "text-recovery":
-        from .visual_text_study import run_text_quickstart
-
+    if args.command in ("text-recovery", "active-text-recovery"):
         if any(seed < 0 for seed in args.seeds) or len(set(args.seeds)) != len(args.seeds):
             parser.error("Seeds must be distinct and nonnegative")
         if args.out.exists():
             parser.error("Output directory already exists")
-        run_text_quickstart(args.out, args.seeds, args.model, args.revision, fingerprint())
+        if args.command == "active-text-recovery":
+            from .active_text_study import run_active_quickstart as run_quickstart
+        else:
+            from .visual_text_study import run_text_quickstart as run_quickstart
+        run_quickstart(args.out, args.seeds, args.model, args.revision, fingerprint())
         return
-    if args.command == "audit-text-recovery":
-        from .visual_text_audit import audit
-
+    if args.command in ("audit-text-recovery", "audit-active-text-recovery"):
+        if args.command == "audit-active-text-recovery":
+            from .active_text_audit import audit
+        else:
+            from .visual_text_audit import audit
         try:
             result = audit(args.directory)
         except (OSError, ValueError, KeyError, TypeError, IndexError) as exc:

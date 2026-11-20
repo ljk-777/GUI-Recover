@@ -38,3 +38,7 @@ GUI-Recover 为 MiniWoB 上的视觉 GUI Agent 提供可重复的故障注入、
 - 从安装包重新核验 SFT 的场景与图片切分、adapter 更新和重载记录，以及 110 条预 RL 轨迹。离线 Q 结果从真实训练转移重算，测试截图与训练决策截图无重叠。
 
 源码包和 wheel 均通过分发检查。自动化结果见 [GitHub CI](https://github.com/ljk-777/GUI-Recover/actions/runs/44670989450)。
+
+## 0.2.0rc2 扩展
+
+发布候选增加 `gui-recover active-text-recovery` 和 `gui-recover audit-active-text-recovery`。前者运行字形、立即重输和主动探测三路对照，后者从磁盘核验相同布局、恢复决策、选区截图和精确奖励。新命令可从安装包直接执行。正式证据和当前适用范围见 [主动核验报告](ACTIVE_TEXT_VERIFICATION.md)。

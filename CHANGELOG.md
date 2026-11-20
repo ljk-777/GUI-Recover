@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0rc2 — release candidate
+
+- Added a reversible Enter Text tail probe, native selection evidence and CPU-only version 2 trajectory audit. The installed active demo compares glyph checking, unconditional replacement and the probe on paired tasks.
+- Added real-browser online recovery studies with frozen ShowUI. The probe-timing study checks the tradeoff between saving probes and preserving exact submission under delayed trailing spaces.
+
 ## 0.2.0rc1 — release candidate
 
 - Added installed commands for paired visual text recovery and CPU-only evidence audit. Recovered 18/18 injected visible errors in six MiniWoB layouts and measured the invisible trailing-space failure.

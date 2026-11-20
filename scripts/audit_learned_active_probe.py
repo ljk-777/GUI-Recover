@@ -7,6 +7,7 @@ from pathlib import Path
 from random import Random
 
 from gui_recover.active_text import ActiveTextPolicy
+from gui_recover.active_text_audit import audit_branch
 from gui_recover.probe_learning import FrozenProbeChoice, ProbeLearner, adjusted_return, skip_after_wait
 from gui_recover.recovery_env import Decision
 from gui_recover.recovery_rollouts import iter_learning_episodes
@@ -14,7 +15,6 @@ from gui_recover.verification_env import DEFERRED_TAIL_REGIME
 from gui_recover.visual_text import VisualTextVerifier
 from gui_recover.visual_text_audit import checked_file, read_json, require
 
-from audit_active_text_verification import audit_branch
 from run_learned_active_probe import POLICIES, summarize
 
 
