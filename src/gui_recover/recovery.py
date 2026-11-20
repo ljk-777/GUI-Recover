@@ -61,6 +61,7 @@ class VisualSignal:
     unchanged_after_click: bool
     mean_pixel_difference: float
     execution_error: str
+    unchanged_after_scroll: bool = False
 
 
 def detect(before, after, proposed, threshold=0.002):
@@ -71,14 +72,17 @@ def detect(before, after, proposed, threshold=0.002):
         b = np.asarray(after.screenshot, dtype=np.float32)
         difference = float(np.abs(a - b).mean() / 255)
     return VisualSignal(proposed.action == "CLICK" and difference <= threshold,
-                        difference, after.last_action_error)
+                        difference, after.last_action_error,
+                        unchanged_after_scroll=proposed.action == "SCROLL" and difference == 0.0)
 
 
 class FeedbackRecovery:
-    def __init__(self, enabled=False, limit=2):
+    def __init__(self, enabled=False, limit=2, *, scroll=False):
         self.enabled = enabled
         self.limit = limit
+        self.scroll = scroll
         self.used = 0
+        self.scroll_used = 0
 
     def feedback(self, signal):
         if not self.enabled or self.used >= self.limit:
@@ -89,6 +93,11 @@ class FeedbackRecovery:
             message = ("The previous click produced little or no visible change. "
                        "Reobserve the screenshot and check the intended target. "
                        "Choose the next action; do not assume the previous click completed the task.")
+        elif self.scroll and signal.unchanged_after_scroll:
+            message = ("The previous scroll left the viewport unchanged. "
+                       "Inspect the visible page before choosing the next action. "
+                       "If you reached an edge, consider scrolling in the other direction.")
+            self.scroll_used += 1
         else:
             return None
         self.used += 1

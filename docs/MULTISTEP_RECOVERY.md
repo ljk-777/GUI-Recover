@@ -110,7 +110,7 @@ The Qwen adapter recognizes the observed labelled scroll form as one fixed-size 
 ```bash
 python scripts/run_visualwebarena_live.py --actor qwen --model models/Qwen2.5-VL-3B-Instruct \
   --study format --task-set transfer --max-steps 6 --out runs/visualwebarena-format-transfer
-python scripts/audit_visualwebarena_format.py runs/visualwebarena-format-transfer \
+python scripts/audit_visualwebarena_live.py runs/visualwebarena-format-transfer \
   --out runs/visualwebarena-format-transfer-audit.json
 ```
 

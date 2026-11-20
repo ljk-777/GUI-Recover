@@ -59,8 +59,10 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
     invalid_predictions = invalid_action_retries = repaired_predictions = 0
     retrying_invalid = False
     injector = ActionFault(fault_kind, fault_seed)
-    controller = FeedbackRecovery(enabled=recovery == "feedback")
+    controller = FeedbackRecovery(enabled=recovery in ("feedback", "scroll-feedback"),
+                                  scroll=recovery == "scroll-feedback")
     detection_signals = 0
+    scroll_detection_signals = 0
 
     def emit(event):
         with trajectory.open("a", encoding="utf-8") as file:
@@ -131,6 +133,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
             steps += 1
             signal = detect(before_obs, obs, action)
             detection_signals += signal.unchanged_after_click or bool(signal.execution_error)
+            scroll_detection_signals += signal.unchanged_after_scroll
             task_info = info.get("task_info", {})
             execution_errors += bool(obs.last_action_error)
             emit({"event": "transition", "step": index, "action": executed.to_dict(),
@@ -141,6 +144,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
             emit({"event": "diagnostic", "step": index, "proposed_action": action.to_dict(),
                   "executed_action": executed.to_dict(), "fault": fault,
                   "unchanged_after_click": signal.unchanged_after_click,
+                  "unchanged_after_scroll": signal.unchanged_after_scroll,
                   "mean_pixel_difference": signal.mean_pixel_difference})
             if hasattr(policy, "observe_transition"):
                 observation = policy.observe_transition(before_obs, obs, action)
@@ -153,11 +157,13 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
             if terminated or truncated:
                 reason = "success" if success else ("truncated" if truncated else "task_failure")
                 break
-            feedback = controller.feedback(signal)
+            previous_scroll_feedbacks = controller.scroll_used
+            feedback = controller.feedback(signal) if index + 1 < max_steps else None
             if hasattr(policy, "set_feedback"):
                 policy.set_feedback(feedback)
             if feedback:
-                emit({"event": "recovery_feedback", "step": index, "message": feedback})
+                emit({"event": "recovery_feedback", "step": index, "message": feedback,
+                      "scroll": controller.scroll_used > previous_scroll_feedbacks})
     except Exception as exc:
         reason = "runtime_error"
         emit({"event": "error", "error_type": type(exc).__name__, "error": str(exc)})
@@ -174,7 +180,8 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
     result["input_guard"] = getattr(policy, "guard_metrics", None)
     result.update({"fault_kind": fault_kind, "fault_seed": fault_seed,
                    "injected": injector.injected, "recovery": recovery,
-                   "recovery_feedbacks": controller.used, "detection_signals": detection_signals})
+                   "recovery_feedbacks": controller.used, "detection_signals": detection_signals,
+                   "scroll_feedbacks": controller.scroll_used, "scroll_detection_signals": scroll_detection_signals})
     write_json(directory / "episode.json", result)
     emit({"event": "episode_end", **result})
     return result

@@ -34,6 +34,22 @@ def test_detector_is_pixel_only_and_feedback_is_bounded():
     assert FeedbackRecovery().feedback(unchanged) is None
 
 
+def test_scroll_feedback_requires_an_unchanged_viewport_and_explicit_opt_in():
+    scroll = Action("SCROLL", "up")
+    before = obs()
+    nearly_identical = obs()
+    nearly_identical.screenshot.putpixel((0, 0), (254, 254, 254))
+    unchanged = detect(before, obs(), scroll)
+    assert unchanged.unchanged_after_scroll
+    assert not detect(before, nearly_identical, scroll).unchanged_after_scroll
+    assert FeedbackRecovery(enabled=True).feedback(unchanged) is None
+
+    controller = FeedbackRecovery(enabled=True, scroll=True, limit=1)
+    assert "viewport unchanged" in controller.feedback(unchanged)
+    assert controller.scroll_used == controller.used == 1
+    assert controller.feedback(unchanged) is None
+
+
 def test_injection_metadata_never_reaches_policy(tmp_path):
     from gui_recover.runner import run_episode
 

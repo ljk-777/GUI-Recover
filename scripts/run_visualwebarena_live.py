@@ -21,6 +21,11 @@ BACKEND_VARIABLES = ("VWA_CLASSIFIEDS", "VWA_SHOPPING", "VWA_REDDIT", "VWA_WIKIP
 READ_ONLY_TASKS = (118, 120, 149)
 TRANSFER_TASKS = (11, 12, 22, 49, 119, 128, 148, 186, 221, 222)
 TASK_SETS = {"diagnostic": READ_ONLY_TASKS, "transfer": TRANSFER_TASKS}
+STUDY_MODES = {
+    "visual": ("none", "feedback"),
+    "format": ("none", "retry", "feedback"),
+    "scroll": ("feedback", "scroll-feedback"),
+}
 
 
 def live_preflight():
@@ -125,7 +130,7 @@ def main():
     parser.add_argument("--actor", choices=("showui", "qwen"), default="showui")
     parser.add_argument("--device", choices=("cuda", "cpu"), default="cuda")
     parser.add_argument("--task-set", choices=TASK_SETS, default="diagnostic")
-    parser.add_argument("--study", choices=("visual", "format"), default="visual")
+    parser.add_argument("--study", choices=STUDY_MODES, default="visual")
     args = parser.parse_args()
     ready = live_preflight()
     if args.preflight:
@@ -135,8 +140,8 @@ def main():
         parser.error(f"Run the backend preflight first: {json.dumps(ready)}")
     if args.model is None or args.out is None or not 1 <= args.max_steps <= 12:
         parser.error("Provide local model, fresh output directory and a prediction budget of 1–12")
-    if args.study == "format" and args.actor != "qwen":
-        parser.error("The format study uses the Qwen navigation prompt")
+    if args.study in ("format", "scroll") and args.actor != "qwen":
+        parser.error("The format and scroll studies use the Qwen navigation prompt")
     probe_instance()
     args.out.mkdir(parents=True, exist_ok=False)
     if args.actor == "showui":
@@ -146,16 +151,16 @@ def main():
     else:
         actor = QwenGroundingPolicy(args.model, device=args.device, max_new_tokens=96, max_pixels=784 * 784)
     task_ids = TASK_SETS[args.task_set]
-    modes = ("none", "feedback") if args.study == "visual" else ("none", "retry", "feedback")
-    strategies = {mode: [] for mode in modes}
+    strategies = {mode: [] for mode in STUDY_MODES[args.study]}
     for task_id in task_ids:
-        for mode in modes:
+        for mode in strategies:
             env = VisualWebArenaEnvironment(task_id)
             try:
                 branch = args.out / f"{env.task}-{mode}"
                 row = run_episode(env, actor, env.task, 0, args.max_steps, branch,
-                                  recovery=mode if args.study == "visual" else "none",
-                                  invalid_action_retry=mode if args.study == "format" else "none",
+                                  recovery="none" if args.study == "format" else mode,
+                                  invalid_action_retry=mode if args.study == "format" else (
+                                      "feedback" if args.study == "scroll" else "none"),
                                   submit_answer=True, success_check=exact_vwa_success)
                 render_replay(branch)
                 strategies[mode].append(row)
@@ -164,6 +169,8 @@ def main():
                 env.close()
     counts = ("predictions", "model_calls", "steps", "invalid_predictions",
               "invalid_action_retries", "repaired_predictions")
+    if args.study == "scroll":
+        counts += ("scroll_feedbacks", "scroll_detection_signals")
     write_json(args.out / "summary.json", {"benchmark": "visualwebarena", "task_ids": task_ids,
         "task_set": args.task_set, "study": args.study, "budget_unit": "predictions",
         "max_steps": args.max_steps, "model": actor.config, "strategies": {
