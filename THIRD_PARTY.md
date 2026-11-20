@@ -11,6 +11,7 @@ GUI-Recover original code: Apache-2.0, see LICENSE.
 | ShowUI-web | https://huggingface.co/datasets/showlab/ShowUI-web | Training / redistribution terms need confirmation; not included |
 | Multimodal-Mind2Web | https://huggingface.co/datasets/osunlp/Multimodal-Mind2Web | Dataset card: OpenRAIL; not included |
 | Qwen2.5-VL-3B-Instruct | https://huggingface.co/Qwen/Qwen2.5-VL-3B-Instruct/blob/66285546d2b821cf421d4f5eb2576359d3770cd3/LICENSE | Qwen Research License Agreement, non-commercial research or evaluation; no weights in this repository |
+| Qwen2.5-VL-7B-Instruct | https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct | Apache-2.0 per the upstream model card. The optional local NF4 profile uses verified ModelScope weights |
 | VisualWebArena task configuration | https://github.com/web-arena-x/visualwebarena/tree/89f5af29305c3d1e9f97ce4421462060a70c9a03 | MIT upstream. Three task prompts and reference answers are used for the offline diagnostic |
 | AgentRewardBench VisualWebArena recordings | https://huggingface.co/datasets/McGill-NLP/agent-reward-bench#terms-of-use | Upstream terms govern use and derivatives, including applicable third-party rights and lawful research use. Images are downloaded locally and excluded from the repository and distributions |
 

@@ -191,4 +191,21 @@ All eight pairs started from pixel-identical resets. The crop-read arm submitted
 
 [Frozen plan and per-task evidence study results](../examples/vwa-evidence-results.json)
 
+### Confirm the answer using the viewport and crop
+
+The confirmation study lets the evidence search navigate directly if the current viewport lacks the requested result. It reads the native-pixel crop when a region is available. Before submission, the same checkpoint independently reads a panel containing the full viewport with the region outlined and the cropped detail enlarged. The verifier receives the question and images. Its answer must agree with the crop reader's candidate after formatting normalization. The CPU audit reconstructs both images from saved screenshots and rejects an answer that bypasses agreement.
+
+Both arms use the selected checkpoint and one shared call cap per episode. The confirmation comparison uses eight tasks that were outside the previous cohorts. The optional 7B profile loads locally using 4-bit NF4 with BF16 compute. Its downloader verifies the size and SHA-256 of each pinned ModelScope artifact. [Upstream 7B model card](https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct)
+
+```bash
+python scripts/download_qwen_7b.py
+python scripts/run_visualwebarena_live.py --actor qwen --qwen-7b-4bit \
+  --model models/Qwen2.5-VL-7B-Instruct --study evidence-confirm \
+  --task-set evidence-confirm-transfer --max-steps 8 --out runs/visualwebarena-confirm-transfer
+python scripts/audit_visualwebarena_live.py runs/visualwebarena-confirm-transfer \
+  --out runs/visualwebarena-confirm-transfer-audit.json
+```
+
+The CUDA profile needs the pinned Torch and Transformers versions plus `bitsandbytes==0.45.3` and `accelerate==1.4.0`.
+
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
