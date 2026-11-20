@@ -11,6 +11,8 @@ from .policies import ShowUIPolicy
 
 QWEN_REVISION = "66285546d2b821cf421d4f5eb2576359d3770cd3"
 QWEN_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
+QWEN_7B_MODEL = "Qwen/Qwen2.5-VL-7B-Instruct"
+QWEN_7B_MIRROR_REVISION = "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f"
 _LINE_SCROLL = re.compile(r"Action: SCROLL\nValue: ([+-]?[0-9]{1,6})(?:\nPosition: \[[0-9]{1,5}, [0-9]{1,5}\])?")
 VISIBLE_ANSWER_PROMPT = (
     "Check whether this screenshot contains enough evidence to answer the question. "
@@ -66,7 +68,8 @@ class QwenGroundingPolicy:
 
     _generate = ShowUIPolicy._generate
 
-    def __init__(self, model, *, revision=QWEN_REVISION, max_new_tokens=48, max_pixels=448 * 448, device="cuda"):
+    def __init__(self, model, *, revision=QWEN_REVISION, max_new_tokens=48, max_pixels=448 * 448,
+                 device="cuda", load_in_4bit=False):
         import torch
         from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
 
@@ -74,7 +77,23 @@ class QwenGroundingPolicy:
             raise ValueError("Expected Qwen device cuda or cpu")
         if device == "cuda" and (not torch.cuda.is_available() or not torch.cuda.is_bf16_supported()):
             raise RuntimeError("Qwen CUDA grounding requires a BF16 GPU")
-        model = str(Path(model).resolve(strict=True))
+        if load_in_4bit and device != "cuda":
+            raise ValueError("The 4-bit profile requires CUDA")
+        model_dir = Path(model).resolve(strict=True)
+        manifest = None
+        weights = {}
+        if load_in_4bit:
+            from transformers import BitsAndBytesConfig
+
+            manifest = json.loads((model_dir / "download_manifest.json").read_text())
+            if (manifest["repository"] != QWEN_7B_MODEL
+                    or manifest["weight_revision"] != QWEN_7B_MIRROR_REVISION):
+                raise ValueError("Expected the pinned Qwen 7B snapshot")
+            weights = {"device_map": {"": 0},
+                       "quantization_config": BitsAndBytesConfig(load_in_4bit=True,
+                           bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16,
+                           bnb_4bit_use_double_quant=True)}
+        model = str(model_dir)
         self.device = "cuda:0" if device == "cuda" else "cpu"
         self.torch = torch
         self.max_new_tokens = max_new_tokens
@@ -84,12 +103,18 @@ class QwenGroundingPolicy:
             min_pixels=self.min_pixels, max_pixels=self.max_pixels, trust_remote_code=False)
         self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(model, local_files_only=True,
             torch_dtype=torch.bfloat16, attn_implementation="sdpa", use_safetensors=True,
-            trust_remote_code=False).to(self.device).eval()
+            trust_remote_code=False, **weights)
+        if not load_in_4bit:
+            self.model = self.model.to(self.device)
+        self.model.eval()
         self.last_metrics = {}
         self.recovery_feedback = None
         self.config = {"model": QWEN_MODEL, "revision": revision, "dtype": "bfloat16", "device": device,
             "min_pixels": self.min_pixels, "max_pixels": self.max_pixels, "max_new_tokens": self.max_new_tokens,
             "do_sample": False, "coordinate_format": "integer pixels in the resized image"}
+        if manifest is not None:
+            self.config.update(model=QWEN_7B_MODEL, revision=QWEN_7B_MIRROR_REVISION,
+                               quantization="bitsandbytes NF4 double quantization", asset_provenance=manifest)
 
     def reset(self, seed):
         self.torch.manual_seed(seed)
