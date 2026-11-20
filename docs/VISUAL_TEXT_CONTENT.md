@@ -32,6 +32,12 @@ CUDA_VISIBLE_DEVICES=0 python scripts/run_visual_text_content.py \
 
 Use a fresh output directory for each run. The earlier interrupted run is preserved under `runs/visual-text-content-001`.
 
+With the release candidate installed, you can repeat the same six fixed seeds without the historical registries. This path reports the run as a quickstart and uses the same paired browser execution and reward.
+
+```bash
+gui-recover text-recovery --model models/ShowUI-2B --seeds 69000 69001 69002 69004 69005 69006 --out runs/text-recovery-repeat
+```
+
 ## CPU audit
 
 Run this with the project installed. The source checkout also provides `scripts/audit_visual_text_content.py` as an alias.
