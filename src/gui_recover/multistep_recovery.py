@@ -29,9 +29,12 @@ FOCUS_STYLE = "button:focus { outline: 3px solid rgb(239,9,177) !important; }"
 
 def layout_fixture(run):
     """Use privileged geometry only to construct controlled trials and their shared suffix."""
-    if run.env.task != FORM:
-        return click_fixture(run)
     page = run.env.env.unwrapped.page
+    if run.env.task != FORM:
+        data, reason = click_fixture(run)
+        if data:
+            data["target_box"] = control_box(page, data["correct"])
+        return data, reason
     points = page.evaluate("""() => ['tt', 'subbtn'].map(id => {
         const r = document.getElementById(id).getBoundingClientRect();
         const x = r.left + r.width / 2, y = r.top + r.height / 2;
@@ -40,7 +43,15 @@ def layout_fixture(run):
     if not all(points):
         return None, "form_control_unreachable"
     return {"target": "text field", "correct": points[0], "blank": [0.9, 0.9],
-            "wrong_control": None, "continuation": points[1:]}, None
+            "wrong_control": None, "continuation": points[1:], "target_box": control_box(page, points[0])}, None
+
+
+def control_box(page, point):
+    return page.evaluate("""([x,y]) => {
+        const r = document.elementFromPoint(x * innerWidth, y * innerHeight).getBoundingClientRect();
+        return [Math.max(0,r.left/innerWidth), Math.max(0,r.top/innerHeight),
+                Math.min(1,r.right/innerWidth), Math.min(1,r.bottom/innerHeight)];
+    }""", point)
 
 
 def register(groups, known_hashes=()):
@@ -166,9 +177,10 @@ class Recovery:
         def view(phase="immediate"):
             return TransitionView(source.screenshot, run.obs.screenshot, run.proposed, source.goal, target, phase)
 
-        def relocate(current, *, execute=True):
+        def relocate(current, *, execute=True, fixed=True):
             evidence["relocation_requests"] += 1
-            result = self.repair_actor.repair(current, "feedback_zoom", fixed_crop=(0, 0, .60, .60))
+            bounds = (0, 0, .60, .60) if fixed else None
+            result = self.repair_actor.repair(current, "feedback_zoom", fixed_crop=bounds)
             evidence["relocation"] = result
             if execute and result["point"] is not None:
                 repair(result["point"])
@@ -178,6 +190,8 @@ class Recovery:
             if len(run.events) - start + evidence["focus_probes"] >= EXTRA_BUDGET:
                 raise RuntimeError("Recovery exhausted its fixed browser operation budget")
             evidence["repairs"] += 1
+            evidence["repair_evidence"].append({"observation": next(reversed(evidence["frames"])),
+                                                "position": list(position)})
             run.repair(position, input_profile="replace" if target == "text field" else "legacy")
             save(run.obs, f"repair-{evidence['repairs']}")
 
@@ -194,7 +208,7 @@ class Recovery:
             save(replace(run.obs, screenshot=restored), "focus-restored")
             evidence["decisions"].append(verdict)
             if verdict["status"] == "unfocused":
-                relocate(view())
+                relocate(view(), fixed=False)
             return
         if target.startswith('The checkbox labeled "'):
             if self.checkbox is None:
@@ -256,7 +270,7 @@ def run_trial(scene, regime, method, actor, recovery, out):
     out.mkdir(parents=True, exist_ok=False)
     row = {key: scene[key] for key in ("task", "seed", "split", "goal")}
     row.update(regime=regime, method=method, trace="record.json", frames={}, focus_probes=0,
-               waits=0, probes=0, repairs=0, relocation_requests=0, decisions=[])
+               waits=0, probes=0, repairs=0, relocation_requests=0, decisions=[], repair_evidence=[])
 
     def save(obs, name):
         if name in row["frames"]:

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "seed": 20261120,
+  "base_revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+  "training": {
+    "steps": 32,
+    "gradient_accumulation": 2,
+    "learning_rate": 0.0001,
+    "lora_rank": 8,
+    "lora_alpha": 16,
+    "min_pixels": 200704,
+    "max_pixels": 614656
+  }
+}
