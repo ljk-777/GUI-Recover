@@ -117,5 +117,17 @@ def test_qwen_navigation_translates_one_action_and_keeps_the_raw_reply():
     assert json.loads(policy.predict(obs, [])) == {"action": "CLICK", "value": None, "position": [0.45, 0.25]}
     policy._generate = lambda messages: '{"action":"SCROLL","value":-1,"position":[0.5,0.5]}'
     assert json.loads(policy.predict(obs, [])) == {"action": "SCROLL", "value": "up", "position": None}
-    policy._generate = lambda messages: '{"action":"CLICK","value":null,"position":[false, 2]}'
-    assert policy.predict(obs, []) == ""
+    assert policy.last_metrics["provider_format"] == "json"
+
+    raw = "Action: SCROLL\nValue: -1036\nPosition: [504, 292]"
+    policy._generate = lambda messages: raw
+    assert json.loads(policy.predict(obs, [])) == {"action": "SCROLL", "value": "up", "position": None}
+    assert policy.last_metrics["provider_output"] == raw
+    assert policy.last_metrics["provider_format"] == "line_scroll"
+
+    for malformed in ('{"action":"CLICK","value":null,"position":[false, 2]}',
+                      "Action: INPUT\nValue: 250.00 $", "Action: SCROLL\nValue: 0",
+                      raw + "\nAction: CLICK\nPosition: [4, 2]"):
+        policy._generate = lambda messages: malformed
+        assert policy.predict(obs, []) == ""
+        assert policy.last_metrics["provider_format"] == "invalid"

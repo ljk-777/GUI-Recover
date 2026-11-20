@@ -9,6 +9,16 @@ from .actions import ActionError, parse_action
 from .recovery import ActionFault, FeedbackRecovery, detect
 
 
+INVALID_ACTION_FEEDBACK = (
+    "The previous response was invalid and no browser action ran. "
+    "Use one JSON object with action, value, and position. "
+    "CLICK and INPUT require two coordinates, with a null value for CLICK. "
+    "For SCROLL use a direction and null position. "
+    "If the answer is already visible, use ANSWER with the answer as value and null position. "
+    "Use INPUT only to enter text in a visible field."
+)
+
+
 def write_json(path, data):
     Path(path).write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
@@ -23,7 +33,12 @@ def is_success(reward, terminated, truncated, task_info):
 
 def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict",
                 fault_kind="none", fault_seed=0, recovery="none", *,
-                submit_answer=False, success_check=is_success):
+                submit_answer=False, success_check=is_success, invalid_action_retry="none"):
+    """Run up to max_steps predictions, including any retry on the same observation."""
+    if invalid_action_retry not in ("none", "retry", "feedback"):
+        raise ValueError("Unknown invalid-action retry mode")
+    if invalid_action_retry == "feedback" and not callable(getattr(policy, "set_feedback", None)):
+        raise ValueError("Invalid-action feedback requires a policy with set_feedback")
     directory = Path(out_dir)
     directory.mkdir(parents=True, exist_ok=False)
     trajectory = directory / "trajectory.jsonl"
@@ -41,6 +56,8 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
     history = []
     metadata = {}
     normalized_outputs = 0
+    invalid_predictions = invalid_action_retries = repaired_predictions = 0
+    retrying_invalid = False
     injector = ActionFault(fault_kind, fault_seed)
     controller = FeedbackRecovery(enabled=recovery == "feedback")
     detection_signals = 0
@@ -87,9 +104,23 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
                         emit({"event": "format_normalized", "step": index,
                               "action": action.to_dict(), "parser": "mixed"})
             except ActionError as exc:
-                reason = "invalid_action"
+                invalid_predictions += 1
                 emit({"event": "error", "step": index, "error": str(exc)})
+                if invalid_action_retry != "none" and not invalid_action_retries and index + 1 < max_steps:
+                    feedback = INVALID_ACTION_FEEDBACK if invalid_action_retry == "feedback" else None
+                    if feedback:
+                        policy.set_feedback(feedback)
+                    invalid_action_retries += 1
+                    retrying_invalid = True
+                    emit({"event": "invalid_action_retry", "step": index, "mode": invalid_action_retry,
+                          "next_prediction": index + 1, "message": feedback})
+                    continue
+                reason = "invalid_action"
                 break
+            if retrying_invalid:
+                repaired_predictions += 1
+                retrying_invalid = False
+                emit({"event": "invalid_action_repaired", "step": index, "action": action.to_dict()})
             if action.action == "ANSWER" and not submit_answer:
                 reason = "policy_stop"
                 emit({"event": "stop", "step": index, "action": action.to_dict()})
@@ -137,6 +168,8 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
               "elapsed_seconds": time.perf_counter() - start, "environment": metadata,
               "metrics": getattr(policy, "last_metrics", {})}
     result["normalized_outputs"] = normalized_outputs
+    result.update({"invalid_action_retry": invalid_action_retry, "invalid_predictions": invalid_predictions,
+                   "invalid_action_retries": invalid_action_retries, "repaired_predictions": repaired_predictions})
     result["model_calls"] = model_calls if model_calls_known else None
     result["input_guard"] = getattr(policy, "guard_metrics", None)
     result.update({"fault_kind": fault_kind, "fault_seed": fault_seed,

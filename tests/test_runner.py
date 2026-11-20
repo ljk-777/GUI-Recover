@@ -67,3 +67,43 @@ def test_policy_stop_does_not_inflate_inference_calls(tmp_path):
                          "fake", 0, 2, tmp_path / "episode")
     assert result["predictions"] == 1
     assert result["model_calls"] == 0
+
+
+@pytest.mark.parametrize("mode,budget,expected_predictions,expected_steps,expected_retries", [
+    ("none", 3, 1, 0, 0),
+    ("retry", 3, 3, 1, 1),
+    ("feedback", 3, 3, 1, 1),
+    ("feedback", 1, 1, 0, 0),
+])
+def test_invalid_action_retry_has_same_observation_and_shared_budget(
+        tmp_path, mode, budget, expected_predictions, expected_steps, expected_retries):
+    class RetryPolicy:
+        last_metrics = {"model_invocations": 1}
+
+        def __init__(self):
+            self.calls = []
+            self.feedback = None
+
+        def set_feedback(self, message):
+            self.feedback = message
+
+        def predict(self, obs, history):
+            self.calls.append((obs, len(history), self.feedback))
+            if len(self.calls) == 2:
+                return '{"action":"CLICK","value":null,"position":[0.5,0.5]}'
+            return "invalid"
+
+    policy = RetryPolicy()
+    result = run_episode(FakeEnv(), policy, "fake", 0, budget, tmp_path / "episode",
+                         invalid_action_retry=mode)
+    assert result["reason"] == "invalid_action"
+    assert result["predictions"] == result["model_calls"] == expected_predictions
+    assert result["steps"] == expected_steps
+    assert result["invalid_predictions"] == expected_predictions - expected_steps
+    assert result["invalid_action_retries"] == result["repaired_predictions"] == expected_retries
+    if expected_retries:
+        first, retry, next_step = policy.calls
+        assert first[0] is retry[0]
+        assert first[1] == retry[1] == 0
+        assert bool(retry[2]) == (mode == "feedback")
+        assert next_step[1:] == (1, None)
