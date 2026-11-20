@@ -73,7 +73,7 @@ def _visible_address(url):
 def contextual_observation(base, observation, *, references=None):
     """Use BrowserGym's rendered tab metadata and the task's explicit goal references."""
     messages = observation.get("goal_object", ())
-    images = tuple(_inline_image(message["url"]) for message in messages
+    images = tuple(_inline_image(message["image_url"]["url"]) for message in messages
                    if message["type"] == "image_url") if references is None else references
     if images and (not messages or messages[0]["type"] != "text"):
         raise ValueError("A reference image needs its original goal text")

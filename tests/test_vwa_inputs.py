@@ -54,7 +54,7 @@ def test_structured_goal_and_browser_tabs_reach_qwen_in_original_image_order():
     task = {"goal_object": [
         {"type": "text", "text": "Which listing matches this photo?"},
         {"type": "text", "text": "Reference metadata and private path"},
-        {"type": "image_url", "url": "data:image/png;base64," + base64.b64encode(reference_png()).decode()}],
+        {"type": "image_url", "image_url": {"url": "data:image/png;base64," + base64.b64encode(reference_png()).decode()}}],
         "open_pages_titles": ("Results", "Homepage"),
         "open_pages_urls": ("http://localhost:5555/search", "http://localhost:5555/"),
         "active_page_index": [1]}
