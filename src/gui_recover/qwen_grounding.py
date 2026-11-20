@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from .actions import ActionError, _unique_dict
+from .actions import ActionError, _unique_dict, parse_action
 from .policies import ShowUIPolicy
 
 
@@ -11,14 +11,18 @@ QWEN_REVISION = "66285546d2b821cf421d4f5eb2576359d3770cd3"
 QWEN_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
 
 
-def parse_pixel_point(raw, width, height):
+def read_reply(raw):
     if len(raw) > 4096:
-        raise ActionError("Qwen grounding response is too long")
+        raise ActionError("Qwen response is too long")
     raw = raw.strip()
     if raw.startswith("```") and raw.endswith("```"):
         raw = "\n".join(raw.splitlines()[1:-1])
+    return json.loads(raw, object_pairs_hook=_unique_dict)
+
+
+def parse_pixel_point(raw, width, height):
     try:
-        data = json.loads(raw, object_pairs_hook=_unique_dict)
+        data = read_reply(raw)
         if isinstance(data, list) and len(data) == 1:
             data = data[0]
         if not isinstance(data, dict) or set(data) != {"point_2d"}:
@@ -59,26 +63,73 @@ class QwenGroundingPolicy:
             torch_dtype=torch.bfloat16, attn_implementation="sdpa", use_safetensors=True,
             trust_remote_code=False).to(self.device).eval()
         self.last_metrics = {}
+        self.recovery_feedback = None
         self.config = {"model": QWEN_MODEL, "revision": revision, "dtype": "bfloat16", "device": device,
             "min_pixels": self.min_pixels, "max_pixels": self.max_pixels, "max_new_tokens": self.max_new_tokens,
             "do_sample": False, "coordinate_format": "integer pixels in the resized image"}
 
-    def ground(self, screen, query):
+    def reset(self, seed):
+        self.torch.manual_seed(seed)
+        self.recovery_feedback = None
+        if self.device.startswith("cuda"):
+            self.torch.cuda.reset_peak_memory_stats()
+
+    def set_feedback(self, message):
+        self.recovery_feedback = message
+
+    def prepare_image(self, screen):
         from PIL import Image
         from transformers.models.qwen2_vl.image_processing_qwen2_vl import smart_resize
 
         height, width = smart_resize(screen.height, screen.width, factor=28,
             min_pixels=self.min_pixels, max_pixels=self.max_pixels)
-        canvas = screen.convert("RGB").resize((width, height), Image.Resampling.BICUBIC)
+        return screen.convert("RGB").resize((width, height), Image.Resampling.BICUBIC)
+
+    def ask(self, canvas, request):
+        messages = [{"role": "user", "content": [
+            {"type": "image", "image": canvas}, {"type": "text", "text": request}]}]
+        raw = self._generate(messages)
+        self.last_metrics.update(provider_output=raw, provider_image_size=list(canvas.size))
+        return raw
+
+    def ground(self, screen, query):
+        canvas = self.prepare_image(screen)
+        width, height = canvas.size
         request = (f"Locate the center of this clickable element: {query}\n"
                    f"The image is {width} pixels wide and {height} pixels high. "
                    "Use absolute pixels with the top-left as origin. "
                    'Return exactly one JSON object of the form {"point_2d":[x,y]} with integer coordinates.')
-        messages = [{"role": "user", "content": [
-            {"type": "image", "image": canvas}, {"type": "text", "text": request}]}]
-        raw = self._generate(messages)
-        self.last_metrics.update(provider_output=raw, provider_image_size=[width, height])
+        raw = self.ask(canvas, request)
         try:
             return json.dumps(parse_pixel_point(raw, width, height))
         except ActionError:
+            return ""
+
+    def predict(self, observation, history):
+        canvas = self.prepare_image(observation.screenshot)
+        width, height = canvas.size
+        request = (
+            f"Task: {observation.goal}\n"
+            f"Previous actions: {json.dumps(history[-4:], ensure_ascii=False)}\n"
+            f"Latest execution error: {observation.last_action_error}\n"
+            f"{self.recovery_feedback or ''}\n"
+            "Return exactly one JSON object with keys action, value, position. "
+            f"Use integer pixel positions in this {width} by {height} image. "
+            "CLICK has null value and [x,y] position. INPUT has string value and [x,y]. "
+            "SCROLL has value up or down and null position. "
+            "ANSWER has the exact short answer as value and null position. "
+            "Use only these four actions. Inspect the image and avoid repeating a failed action."
+        )
+        raw = self.ask(canvas, request)
+        try:
+            data = read_reply(raw)
+            if not isinstance(data, dict) or set(data) != {"action", "value", "position"}:
+                raise ValueError("Expected one action dictionary")
+            if data["action"] in ("CLICK", "INPUT"):
+                data["position"] = parse_pixel_point(json.dumps({"point_2d": data["position"]}), width, height)
+            action = parse_action(json.dumps(data))
+            if action.action not in ("CLICK", "INPUT", "SCROLL", "ANSWER"):
+                raise ValueError("Unsupported Qwen navigation action")
+            return json.dumps(action.to_dict())
+        except (ValueError, RecursionError):
             return ""

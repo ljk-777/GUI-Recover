@@ -11,6 +11,7 @@ from urllib.request import urlopen
 from gui_recover.actions import Action, compile_action, parse_action
 from gui_recover.environment import MiniwobEnvironment
 from gui_recover.policies import MODEL_REVISION, ShowUIPolicy
+from gui_recover.qwen_grounding import QwenGroundingPolicy
 from gui_recover.runner import aggregate, render_replay, run_episode, write_json
 
 
@@ -81,6 +82,8 @@ def main():
     parser.add_argument("--model", type=Path)
     parser.add_argument("--out", type=Path)
     parser.add_argument("--max-steps", type=int, default=8)
+    parser.add_argument("--actor", choices=("showui", "qwen"), default="showui")
+    parser.add_argument("--device", choices=("cuda", "cpu"), default="cuda")
     args = parser.parse_args()
     ready = live_preflight()
     if args.preflight:
@@ -92,7 +95,12 @@ def main():
         parser.error("Provide local model, fresh output directory and a step budget of 1–12")
     probe_instance()
     args.out.mkdir(parents=True, exist_ok=False)
-    actor = ShowUIPolicy(str(args.model), revision=MODEL_REVISION, max_new_tokens=96)
+    if args.actor == "showui":
+        if args.device != "cuda":
+            parser.error("ShowUI requires the CUDA profile")
+        actor = ShowUIPolicy(str(args.model), revision=MODEL_REVISION, max_new_tokens=96)
+    else:
+        actor = QwenGroundingPolicy(args.model, device=args.device, max_new_tokens=96, max_pixels=784 * 784)
     rows = []
     for task_id in READ_ONLY_TASKS:
         for mode in ("none", "feedback"):
