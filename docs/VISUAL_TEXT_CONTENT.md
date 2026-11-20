@@ -44,4 +44,22 @@ The audit reads the frozen preflight, reference bank and recorded rollout files.
 
 An interrupted run reports `status: incomplete` and the count of verified episodes and pairs. The command reads completed index rows and reports any bytes left in a partial final row. It issues effect totals only when the full registered index and summary are present and consistent.
 
-The corrected engineering smoke run used one layout and seven paired conditions. Both policies succeeded on normal, dropped and delayed input. The presence-only policy failed on partial input, an appended exclamation mark and a first-letter case change. The glyph policy recovered each of those three cases. In the trailing-space condition, the glyph policy saw a visual match and both policies failed exact submission. These are engineering checks from one layout. The six-layout study is pending.
+## 正式结果
+
+冻结源码为 `8cfb665`，Chromium 为 `125.0.6422.26`。6 个留出布局各执行 7 种条件和两套策略，共 84 条原生浏览器轨迹。重跑使用独立输出目录。两次运行的布局清单与参考字形文件逐字节一致，前 40 条轨迹的截图、决策和奖励也一致。
+
+| 条件 | 只检查有无文字 | 核对字形 | 净新增成功 | 核对字形的等待 / 重输 |
+|---|---:|---:|---:|---:|
+| 正常 | 6/6 | 6/6 | 0 | 0 / 0 |
+| 延迟输入 | 6/6 | 6/6 | 0 | 6 / 0 |
+| 漏输入 | 6/6 | 6/6 | 0 | 6 / 6 |
+| 少输 | 0/6 | 6/6 | 6 | 0 / 6 |
+| 多输一个 `!` | 0/6 | 6/6 | 6 | 0 / 6 |
+| 首字母大小写错误 | 0/6 | 6/6 | 6 | 0 / 6 |
+| 末尾多一个空格 | 0/6 | 0/6 | 0 | 0 / 0 |
+
+核对字形通过预设效果门槛，共新增 18 次成功，配对回退为 0。正常、延迟与漏输入的等待和重输次数与基线一致。每次新增修复使用一次额外的 ShowUI 定位，逻辑模型请求从 90 增至 108。整个配对实验共享推理缓存，共执行 54 次实际生成。RTX 4090 D 的设备采样峰值为 5309 MiB，实测配额为 12032 MiB。
+
+六个布局的末尾空格截图均与各自的正常输入截图逐字节一致，两种策略在精确提交时均失败。漏输入和延迟输入的首次动作后截图也逐对相同，等待提供了区分它们的下一帧。结果适用于这批 MiniWoB Enter Text、短 ASCII 字符串和固定渲染条件。六个布局在多个条件下重复使用。跨字体、长文本、不同输入控件与网站的表现仍需验证。
+
+两套 CPU 复核共核对 192 个决策。公开复核命令验证了 276 张分支内截图，研究审计另核对了 222 次浏览器操作。用相同布局清单独立重渲染字形，文件哈希一致。[机器可读结果](../examples/visual-text-content-results.json) · [首字母错误的配对轨迹](../examples/visual-text-content-pair/provenance.json) · [实现检查](https://github.com/ljk-777/GUI-Recover/actions/runs/44562726672) · [复核工具检查](https://github.com/ljk-777/GUI-Recover/actions/runs/44668688098)

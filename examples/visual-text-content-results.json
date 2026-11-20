@@ -1,0 +1,273 @@
+{
+  "runtime": {
+    "python": "3.11.18",
+    "platform": "Linux-5.15.0-156-generic-x86_64-with-glibc2.39",
+    "packages": {
+      "gui-recover": "0.2.0a1",
+      "browsergym-core": "0.14.3",
+      "browsergym-miniwob": "0.14.3",
+      "gymnasium": "1.4.0",
+      "playwright": "1.44.0",
+      "torch": "2.6.0",
+      "transformers": "4.49.0",
+      "pillow": "13.0.0",
+      "numpy": "2.4.6"
+    },
+    "git_commit": "8cfb6651e1399bf05aaf026fae1a88a7a6059746",
+    "git_dirty": false,
+    "miniwob_commit": "7fd85d71a4b60325c6585396ec4f48377d049838",
+    "cuda_visible_devices": "0"
+  },
+  "browser_version": "125.0.6422.26",
+  "registered_config_sha256": "d60d34232c14aad5f59d8e7d61f37dada3c5a102867c931f1f960c1345d93d5a",
+  "summary": {
+    "conditions": {
+      "none": {
+        "presence_wait": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 12,
+          "outcomes": {
+            "success": 6
+          }
+        },
+        "glyph_check": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 12,
+          "outcomes": {
+            "success": 6
+          }
+        },
+        "paired_glyph_vs_presence": {
+          "gains": 0,
+          "losses": 0
+        },
+        "glyph_statuses": {
+          "matched": 6
+        }
+      },
+      "deferred-input": {
+        "presence_wait": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 6,
+          "repairs": 0,
+          "actor_requests": 12,
+          "outcomes": {
+            "success": 6
+          }
+        },
+        "glyph_check": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 6,
+          "repairs": 0,
+          "actor_requests": 12,
+          "outcomes": {
+            "success": 6
+          }
+        },
+        "paired_glyph_vs_presence": {
+          "gains": 0,
+          "losses": 0
+        },
+        "glyph_statuses": {
+          "empty": 6,
+          "matched": 6
+        }
+      },
+      "drop-input": {
+        "presence_wait": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 6,
+          "repairs": 6,
+          "actor_requests": 18,
+          "outcomes": {
+            "success": 6
+          }
+        },
+        "glyph_check": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 6,
+          "repairs": 6,
+          "actor_requests": 18,
+          "outcomes": {
+            "success": 6
+          }
+        },
+        "paired_glyph_vs_presence": {
+          "gains": 0,
+          "losses": 0
+        },
+        "glyph_statuses": {
+          "empty": 12
+        }
+      },
+      "partial-input": {
+        "presence_wait": {
+          "episodes": 6,
+          "successes": 0,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 12,
+          "outcomes": {
+            "browser_failure": 6
+          }
+        },
+        "glyph_check": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 0,
+          "repairs": 6,
+          "actor_requests": 18,
+          "outcomes": {
+            "success": 6
+          }
+        },
+        "paired_glyph_vs_presence": {
+          "gains": 6,
+          "losses": 0
+        },
+        "glyph_statuses": {
+          "different": 6
+        }
+      },
+      "wrong-input": {
+        "presence_wait": {
+          "episodes": 6,
+          "successes": 0,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 12,
+          "outcomes": {
+            "browser_failure": 6
+          }
+        },
+        "glyph_check": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 0,
+          "repairs": 6,
+          "actor_requests": 18,
+          "outcomes": {
+            "success": 6
+          }
+        },
+        "paired_glyph_vs_presence": {
+          "gains": 6,
+          "losses": 0
+        },
+        "glyph_statuses": {
+          "different": 6
+        }
+      },
+      "case-input": {
+        "presence_wait": {
+          "episodes": 6,
+          "successes": 0,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 12,
+          "outcomes": {
+            "browser_failure": 6
+          }
+        },
+        "glyph_check": {
+          "episodes": 6,
+          "successes": 6,
+          "waits": 0,
+          "repairs": 6,
+          "actor_requests": 18,
+          "outcomes": {
+            "success": 6
+          }
+        },
+        "paired_glyph_vs_presence": {
+          "gains": 6,
+          "losses": 0
+        },
+        "glyph_statuses": {
+          "different": 6
+        }
+      },
+      "trailing-space-input": {
+        "presence_wait": {
+          "episodes": 6,
+          "successes": 0,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 12,
+          "outcomes": {
+            "browser_failure": 6
+          }
+        },
+        "glyph_check": {
+          "episodes": 6,
+          "successes": 0,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 12,
+          "outcomes": {
+            "browser_failure": 6
+          }
+        },
+        "paired_glyph_vs_presence": {
+          "gains": 0,
+          "losses": 0
+        },
+        "glyph_statuses": {
+          "matched": 6
+        }
+      }
+    },
+    "gate": {
+      "preserved_normal_and_missing": true,
+      "no_normal_repair": true,
+      "gained_visible_errors": true
+    },
+    "profile": "test",
+    "episodes": 84,
+    "index_sha256": "a3e7f31b831723c8962c0e07c1a0f64f60926769815cd14d3e6141b41b89eab0",
+    "plan_sha256": "e2627758f5c51527ce07e9687e081a3b5e4345f8ef0ffaf1eb8214f354225ee1",
+    "bank_sha256": "907f1adf6131ab6a4d8178de89ea718f8d3919debb02824d21cbaa72a607444d",
+    "reference_texts": 6,
+    "inference": {
+      "logical_requests": 198,
+      "actual_generations": 54,
+      "actual_input_tokens": 18904,
+      "actual_generated_tokens": 699,
+      "scope": "Actual token totals exclude cached/reused original predictions with unavailable token counts"
+    },
+    "peak_cuda_reserved_bytes": 5192548352
+  },
+  "independent_audit": {
+    "status": "passed",
+    "layouts": 6,
+    "rollouts": 84,
+    "native_operations": 222,
+    "decisions_verified": 192,
+    "frame_references_verified": 768,
+    "terminal_outcomes": {
+      "success": 54,
+      "browser_failure": 30
+    },
+    "glyph_statuses": {
+      "matched": 18,
+      "empty": 18,
+      "different": 18
+    },
+    "trailing_space_matches_clean_post_action": 6,
+    "drop_matches_delay_post_action": 6,
+    "peak_sampled_gpu_mib": 5309,
+    "gpu_samples": 229
+  },
+  "effect_gate_passed": true,
+  "implementation_ci": "https://github.com/ljk-777/GUI-Recover/actions/runs/44562726672"
+}
