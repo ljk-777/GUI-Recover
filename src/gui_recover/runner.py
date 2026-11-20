@@ -22,7 +22,8 @@ def is_success(reward, terminated, truncated, task_info):
 
 
 def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict",
-                fault_kind="none", fault_seed=0, recovery="none"):
+                fault_kind="none", fault_seed=0, recovery="none", *,
+                submit_answer=False, success_check=is_success):
     directory = Path(out_dir)
     directory.mkdir(parents=True, exist_ok=False)
     trajectory = directory / "trajectory.jsonl"
@@ -89,7 +90,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
                 reason = "invalid_action"
                 emit({"event": "error", "step": index, "error": str(exc)})
                 break
-            if action.action == "ANSWER":
+            if action.action == "ANSWER" and not submit_answer:
                 reason = "policy_stop"
                 emit({"event": "stop", "step": index, "action": action.to_dict()})
                 break
@@ -117,7 +118,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
             # Proposed action is what the agent believes it executed. Actual injected
             # actions and labels are audit data only, not passed into policy history.
             history.append({"action": action.to_dict(), "execution_error": obs.last_action_error})
-            success = is_success(reward, terminated, truncated, task_info)
+            success = success_check(reward, terminated, truncated, task_info)
             if terminated or truncated:
                 reason = "success" if success else ("truncated" if truncated else "task_failure")
                 break

@@ -48,3 +48,39 @@ def test_native_button_focus_probe_distinguishes_identical_observations():
         finally:
             execution.close()
     assert marker == ["focused", "unfocused"]
+
+
+def test_benchmark_adapter_can_submit_answers_without_changing_default(tmp_path):
+    from PIL import Image
+
+    from gui_recover.environment import VisualObservation
+    from gui_recover.runner import run_episode
+
+    class Environment:
+        screen = VisualObservation("Answer the task", Image.new("RGB", (8, 8)))
+
+        def __init__(self):
+            self.actions = []
+
+        def reset(self, seed):
+            return self.screen, {}
+
+        def step(self, action):
+            self.actions.append(action)
+            return self.screen, 1, True, False, {}, "benchmark_received_answer"
+
+        def metadata(self):
+            return {}
+
+    class Model:
+        def predict(self, obs, history):
+            return '{"action":"ANSWER","value":"result","position":null}'
+
+    environment = Environment()
+    ordinary = run_episode(environment, Model(), "ordinary", 0, 1, tmp_path / "ordinary")
+    submitted = run_episode(environment, Model(), "external", 0, 1, tmp_path / "external",
+                            submit_answer=True, success_check=lambda reward, done, truncated, info:
+                            reward == 1 and done and not truncated)
+    assert ordinary["reason"] == "policy_stop"
+    assert environment.actions == [Action("ANSWER", "result")]
+    assert submitted["success"]
