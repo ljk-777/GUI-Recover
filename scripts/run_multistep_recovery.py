@@ -55,7 +55,7 @@ def create_actor(args, config):
         if file_sha256(args.model / "pytorch_model.bin") != config["showui_weights_sha256"]:
             raise ValueError("ShowUI weights differ from the protocol")
         return ShowUIPolicy(str(args.model), revision=MODEL_REVISION, max_new_tokens=32)
-    actor = QwenGroundingPolicy(args.model, revision=QWEN_REVISION)
+    actor = QwenGroundingPolicy(args.model, revision=QWEN_REVISION, device=args.device)
     weights = sorted(args.model.glob("*.safetensors"))
     if len(weights) != 2:
         raise ValueError("The pinned Qwen checkpoint requires two weight shards")
@@ -130,6 +130,7 @@ def main():
         parser.add_argument("--" + arg, type=Path, required=True)
     parser.add_argument("--profile", choices=("smoke", "formal"), default="smoke")
     parser.add_argument("--actor", choices=("showui", "qwen"), default="showui")
+    parser.add_argument("--device", choices=("cuda", "cpu"), default="cuda")
     parser.add_argument("--prior-evidence", action="append", default=[], type=Path)
     parser.add_argument("--transfer-from", type=Path)
     parser.add_argument("--layouts-per-task", type=int, default=2)
@@ -142,7 +143,9 @@ def main():
     config = json.loads(args.config.read_text())
     if config["minimum_extra_operations_budget"] != EXTRA_BUDGET:
         raise ValueError("Protocol and runtime operation budgets differ")
-    if os.environ.get("CUDA_VISIBLE_DEVICES") != "0":
+    if args.actor == "showui" and args.device != "cuda":
+        parser.error("The ShowUI profile uses CUDA")
+    if args.device == "cuda" and os.environ.get("CUDA_VISIBLE_DEVICES") != "0":
         raise ValueError("Expose only the assigned GPU 0")
     out = args.out
     out.mkdir(parents=True, exist_ok=False)
@@ -205,7 +208,7 @@ def main():
     write_json(out / "evaluation" / "summary.json", early)
     learning = compare_probes(out / "probe-evaluation", heldout, actor, text, checkbox, checkpoint, rows) if checkpoint else None
     write_json(out / "summary.json", {**early, "learning": learning, "inference": actor.counters(),
-        "peak_cuda_reserved_bytes": raw_actor.torch.cuda.max_memory_reserved()})
+        "peak_cuda_reserved_bytes": raw_actor.torch.cuda.max_memory_reserved() if args.device == "cuda" else 0})
     print("completed", out.name, flush=True)
 
 

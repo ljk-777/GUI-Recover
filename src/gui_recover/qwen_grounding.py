@@ -37,24 +37,27 @@ class QwenGroundingPolicy:
 
     _generate = ShowUIPolicy._generate
 
-    def __init__(self, model, *, revision=QWEN_REVISION, max_new_tokens=48):
+    def __init__(self, model, *, revision=QWEN_REVISION, max_new_tokens=48, max_pixels=448 * 448, device="cuda"):
         import torch
         from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
 
-        if not torch.cuda.is_available() or not torch.cuda.is_bf16_supported():
-            raise RuntimeError("Qwen grounding requires a BF16 CUDA GPU")
+        if device not in ("cuda", "cpu"):
+            raise ValueError("Expected Qwen device cuda or cpu")
+        if device == "cuda" and (not torch.cuda.is_available() or not torch.cuda.is_bf16_supported()):
+            raise RuntimeError("Qwen CUDA grounding requires a BF16 GPU")
         model = str(Path(model).resolve(strict=True))
+        self.device = "cuda:0" if device == "cuda" else "cpu"
         self.torch = torch
         self.max_new_tokens = max_new_tokens
         self.min_pixels = 56 * 56
-        self.max_pixels = 448 * 448
+        self.max_pixels = max_pixels
         self.processor = AutoProcessor.from_pretrained(model, local_files_only=True,
             min_pixels=self.min_pixels, max_pixels=self.max_pixels, trust_remote_code=False)
         self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(model, local_files_only=True,
             torch_dtype=torch.bfloat16, attn_implementation="sdpa", use_safetensors=True,
-            trust_remote_code=False).to("cuda:0").eval()
+            trust_remote_code=False).to(self.device).eval()
         self.last_metrics = {}
-        self.config = {"model": QWEN_MODEL, "revision": revision, "dtype": "bfloat16",
+        self.config = {"model": QWEN_MODEL, "revision": revision, "dtype": "bfloat16", "device": device,
             "min_pixels": self.min_pixels, "max_pixels": self.max_pixels, "max_new_tokens": self.max_new_tokens,
             "do_sample": False, "coordinate_format": "integer pixels in the resized image"}
 

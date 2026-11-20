@@ -1,0 +1,54 @@
+{
+  "kind": "recorded_visualwebarena",
+  "dataset": "McGill-NLP/agent-reward-bench",
+  "dataset_revision": "b6d17e646009d6cb63d5dd7be78807b680693f61",
+  "benchmark_revision": "89f5af29305c3d1e9f97ce4421462060a70c9a03",
+  "upstream_task_manifest_sha256": "5d7322cc3bef21c755abc966624530d15121ad73403f64177d2f06014dbfb14f",
+  "agent": "GenericAgent-gpt-4o-2024-11-20",
+  "cases": [
+    {
+      "task_id": 118,
+      "goal": "What is the time on the phone with the visible screen in the third row on this page?",
+      "recorded_action": "click",
+      "historical_environment_reward": 0.0,
+      "image_sha256": [
+        "b3aebcb39b7e1b7532dbdb59ff292fdadacae5a1720146702bbfd65d1e518f15",
+        "c45009ca8bde05d55965dbd42c56e34a2319c654e1bfa91ddcaa400ca12068a8"
+      ],
+      "trajectory_sha256": "08a4345b47b05a54d733322394bb143e96524dbed2863d6b555a74904c82ce18",
+      "accepted_answers": [
+        "3:03",
+        "303"
+      ]
+    },
+    {
+      "task_id": 120,
+      "goal": "What is written on the down tube of the bike with the purple frame on this page?",
+      "recorded_action": "click",
+      "historical_environment_reward": 0.0,
+      "image_sha256": [
+        "c3f657c1610683c4451a045e0f231da9e5c942983a31ff5f667eb7987d6a77a3",
+        "2135f4602b5d658ac6e28f33030ddfaba2e8a03eeb04fefcbd2a741bcffd2106"
+      ],
+      "trajectory_sha256": "5cf7d0a47b96edc6f5d53c64ed399dd9b7b48ee03bcb2e7a57ff6c34eff0a93a",
+      "accepted_answers": [
+        "canyon"
+      ]
+    },
+    {
+      "task_id": 149,
+      "goal": "For the item with a gold colored controller, tell me the number of games displayed in the image.",
+      "recorded_action": "scroll",
+      "historical_environment_reward": 0.0,
+      "image_sha256": [
+        "ced8534451ddf9d14f874158a801930b36949bc74be0b57443636ba33b9638ac",
+        "031ee21d0e318b80f2370036234f7e999604526a56382dce84acec17a5a00350"
+      ],
+      "trajectory_sha256": "3e02cf9f2e21b846020f093243759e0eb12625bc96e1eb5c5a0bf6474f880e75",
+      "accepted_answers": [
+        "12",
+        "twelve"
+      ]
+    }
+  ]
+}
