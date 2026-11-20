@@ -20,7 +20,7 @@ from run_visualwebarena_live import ANSWER_STUDIES, EVIDENCE_STUDIES, STUDY_MODE
 
 
 def audit_evidence(directory, predictions, frame_before_prediction, frames, goal, *,
-                   confirm=False, click_origins=None):
+                   confirm=False, click_origins=None, compact_navigation=False):
     visited = set()
     answers = set()
     stages = Counter()
@@ -61,7 +61,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
             pending = None
             size = metrics["provider_image_size"]
             try:
-                navigation = evidence_navigation(reply, size) if confirm else None
+                navigation = evidence_navigation(reply, size, compact_navigation=compact_navigation) if confirm else None
                 box = evidence_box(reply, size) if navigation is None else None
             except (ValueError, RecursionError):
                 require(raw is None, "Unusable evidence localization generated a browser action")
@@ -87,7 +87,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                     "Evidence-read pixels differ from the recorded screenshot crop")
             candidate = None
             try:
-                candidate, status = evidence_answer(reply, goal)
+                candidate, status = evidence_answer(reply, goal, allow_string_abstention=confirm)
             except (ValueError, RecursionError):
                 pass
             if candidate is None:
@@ -139,7 +139,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
 
 
 def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=False, answer_study=False,
-                  evidence_check=False, confirm=False, use_navigation_context=False):
+                  evidence_check=False, confirm=False, use_navigation_context=False, compact_navigation=False):
     events = [json.loads(line) for line in (directory / "trajectory.jsonl").read_text().splitlines()]
     row = read_json(directory / "episode.json")
     require(events[0]["event"] == "reset" and events[-1] == {"event": "episode_end", **row},
@@ -254,7 +254,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
                 click_origins[index + 1] = origin
         evidence_stages, checked_answers = audit_evidence(
             directory, predictions, frame_before_prediction, frames, events[0]["goal"],
-            confirm=confirm, click_origins=click_origins)
+            confirm=confirm, click_origins=click_origins, compact_navigation=compact_navigation)
     answer_outcome = None
     if answer_study:
         submissions = [event for event in transitions if event["action"]["action"] == "ANSWER"]
@@ -309,6 +309,7 @@ def audit(directory):
     task_ids = TASK_SETS[task_set]
     budget = summary["max_steps"]
     study = summary["study"]
+    compact_navigation = summary["model"].get("compact_navigation_replies", task_set == "evidence-navigation-diagnostic")
     require(study in ("format", "scroll", *ANSWER_STUDIES) and summary["budget_unit"] == "predictions"
             and 1 <= budget <= 12 and list(task_ids) == summary["task_ids"], "Unexpected study manifest")
     modes = STUDY_MODES[study]
@@ -328,7 +329,8 @@ def audit(directory):
                                    answer_check=mode == "answer-check", answer_study=study in ANSWER_STUDIES,
                                    evidence_check=study in EVIDENCE_STUDIES and mode != "answer-check",
                                    confirm=mode in ("evidence-confirm", "evidence-context"),
-                                   use_navigation_context=mode == "evidence-context")
+                                   use_navigation_context=mode == "evidence-context",
+                                   compact_navigation=compact_navigation)
             require(record["row"]["task"] == name and record["row"]["seed"] == record["reset"][1] == 0,
                     "Task or seed mismatch")
             studies[mode].append(record)

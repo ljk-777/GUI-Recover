@@ -7,7 +7,7 @@ from gui_recover.actions import Action, ActionError, parse_action
 from gui_recover.answer_evidence import (EvidenceAnswerPolicy, answer_signature, evidence_answer, evidence_box,
                                          confirmation_image, evidence_clipped, evidence_navigation, native_crop)
 from gui_recover.environment import VisualObservation
-from gui_recover.qwen_grounding import QwenGroundingPolicy, parse_visible_answer
+from gui_recover.qwen_grounding import QwenGroundingPolicy, normalize_qwen_action, parse_visible_answer
 
 
 @pytest.mark.parametrize("box", [[-1, 4, 9, 10], [5, 4, 5, 10], [1, 3, 21, 8],
@@ -84,6 +84,20 @@ def test_native_click_and_type_use_one_validated_input():
     assert parse_action(actor.predict(obs, [], allow_answer=False)) == Action("SCROLL", "down")
     actor._generate = lambda messages: f"{scroll}\n\n{scroll}"
     assert actor.predict(obs, [], allow_answer=False) == ""
+
+
+def test_native_click_aliases_require_one_unambiguous_pixel_point():
+    size = (20, 20)
+    for reply in ({"action": "CLICK", "value": "[5, 8]"},
+                  {"action": "CLICK", "value": [5, 8], "position": [5, 8]}):
+        assert normalize_qwen_action(reply, size, native_navigation=True) == Action(
+            "CLICK", position=(0.275, 0.425))
+    for value, position in (([5, 8], [6, 8]), ([1, 8], [True, 8]), ([5, 8], [5.0, 8])):
+        with pytest.raises(ActionError):
+            normalize_qwen_action({"action": "CLICK", "value": value, "position": position},
+                                  size, native_navigation=True)
+    assert normalize_qwen_action({"action": "SCROLL", "value": "down"}, size,
+                                 native_navigation=True) == Action("SCROLL", "down")
 
 
 def test_evidence_search_can_navigate_but_cannot_submit():
