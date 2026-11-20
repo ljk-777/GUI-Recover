@@ -12,6 +12,7 @@ from .verification_capture import capture_after_repaint
 
 
 INPUT_REPAIR_PROFILES = ("legacy", "replace")
+DEFERRED_TAIL_REGIME = "deferred-trailing-space-input"
 
 
 def task_request(task, goal):
@@ -89,10 +90,12 @@ class TransitionExecution:
         self.env.obs=self.obs
 
     def first(self):
-        if self.regime == "deferred-input":
+        if self.regime in ("deferred-input", DEFERRED_TAIL_REGIME):
             if self.proposed.action != "INPUT":
                 raise ValueError("Deferred fixture supports INPUT only")
             self.pending = self.proposed
+            if self.regime == DEFERRED_TAIL_REGIME:
+                self.pending = Action("INPUT", self.proposed.value + " ", self.proposed.position)
             actual = Action("CLICK",position=self.proposed.position)
         else:
             actual, _ = ActionFault(self.regime,self.seed).apply(self.proposed)

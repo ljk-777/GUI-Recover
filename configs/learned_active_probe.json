@@ -1,0 +1,22 @@
+{
+  "model_revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+  "weights_sha256": "68080df785764e98976eb9cc93a07c6c69cf8a6933738496e02aef55b53d2aa3",
+  "miniwob_commit": "7fd85d71a4b60325c6585396ec4f48377d049838",
+  "seed": 20261121,
+  "epsilon": 0.15,
+  "min_visits": 2,
+  "costs": {"wait": 0.02, "probe": 0.02, "repair": 0.05},
+  "train_regimes": ["none", "deferred-input", "trailing-space-input"],
+  "smoke": {
+    "train": {"start": 79000, "reserve": 50, "count": 1},
+    "test": {"start": 79100, "reserve": 50, "count": 1},
+    "passes": 2,
+    "test_regimes": ["none", "deferred-input", "trailing-space-input", "deferred-trailing-space-input"]
+  },
+  "formal": {
+    "train": {"start": 77000, "reserve": 100, "count": 3},
+    "test": {"start": 78000, "reserve": 100, "count": 2},
+    "passes": 3,
+    "test_regimes": ["none", "deferred-input", "drop-input", "partial-input", "wrong-input", "case-input", "trailing-space-input", "deferred-trailing-space-input"]
+  }
+}

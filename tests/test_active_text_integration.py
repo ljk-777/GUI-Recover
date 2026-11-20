@@ -6,7 +6,7 @@ import pytest
 from gui_recover.active_text import ActiveTextPolicy
 from gui_recover.recovery_env import Decision, ProbeDecision, RecoveryDecisionEnv
 from gui_recover.sft_recovery import center, visible_target_boxes
-from gui_recover.verification_env import TransitionExecution, teacher_evidence
+from gui_recover.verification_env import DEFERRED_TAIL_REGIME, TransitionExecution, teacher_evidence
 from gui_recover.visual_text import VisualTextVerifier
 from gui_recover.visual_text_study import prepare_references
 
@@ -38,6 +38,7 @@ def test_tail_selection_preserves_value_and_routes_only_confirmed_space(tmp_path
         ("none", "visible_tail", Decision.CONTINUE),
         ("deferred-input", "visible_tail", Decision.CONTINUE),
         ("trailing-space-input", "blank_tail", Decision.RETRY_FIXED_ZOOM),
+        (DEFERRED_TAIL_REGIME, "blank_tail", Decision.RETRY_FIXED_ZOOM),
     )
     for regime, status, continuation in cases:
         policy = ActiveTextPolicy(verifier)
@@ -49,7 +50,7 @@ def test_tail_selection_preserves_value_and_routes_only_confirmed_space(tmp_path
             obs, reward, done, truncated, info = env.step(Decision.CONTINUE)
             assert (reward, done, truncated) == (0.0, False, False), (
                 regime, info["outcome"], [e["execution_error"] for e in info["browser_events"]])
-            if regime == "deferred-input":
+            if regime in ("deferred-input", DEFERRED_TAIL_REGIME):
                 assert policy(obs) == Decision.WAIT
                 obs, _, _, _, _ = env.step(Decision.WAIT)
             original = teacher_evidence(env.execution)["observed"]
@@ -63,6 +64,6 @@ def test_tail_selection_preserves_value_and_routes_only_confirmed_space(tmp_path
             assert policy(after) == continuation and policy.evidence[-1]["selection"]["status"] == status, policy.evidence
             _, reward, done, truncated, info = env.step(continuation)
             assert (reward, done, truncated) == (1.0, True, False)
-            assert info["repairs"] == int(regime == "trailing-space-input")
+            assert info["repairs"] == int(status == "blank_tail")
         finally:
             env.close()
