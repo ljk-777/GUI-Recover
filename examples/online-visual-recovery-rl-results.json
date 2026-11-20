@@ -1,0 +1,390 @@
+{
+  "runtime": {
+    "python": "3.11.18",
+    "platform": "Linux-5.15.0-156-generic-x86_64-with-glibc2.39",
+    "packages": {
+      "gui-recover": "0.2.0a1",
+      "browsergym-core": "0.14.3",
+      "browsergym-miniwob": "0.14.3",
+      "gymnasium": "1.4.0",
+      "playwright": "1.44.0",
+      "torch": "2.6.0",
+      "transformers": "4.49.0",
+      "pillow": "13.0.0",
+      "numpy": "2.4.6"
+    },
+    "git_commit": "0efc0f2ea994ebe6e23e4b79d98c270f68c231cf",
+    "git_dirty": false,
+    "miniwob_commit": "7fd85d71a4b60325c6585396ec4f48377d049838",
+    "cuda_visible_devices": "0"
+  },
+  "protocol_sha256": "7e08703796302aa1ef521c952687b5967fd143e66930644a89a10b161e89076e",
+  "summary": {
+    "profile": "formal",
+    "index_sha256": {
+      "train": "52e3cd44e39f7be1892640b9547a5057747ca2fcb8664675a1bec208b825b6f6",
+      "test": "fe9101a7d2be52adda350931a1f899981947160974a78c613d79b76acc6426c2"
+    },
+    "plan_sha256": "0993e4593bcf7832798ee81e3a707c6e70e5ce453772e5af55be7caa02c0e4f2",
+    "bank_sha256": "b7a4b3fabf1653dcc2c2a5271a6b4ba249175181e19e3a3fa67925d6222e29cb",
+    "q_sha256": "15a44d9b65c728976c21bc9b526aac656b512f3f953024d5ace76c69bc35e43d",
+    "episodes_by_split": {
+      "train": 42,
+      "test": 42
+    },
+    "learned_test_routing": {
+      "learned_review": 14
+    },
+    "conditions": {
+      "none": {
+        "presence_wait": {
+          "episodes": 2,
+          "successes": 2,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 4,
+          "mean_adjusted_return": 1.0
+        },
+        "glyph_check": {
+          "episodes": 2,
+          "successes": 2,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 4,
+          "mean_adjusted_return": 1.0
+        },
+        "online_q": {
+          "episodes": 2,
+          "successes": 2,
+          "waits": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "mean_adjusted_return": 0.95
+        },
+        "paired_vs_presence_wait": {
+          "gains": 0,
+          "losses": 0
+        },
+        "paired_vs_glyph_check": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "deferred-input": {
+        "presence_wait": {
+          "episodes": 2,
+          "successes": 2,
+          "waits": 2,
+          "repairs": 0,
+          "actor_requests": 4,
+          "mean_adjusted_return": 0.98
+        },
+        "glyph_check": {
+          "episodes": 2,
+          "successes": 2,
+          "waits": 2,
+          "repairs": 0,
+          "actor_requests": 4,
+          "mean_adjusted_return": 0.98
+        },
+        "online_q": {
+          "episodes": 2,
+          "successes": 2,
+          "waits": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "mean_adjusted_return": 0.95
+        },
+        "paired_vs_presence_wait": {
+          "gains": 0,
+          "losses": 0
+        },
+        "paired_vs_glyph_check": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "drop-input": {
+        "presence_wait": {
+          "episodes": 2,
+          "successes": 2,
+          "waits": 2,
+          "repairs": 2,
+          "actor_requests": 6,
+          "mean_adjusted_return": 0.9299999999999999
+        },
+        "glyph_check": {
+          "episodes": 2,
+          "successes": 2,
+          "waits": 2,
+          "repairs": 2,
+          "actor_requests": 6,
+          "mean_adjusted_return": 0.9299999999999999
+        },
+        "online_q": {
+          "episodes": 2,
+          "successes": 2,
+          "waits": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "mean_adjusted_return": 0.95
+        },
+        "paired_vs_presence_wait": {
+          "gains": 0,
+          "losses": 0
+        },
+        "paired_vs_glyph_check": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "partial-input": {
+        "presence_wait": {
+          "episodes": 2,
+          "successes": 0,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 4,
+          "mean_adjusted_return": 0.0
+        },
+        "glyph_check": {
+          "episodes": 2,
+          "successes": 2,
+          "waits": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "mean_adjusted_return": 0.95
+        },
+        "online_q": {
+          "episodes": 2,
+          "successes": 2,
+          "waits": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "mean_adjusted_return": 0.95
+        },
+        "paired_vs_presence_wait": {
+          "gains": 2,
+          "losses": 0
+        },
+        "paired_vs_glyph_check": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "wrong-input": {
+        "presence_wait": {
+          "episodes": 2,
+          "successes": 0,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 4,
+          "mean_adjusted_return": 0.0
+        },
+        "glyph_check": {
+          "episodes": 2,
+          "successes": 2,
+          "waits": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "mean_adjusted_return": 0.95
+        },
+        "online_q": {
+          "episodes": 2,
+          "successes": 2,
+          "waits": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "mean_adjusted_return": 0.95
+        },
+        "paired_vs_presence_wait": {
+          "gains": 2,
+          "losses": 0
+        },
+        "paired_vs_glyph_check": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "case-input": {
+        "presence_wait": {
+          "episodes": 2,
+          "successes": 0,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 4,
+          "mean_adjusted_return": 0.0
+        },
+        "glyph_check": {
+          "episodes": 2,
+          "successes": 2,
+          "waits": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "mean_adjusted_return": 0.95
+        },
+        "online_q": {
+          "episodes": 2,
+          "successes": 2,
+          "waits": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "mean_adjusted_return": 0.95
+        },
+        "paired_vs_presence_wait": {
+          "gains": 2,
+          "losses": 0
+        },
+        "paired_vs_glyph_check": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "trailing-space-input": {
+        "presence_wait": {
+          "episodes": 2,
+          "successes": 0,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 4,
+          "mean_adjusted_return": 0.0
+        },
+        "glyph_check": {
+          "episodes": 2,
+          "successes": 0,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 4,
+          "mean_adjusted_return": 0.0
+        },
+        "online_q": {
+          "episodes": 2,
+          "successes": 2,
+          "waits": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "mean_adjusted_return": 0.95
+        },
+        "paired_vs_presence_wait": {
+          "gains": 2,
+          "losses": 0
+        },
+        "paired_vs_glyph_check": {
+          "gains": 2,
+          "losses": 0
+        }
+      }
+    },
+    "promotion_gate": {
+      "preserved_glyph_successes": true,
+      "no_clean_repairs": false,
+      "higher_adjusted_return_than_glyph": true
+    },
+    "inference": {
+      "logical_requests": 227,
+      "actual_generations": 44,
+      "actual_input_tokens": 15716,
+      "actual_generated_tokens": 567,
+      "scope": "Actual token totals exclude cached/reused original predictions with unavailable token counts"
+    },
+    "peak_cuda_reserved_bytes": 5192548352
+  },
+  "independent_audit": {
+    "status": "passed",
+    "train_checkpoint_replayed_exactly": true,
+    "registered_layouts": {
+      "train": 3,
+      "test": 2
+    },
+    "episodes_by_split": {
+      "train": 42,
+      "test": 42
+    },
+    "verified": {
+      "decisions": 182,
+      "browser_operations": 246
+    },
+    "policy_successes": {
+      "train|explore": 36,
+      "test|presence_wait": 6,
+      "test|glyph_check": 12,
+      "test|online_q": 14
+    },
+    "first_policy_choices": {
+      "72000|none": [
+        "immediate:matched",
+        "RETRY_FIXED_ZOOM"
+      ],
+      "72000|deferred-input": [
+        "immediate:empty",
+        "RETRY_FIXED_ZOOM"
+      ],
+      "72000|drop-input": [
+        "immediate:empty",
+        "RETRY_FIXED_ZOOM"
+      ],
+      "72000|partial-input": [
+        "immediate:different",
+        "RETRY_FIXED_ZOOM"
+      ],
+      "72000|wrong-input": [
+        "immediate:different",
+        "RETRY_FIXED_ZOOM"
+      ],
+      "72000|case-input": [
+        "immediate:different",
+        "RETRY_FIXED_ZOOM"
+      ],
+      "72000|trailing-space-input": [
+        "immediate:matched",
+        "RETRY_FIXED_ZOOM"
+      ],
+      "72001|none": [
+        "immediate:matched",
+        "RETRY_FIXED_ZOOM"
+      ],
+      "72001|deferred-input": [
+        "immediate:empty",
+        "RETRY_FIXED_ZOOM"
+      ],
+      "72001|drop-input": [
+        "immediate:empty",
+        "RETRY_FIXED_ZOOM"
+      ],
+      "72001|partial-input": [
+        "immediate:different",
+        "RETRY_FIXED_ZOOM"
+      ],
+      "72001|wrong-input": [
+        "immediate:different",
+        "RETRY_FIXED_ZOOM"
+      ],
+      "72001|case-input": [
+        "immediate:different",
+        "RETRY_FIXED_ZOOM"
+      ],
+      "72001|trailing-space-input": [
+        "immediate:matched",
+        "RETRY_FIXED_ZOOM"
+      ]
+    },
+    "normal_trailing_alias_pairs": 2,
+    "train_test_decision_image_overlap": 0,
+    "peak_sampled_gpu_mib": 5309,
+    "gpu_samples": 227
+  },
+  "train_only_checkpoint_replay": {
+    "status": "passed",
+    "train_episodes": 42,
+    "replayed_live_decisions": 90,
+    "q_entries": 13,
+    "checkpoint_sha256": "15a44d9b65c728976c21bc9b526aac656b512f3f953024d5ace76c69bc35e43d"
+  },
+  "action_equivalence": {
+    "baseline": "unconditional_fixed_zoom_replacement",
+    "episodes": 14,
+    "decisions": 28,
+    "equal_actions_on_all_recorded_test_observations": true
+  },
+  "implementation_ci": "https://github.com/ljk-777/GUI-Recover/actions/runs/44672468787"
+}

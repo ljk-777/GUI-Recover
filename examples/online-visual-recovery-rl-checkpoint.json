@@ -1,0 +1,66 @@
+{
+  "algorithm": "online_episodic_q_v1",
+  "discount": 1.0,
+  "costs": [
+    0.0,
+    0.02,
+    0.05,
+    0.05
+  ],
+  "epsilon": 0.2,
+  "episodes": 42,
+  "q": {
+    "immediate:different": {
+      "WAIT": 0.9299999999999999,
+      "RETRY_FIXED_ZOOM": 0.95,
+      "CONTINUE": 0.0
+    },
+    "after_wait:different": {
+      "RETRY_FIXED_ZOOM": 0.95
+    },
+    "immediate:matched": {
+      "RETRY_FIXED_ZOOM": 0.95,
+      "CONTINUE": 0.33333333333333337,
+      "WAIT": 0.45499999999999996
+    },
+    "immediate:empty": {
+      "RETRY_FIXED_ZOOM": 0.95,
+      "WAIT": 0.9299999999999999,
+      "CONTINUE": 0.0
+    },
+    "after_wait:matched": {
+      "CONTINUE": 0.0,
+      "RETRY_FIXED_ZOOM": 0.95
+    },
+    "after_wait:empty": {
+      "RETRY_FIXED_ZOOM": 0.95
+    }
+  },
+  "support": {
+    "after_wait:different": {
+      "RETRY_FIXED_ZOOM": 1
+    },
+    "immediate:different": {
+      "WAIT": 1,
+      "RETRY_FIXED_ZOOM": 15,
+      "CONTINUE": 2
+    },
+    "immediate:matched": {
+      "RETRY_FIXED_ZOOM": 7,
+      "CONTINUE": 3,
+      "WAIT": 2
+    },
+    "immediate:empty": {
+      "RETRY_FIXED_ZOOM": 8,
+      "WAIT": 3,
+      "CONTINUE": 1
+    },
+    "after_wait:matched": {
+      "CONTINUE": 1,
+      "RETRY_FIXED_ZOOM": 3
+    },
+    "after_wait:empty": {
+      "RETRY_FIXED_ZOOM": 1
+    }
+  }
+}

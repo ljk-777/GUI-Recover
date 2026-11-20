@@ -1,0 +1,25 @@
+{
+  "task": "enter-text",
+  "seed": 72000,
+  "policy": "online_q",
+  "conditions": {
+    "none": {
+      "trace_sha256": "6357f630f335d633197d1ae64ae88159dd7804febc5177801dc28fffa88e4ec8",
+      "post_action": {
+        "image": "001.png",
+        "sha256": "77efb68f5f1c700a09f9a03528bc312a49d71328b88662d4aed460d0cce6ac39"
+      },
+      "repairs": 1,
+      "success": true
+    },
+    "trailing-space-input": {
+      "trace_sha256": "ac7c1cd9bdd1e7bb38ab13709413fa9b276ddc5fae8b8469d56ed7e358a80ee8",
+      "post_action": {
+        "image": "001.png",
+        "sha256": "77efb68f5f1c700a09f9a03528bc312a49d71328b88662d4aed460d0cce6ac39"
+      },
+      "repairs": 1,
+      "success": true
+    }
+  }
+}
