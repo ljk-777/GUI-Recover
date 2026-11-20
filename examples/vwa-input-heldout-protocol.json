@@ -1,0 +1,35 @@
+{
+  "created_utc": "2026-11-20T14:43:25.452307+00:00",
+  "benchmark": "VisualWebArena Classifieds",
+  "upstream_revision": "89f5af29305c3d1e9f97ce4421462060a70c9a03",
+  "upstream_config_sha256": "5d7322cc3bef21c755abc966624530d15121ad73403f64177d2f06014dbfb14f",
+  "entries_sha256": "200de8afd434fb162340fa3719653764f7c6fc6be67bb0c90d1662fbade9d2be",
+  "task_ids": [
+    36,
+    102,
+    136,
+    137,
+    138,
+    140,
+    142,
+    233
+  ],
+  "prior_trajectory_task_count": 53,
+  "prior_trajectories_intersect": [],
+  "selection_rule": "All remaining single-site local must_include tasks, then the lowest unobserved eligible official Classifieds task that also uses Shopping.",
+  "input_support_needed": {
+    "reference_images": 7,
+    "multiple_start_pages": 2,
+    "shopping_backend": 1
+  },
+  "model_outcomes_observed": false,
+  "status": "registered_pending_runtime_support",
+  "control": "answer-check",
+  "model": "pinned Qwen 7B NF4",
+  "max_model_calls_per_trajectory": 8,
+  "acceptance": {
+    "minimum_native_full_credit": 2,
+    "beats_control": true,
+    "fewer_wrong_submissions": true
+  }
+}

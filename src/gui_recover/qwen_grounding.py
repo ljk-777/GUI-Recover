@@ -234,8 +234,9 @@ class QwenGroundingPolicy:
                             + json.dumps(tab_state["tabs"], ensure_ascii=False)
                             + f". Active tab number: {observation.active_tab + 1}.")
                 if navigation and len(observation.tabs) > 1:
-                    request += (' To inspect a different open tab, return {"action":"TAB_FOCUS",'
-                                '"value":"2","position":null} with its actual one-based number.')
+                    inactive = [index + 1 for index in range(len(observation.tabs)) if index != observation.active_tab]
+                    request += (" To inspect another tab, use action TAB_FOCUS, null position, and its one-based "
+                                f"number as a string value. Inactive tab numbers: {inactive}.")
                 context["browser_tabs"] = tab_state
         content.append({"type": "text", "text": request})
         messages = [{"role": "user", "content": content}]

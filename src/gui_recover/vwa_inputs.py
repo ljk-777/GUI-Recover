@@ -21,12 +21,12 @@ def reference_name(value, homepage="__HOMEPAGE__"):
 class LocalReferenceArchive:
     """Resolve an official task's archived reference by its exact manifest name."""
 
-    def __init__(self, directory, manifest_sha256=None, *, homepage="__HOMEPAGE__"):
+    def __init__(self, directory, files_sha256=None, *, homepage="__HOMEPAGE__"):
         directory = Path(directory)
-        manifest = (directory / "reference-media.json").read_bytes()
-        if manifest_sha256 is not None and hashlib.sha256(manifest).hexdigest() != manifest_sha256:
+        record = json.loads((directory / "reference-media.json").read_bytes())
+        canonical = json.dumps(record["files"], sort_keys=True, separators=(",", ":")).encode()
+        if files_sha256 is not None and hashlib.sha256(canonical).hexdigest() != files_sha256:
             raise ValueError("Reference manifest differs from the registered one")
-        record = json.loads(manifest)
         archive = directory / "reference-media.tar.gz"
         with archive.open("rb") as stream:
             if hashlib.file_digest(stream, "sha256").hexdigest() != record["archive_sha256"]:

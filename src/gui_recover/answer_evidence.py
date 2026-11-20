@@ -2,13 +2,14 @@
 
 import json
 import re
+from urllib.parse import urlsplit
 from decimal import Decimal
 
 from PIL import Image, ImageDraw
 
 from .actions import Action, ActionError
 from .environment import frame_key
-from .listing_cards import ranked_photo_request
+from .listing_cards import ranked_photo_request, reference_title_region, reference_title_request
 from .qwen_grounding import ask_observation, native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
 from .ranked_cards import RankedCardEvidence
 from .screen_text import exact_initial_search, from_readable_control, listing_detail
@@ -281,6 +282,22 @@ class EvidenceAnswerPolicy:
             self.navigation_context = before.screenshot.copy(), action.position
 
     def locate(self, observation, frame, history):
+        if (self.ranked_capture is not None and len(observation.reference_images) == 1
+                and observation.tabs and reference_title_request(observation.goal)):
+            here = urlsplit(observation.tabs[observation.active_tab][1])
+            site = urlsplit(self.listing_site)
+            if (here.scheme, here.netloc) == (site.scheme, site.netloc):
+                receipt = self.ranked_capture()
+                screen = observation.screenshot
+                bounds = reference_title_region(screen, observation.reference_images[0], receipt, self.listing_site)
+                if bounds is not None:
+                    self.pending_crop = frame, screen.crop(bounds), bounds
+                    self.actor.last_metrics = {
+                        "model_invocations": 0, "provider_output": None, "provider_format": "evidence_reference_region",
+                        "evidence_stage": "locate", "evidence_frame": frame, "evidence_bounds": list(bounds),
+                        "reference_card_receipt": receipt, "peak_cuda_allocated_bytes": 0,
+                    }
+                    return None
         canvas = self.actor.prepare_image(observation.screenshot)
         width, height = canvas.size
         prompt = (

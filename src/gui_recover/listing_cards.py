@@ -3,6 +3,7 @@
 import re
 from urllib.parse import urlsplit
 
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from .actions import ActionError
@@ -17,6 +18,7 @@ _SEARCH = re.compile(r'^\s*search for\s+"([^"\n]{1,80})"\s+and\b', re.IGNORECASE
 _RECENT = re.compile(r"\b(?:most recent|most recently|newest|latest)\b", re.IGNORECASE)
 _APPEARANCE = re.compile(r"\bthat\s+(?:feature|depict|show)\s+([^.!?]{1,100})[.!?]?\s*$", re.IGNORECASE)
 _RANGE = re.compile(r"\b([\d,]+)\s*[-–]\s*([\d,]+)\s+of\s+([\d,]+)\s+listings\b", re.IGNORECASE)
+_TITLE = re.compile(r"\b(?:title|listing name)\b", re.IGNORECASE)
 
 _VISIBLE_CARDS = """
 ({width, height, limit}) => {
@@ -134,6 +136,32 @@ def inspect_card_receipt(receipt, frame, size, site):
         if card["image"] is not None:
             _box(card["image"], size)
     return receipt["cards"]
+
+
+def reference_title_request(goal):
+    return bool(_TITLE.search(goal))
+
+
+def reference_title_region(screen, reference, receipt, site):
+    """Localize a title only when the image has a strong, isolated visible match."""
+    def pixels(image):
+        return np.asarray(ImageOps.fit(image.convert("RGB"), (48, 48), method=Image.Resampling.LANCZOS),
+                          dtype=np.float32) / 255
+
+    wanted = pixels(reference)
+    if float(wanted.std()) < 0.04:
+        return None
+    cards = inspect_card_receipt(receipt, pixel_hash(screen), screen.size, site)
+    distances = [(float(np.abs(wanted - pixels(screen.crop(card["image"]))).mean()), index)
+                 for index, card in enumerate(cards) if card["image"] is not None]
+    distances.sort()
+    if len(distances) < 2 or distances[0][0] > 0.055 or distances[1][0] - distances[0][0] < 0.05:
+        return None
+    card = cards[distances[0][1]]
+    photo, title = card["image"], card["title"]
+    # Keep the matched photo alongside its title so the independent reader can confirm identity.
+    return (max(0, min(photo[0], title[0]) - 6), max(0, min(photo[1], title[1]) - 6),
+            min(screen.width, max(photo[2], title[2]) + 6), min(screen.height, max(photo[3], title[3]) + 6))
 
 
 def card_panel(items):

@@ -32,7 +32,7 @@ HOLDOUT_TASK_SET = "evidence-links-holdout"
 HOLDOUT_PROTOCOL_SHA256 = "df60ebc2e7cb257d63b22a1d6eac4322e5ea53eed75f695850efcc8d51407629"
 INPUT_HOLDOUT_TASK_SET = "evidence-cards-input-holdout"
 INPUT_PROTOCOL_SHA256 = "d97cc17118a061eb822879c109bdd6202431f60a41ad4dc0d1970e45ca2087fe"
-INPUT_MEDIA_SHA256 = "0c2893f802213ec083793890684caf42fa0d2896fc1007cd30b386fb2fa9e068"
+INPUT_MEDIA_SHA256 = "88a7fcad2505d581b266427896265c71367cbc067ed1da461eba127a45b20f58"
 TASK_SETS = {
     "diagnostic": READ_ONLY_TASKS,
     "transfer": TRANSFER_TASKS,
@@ -335,7 +335,7 @@ def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None,
     if task_set == HOLDOUT_TASK_SET:
         summary["protocol_sha256"] = HOLDOUT_PROTOCOL_SHA256
     if use_inputs:
-        summary.update(protocol_sha256=INPUT_PROTOCOL_SHA256, reference_manifest_sha256=INPUT_MEDIA_SHA256,
+        summary.update(protocol_sha256=INPUT_PROTOCOL_SHA256, reference_files_sha256=INPUT_MEDIA_SHA256,
                        browser_context=True, input_manifest=input_manifest)
     write_json(out / "summary.json", summary)
 

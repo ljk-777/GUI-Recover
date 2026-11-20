@@ -13,7 +13,7 @@ from gui_recover.answer_evidence import (
     visible_contact_request,
 )
 from gui_recover.environment import VisualObservation, frame_key
-from gui_recover.listing_cards import RESULT_VIEW_HEIGHT, ranked_photo_request
+from gui_recover.listing_cards import RESULT_VIEW_HEIGHT, ranked_photo_request, reference_title_region, reference_title_request
 from gui_recover.qwen_grounding import native_action_after_note, parse_visible_answer, read_reply
 from gui_recover.ranked_cards import RankedCardEvidence
 from gui_recover.runner import INVALID_ACTION_FEEDBACK, aggregate, write_json
@@ -49,14 +49,16 @@ def validate_tab_state(state):
 
 def check_reference_images(directory, references):
     hashes = []
+    images = []
     for index, reference in enumerate(references, start=1):
         name = f"reference-{index:02d}.png"
         require(reference["filename"] == name, "Unexpected task reference filename")
         with Image.open(checked_file(directory / name, reference["sha256"])) as image:
             require(list(image.size) == reference["size"] and pixel_hash(image) == reference["pixels"],
                     "Task reference pixels differ from the recorded input")
+            images.append(image.convert("RGB"))
         hashes.append(reference["pixels"])
-    return hashes
+    return hashes, images
 
 
 def replay_ranked_decision(scan, request, screen, goal, prediction):
@@ -93,7 +95,7 @@ def replay_ranked_decision(scan, request, screen, goal, prediction):
 def audit_evidence(directory, predictions, frame_before_prediction, frames, goal, *,
                    confirm=False, click_origins=None, compact_navigation=False, use_screen_text=False,
                    guarded_ocr=False, direct_navigation=False, listing_site=None, use_ranked_cards=False,
-                   tab_states=None):
+                   tab_states=None, reference_images=()):
     visited = set()
     answers = set()
     stages = Counter()
@@ -152,6 +154,16 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         if stage == "locate":
             visited.add(key)
             pending = None
+            if metrics["provider_format"] == "evidence_reference_region":
+                require(use_ranked_cards and reference_title_request(goal) and len(reference_images) == 1
+                        and raw is None and reply is None, "Invalid reference-title evidence step")
+                with Image.open(directory / f"{index:04d}.png") as screen:
+                    bounds = reference_title_region(screen, reference_images[0], metrics["reference_card_receipt"], listing_site)
+                    require(bounds is not None and list(bounds) == metrics["evidence_bounds"],
+                            "Reference crop differs from the visible image match")
+                    pending = frame, list(bounds), pixel_hash(screen.crop(bounds))
+                stages["reference_region"] += 1
+                continue
             size = metrics["provider_image_size"]
             require(("screen_text" in metrics) == use_screen_text, "Unexpected OCR mode")
             rows = metrics.get("screen_text")
@@ -313,7 +325,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
             validate_tab_state(state)
     else:
         require(not any(tab_states) and "reference_images" not in events[0], "Unexpected browser context")
-    reference_hashes = check_reference_images(directory, events[0].get("reference_images", []))
+    reference_hashes, references = check_reference_images(directory, events[0].get("reference_images", []))
     require(0 < len(predictions) <= budget and [e["step"] for e in predictions] == list(range(len(predictions))),
             f"Invalid prediction budget: {directory.name}")
     stops = [p["step"] for p in predictions if p["metrics"].get("stop_after_evidence") is True]
@@ -334,8 +346,9 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         provider_format = metrics["provider_format"]
         formats[provider_format] += 1
         is_shortcut = direct_navigation and use_screen_text and provider_format == "evidence_exact_search" and step == 0
+        reference_region = use_browser_context and use_ranked_cards and provider_format == "evidence_reference_region"
         ranked = use_ranked_cards and metrics.get("evidence_stage") == "ranked_cards"
-        require(metrics["model_invocations"] in ((0, 1) if ranked else (0 if is_shortcut else 1,)),
+        require(metrics["model_invocations"] in ((0, 1) if ranked else (0 if is_shortcut or reference_region else 1,)),
                 "Unexpected model invocation count for the decision")
         digest = observation["sha256"]
         tabs = tab_states[frame_index] or {}
@@ -439,7 +452,8 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
             directory, predictions, frame_before_prediction, frames, events[0]["goal"],
             confirm=confirm, click_origins=click_origins, compact_navigation=compact_navigation,
             use_screen_text=use_screen_text, guarded_ocr=guarded_ocr, direct_navigation=direct_navigation,
-            listing_site=listing_site, use_ranked_cards=use_ranked_cards, tab_states=tab_states if use_browser_context else None)
+            listing_site=listing_site, use_ranked_cards=use_ranked_cards,
+            tab_states=tab_states if use_browser_context else None, reference_images=references)
     answer_outcome = None
     if answer_study:
         submissions = [event for event in transitions if event["action"]["action"] == "ANSWER"]
@@ -508,7 +522,7 @@ def audit(directory):
     use_inputs = task_set == INPUT_HOLDOUT_TASK_SET
     if use_inputs:
         require(summary.get("protocol_sha256") == INPUT_PROTOCOL_SHA256
-                and summary.get("reference_manifest_sha256") == INPUT_MEDIA_SHA256
+                and summary.get("reference_files_sha256") == INPUT_MEDIA_SHA256
                 and summary.get("browser_context") is True and holdout_profile(study, budget, summary["model"], "evidence-cards"),
                 "Run differs from the registered input holdout")
         require(set(summary["input_manifest"]) == {str(task_id) for task_id in task_ids},
