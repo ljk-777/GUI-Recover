@@ -7,7 +7,7 @@ from decimal import Decimal
 from PIL import Image, ImageDraw
 
 from .actions import Action, ActionError
-from .qwen_grounding import parse_visible_answer, read_reply
+from .qwen_grounding import normalize_qwen_action, parse_visible_answer, read_reply
 from .verification import pixel_hash
 
 
@@ -16,8 +16,12 @@ _AMOUNT = re.compile(r"(?<![\w.])(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]+)
 
 def evidence_box(raw, size):
     data = read_reply(raw)
-    if not isinstance(data, dict) or set(data) != {"bbox_2d"}:
+    if isinstance(data, list) and len(data) == 1:
+        data = data[0]
+    if not isinstance(data, dict) or set(data) not in ({"bbox_2d"}, {"bbox_2d", "label"}):
         raise ActionError("Expected one evidence box")
+    if "label" in data and (not isinstance(data["label"], str) or len(data["label"]) > 200):
+        raise ActionError("Expected a short evidence label")
     box = data["bbox_2d"]
     if box is None:
         return None
@@ -49,6 +53,16 @@ def evidence_clipped(goal, box, size):
     """A range or ordinal row needs the visible extent of that row."""
     requires_row = re.search(r"\brows?\b", goal.casefold())
     return bool(requires_row and box[3] >= size[1] - 2)
+
+
+def evidence_navigation(raw, size):
+    data = read_reply(raw)
+    if not isinstance(data, dict) or "action" not in data:
+        return None
+    action = normalize_qwen_action(data, size, native_navigation=True)
+    if action.action == "ANSWER":
+        raise ActionError("An evidence search cannot submit an answer")
+    return action
 
 
 def evidence_answer(raw, goal):
@@ -133,9 +147,27 @@ class EvidenceAnswerPolicy:
             'Return one JSON object like {"bbox_2d":[left,top,right,bottom]}. '
             'If the relevant region is not visible, return {"bbox_2d":null}. Do not answer the question.'
         )
+        if self.confirm:
+            prompt = (
+                f"Task: {observation.goal}\n"
+                f"Use the visible state of this {width} by {height} screenshot. "
+                'If a specific visible region could support all requested details, return {"bbox_2d":[left,top,right,bottom]}. '
+                "Choose a tight box with the relevant text or photo and enough context. "
+                "If the user first needs a search, category, sort, or item opened, do one navigation action to reach it. "
+                'Return {"action":"CLICK","value":null,"position":[x,y]} for a visible control, '
+                '{"action":"INPUT","value":"query","position":[x,y]} to type into a visible search field, '
+                '{"action":"ENTER","value":null,"position":null} to submit a filled search field, or '
+                '{"action":"SCROLL","value":"down","position":null} to reveal lower content. '
+                'Coordinates are integer pixels. Return {"bbox_2d":null} if neither option is clear. '
+                "Return one JSON response and never answer the task directly."
+            )
         raw = self.actor.ask(canvas, prompt)
         self.last_metrics.update(evidence_stage="locate", evidence_frame=frame, provider_format="evidence_invalid")
         try:
+            navigation = evidence_navigation(raw, canvas.size) if self.confirm else None
+            if navigation is not None:
+                self.last_metrics["provider_format"] = "evidence_navigation"
+                return json.dumps(navigation.to_dict(), ensure_ascii=False)
             box = evidence_box(raw, canvas.size)
         except (ValueError, RecursionError):
             return None

@@ -28,6 +28,7 @@ TASK_SETS = {
     "answer-transfer": (10, 13, 41, 42, 150, 163, 192, 209),
     "evidence-diagnostic": (118, 221, 41, 42, 192, 209),
     "evidence-transfer": (23, 40, 43, 110, 161, 173, 174, 199),
+    "evidence-confirm-transfer": (25, 27, 98, 100, 107, 109, 111, 178),
 }
 STUDY_MODES = {
     "visual": ("none", "feedback"),
@@ -35,7 +36,9 @@ STUDY_MODES = {
     "scroll": ("feedback", "scroll-feedback"),
     "answer": ("navigation", "answer-check"),
     "evidence": ("answer-check", "evidence-check"),
+    "evidence-confirm": ("answer-check", "evidence-confirm"),
 }
+ANSWER_STUDIES = ("answer", "evidence", "evidence-confirm")
 
 
 def live_preflight():
@@ -131,6 +134,47 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
         return self._step_code(code)
 
 
+def run_study(actor, *, out, study, task_set, max_steps):
+    out.mkdir(parents=True, exist_ok=False)
+    task_ids = TASK_SETS[task_set]
+    strategies = {mode: [] for mode in STUDY_MODES[study]}
+    for task_id in task_ids:
+        for mode in strategies:
+            if study in ANSWER_STUDIES:
+                recovery, invalid_retry = "scroll-feedback", "feedback"
+            elif study == "format":
+                recovery, invalid_retry = "none", mode
+            else:
+                recovery = mode
+                invalid_retry = "feedback" if study == "scroll" else "none"
+            env = VisualWebArenaEnvironment(task_id)
+            try:
+                branch = out / f"{env.task}-{mode}"
+                using_evidence = mode in ("evidence-check", "evidence-confirm")
+                policy = EvidenceAnswerPolicy(actor, confirm=mode == "evidence-confirm") if using_evidence else actor
+                row = run_episode(env, policy, env.task, 0, max_steps, branch,
+                                  recovery=recovery, invalid_action_retry=invalid_retry,
+                                  answer_check=mode == "answer-check",
+                                  allow_observation_only=using_evidence,
+                                  submit_answer=True, success_check=exact_vwa_success)
+                render_replay(branch)
+                strategies[mode].append(row)
+                print(f"{env.task} {mode}: {row['reason']} ({row['predictions']} predictions)", flush=True)
+            finally:
+                env.close()
+    counts = ("predictions", "model_calls", "steps", "invalid_predictions",
+              "invalid_action_retries", "repaired_predictions")
+    if study in ("scroll", *ANSWER_STUDIES):
+        counts += ("scroll_feedbacks", "scroll_detection_signals")
+    if study in ANSWER_STUDIES:
+        counts += ("answer_checks", "answers_submitted", "answers_from_checks")
+    write_json(out / "summary.json", {"benchmark": "visualwebarena", "task_ids": task_ids,
+        "task_set": task_set, "study": study, "budget_unit": "predictions",
+        "max_steps": max_steps, "model": actor.config, "strategies": {
+            mode: {**aggregate(rows), **{key: sum(row[key] for row in rows) for key in counts}}
+            for mode, rows in strategies.items()}})
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--preflight", action="store_true")
@@ -139,6 +183,7 @@ def main():
     parser.add_argument("--max-steps", type=int, default=8)
     parser.add_argument("--actor", choices=("showui", "qwen"), default="showui")
     parser.add_argument("--device", choices=("cuda", "cpu"), default="cuda")
+    parser.add_argument("--qwen-7b-4bit", action="store_true")
     parser.add_argument("--task-set", choices=TASK_SETS, default="diagnostic")
     parser.add_argument("--study", choices=STUDY_MODES, default="visual")
     args = parser.parse_args()
@@ -152,50 +197,20 @@ def main():
         parser.error("Provide local model, fresh output directory and a prediction budget of 1–12")
     if args.study != "visual" and args.actor != "qwen":
         parser.error("This study uses Qwen")
+    if args.qwen_7b_4bit and (args.actor != "qwen" or args.device != "cuda"):
+        parser.error("The Qwen 7B 4-bit profile requires --actor qwen --device cuda")
     probe_instance()
-    args.out.mkdir(parents=True, exist_ok=False)
+    if args.out.exists():
+        parser.error("Use a fresh output directory")
     if args.actor == "showui":
         if args.device != "cuda":
             parser.error("ShowUI requires the CUDA profile")
         actor = ShowUIPolicy(str(args.model), revision=MODEL_REVISION, max_new_tokens=96)
     else:
-        actor = QwenGroundingPolicy(args.model, device=args.device, max_new_tokens=96, max_pixels=784 * 784)
-    task_ids = TASK_SETS[args.task_set]
-    strategies = {mode: [] for mode in STUDY_MODES[args.study]}
-    for task_id in task_ids:
-        for mode in strategies:
-            if args.study in ("answer", "evidence"):
-                recovery, invalid_retry = "scroll-feedback", "feedback"
-            elif args.study == "format":
-                recovery, invalid_retry = "none", mode
-            else:
-                recovery = mode
-                invalid_retry = "feedback" if args.study == "scroll" else "none"
-            env = VisualWebArenaEnvironment(task_id)
-            try:
-                branch = args.out / f"{env.task}-{mode}"
-                policy = EvidenceAnswerPolicy(actor) if mode == "evidence-check" else actor
-                row = run_episode(env, policy, env.task, 0, args.max_steps, branch,
-                                  recovery=recovery, invalid_action_retry=invalid_retry,
-                                  answer_check=mode == "answer-check",
-                                  allow_observation_only=mode == "evidence-check",
-                                  submit_answer=True, success_check=exact_vwa_success)
-                render_replay(branch)
-                strategies[mode].append(row)
-                print(f"{env.task} {mode}: {row['reason']} ({row['predictions']} predictions)", flush=True)
-            finally:
-                env.close()
-    counts = ("predictions", "model_calls", "steps", "invalid_predictions",
-              "invalid_action_retries", "repaired_predictions")
-    if args.study in ("scroll", "answer", "evidence"):
-        counts += ("scroll_feedbacks", "scroll_detection_signals")
-    if args.study in ("answer", "evidence"):
-        counts += ("answer_checks", "answers_submitted", "answers_from_checks")
-    write_json(args.out / "summary.json", {"benchmark": "visualwebarena", "task_ids": task_ids,
-        "task_set": args.task_set, "study": args.study, "budget_unit": "predictions",
-        "max_steps": args.max_steps, "model": actor.config, "strategies": {
-            mode: {**aggregate(rows), **{key: sum(row[key] for row in rows) for key in counts}}
-            for mode, rows in strategies.items()}})
+        actor = QwenGroundingPolicy(args.model, device=args.device,
+                                    max_new_tokens=128 if args.qwen_7b_4bit else 96, max_pixels=784 * 784,
+                                    load_in_4bit=args.qwen_7b_4bit, native_navigation=args.study == "evidence-confirm")
+    run_study(actor, out=args.out, study=args.study, task_set=args.task_set, max_steps=args.max_steps)
     return 0
 
 
