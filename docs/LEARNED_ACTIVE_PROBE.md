@@ -26,3 +26,23 @@ CUDA_VISIBLE_DEVICES=0 python scripts/run_learned_active_probe.py \
 ```
 
 工程验收用 `--profile smoke` 和独立输出目录，省略 `--exclude-run`。
+
+## 正式结果
+
+实现冻结于 `25c4bdd`。三个训练布局 77000–77002 的 27 个回合中有 26 个精确成功。学习器在立即看到匹配时选择探测，在等待后看到匹配时选择提交。后者的训练回报估计为直接提交 0.98、探测 0.96。
+
+| 策略 | 常规成功 | 常规探测 | 常规浏览器操作 | 延迟尾空格挑战 | 所有测试重输 |
+|---|---:|---:|---:|---:|---:|
+| 主动核验规则 | 14/14 | 6 | 54 | 2/2 | 12 |
+| 等过就跳过规则 | 14/14 | 4 | 50 | 0/2 | 10 |
+| 学习策略 | 14/14 | 4 | 50 | 0/2 | 10 |
+
+学习策略在常规条件少做两次探测和四次键盘操作，零正常重输，与手工跳过规则在 16 个测试分支上的动作完全一致。两个测试布局的普通延迟与延迟尾空格在等待后截图逐对相同。主动规则在后一组通过选区看到空白并重输。学习策略跳过了获取该画面的动作，产生两个成对回退，因此未通过准入门槛。当前发布候选提供经过验收的主动规则。
+
+CPU 审计复算出同一份 Q 表，确认训练与测试决策截图分离，并核对 75 条轨迹、211 个决策、285 次浏览器操作和 354 张分支内截图。全部 34 次探测均复原了画面。训练和测试使用 190 次逻辑定位及 23 次实际生成，设备采样显存峰值为 5309 MiB。
+
+```bash
+python scripts/audit_learned_active_probe.py runs/learned-active-probe-001
+```
+
+[结构化结果](../examples/learned-active-probe-results.json) · [冻结 Q 表](../examples/learned-active-probe-checkpoint.json) · [挑战组配对轨迹](../examples/learned-active-probe-delayed-tail/provenance.json) · [实现 CI](https://github.com/ljk-777/GUI-Recover/actions/runs/44684330024)

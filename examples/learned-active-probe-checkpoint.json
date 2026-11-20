@@ -1,0 +1,29 @@
+{
+  "algorithm": "online_probe_contextual_q_v1",
+  "costs": {
+    "wait": 0.02,
+    "probe": 0.02,
+    "repair": 0.05
+  },
+  "episodes": 27,
+  "q": {
+    "immediate": {
+      "PROBE_LAST_CHAR": 0.9533333333333333,
+      "CONTINUE": 0.6666666666666667
+    },
+    "after_wait": {
+      "CONTINUE": 0.98,
+      "PROBE_LAST_CHAR": 0.96
+    }
+  },
+  "visits": {
+    "immediate": {
+      "PROBE_LAST_CHAR": 15,
+      "CONTINUE": 3
+    },
+    "after_wait": {
+      "CONTINUE": 6,
+      "PROBE_LAST_CHAR": 3
+    }
+  }
+}

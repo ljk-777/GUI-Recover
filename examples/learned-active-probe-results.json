@@ -1,0 +1,361 @@
+{
+  "runtime": {
+    "python": "3.11.18",
+    "platform": "Linux-5.15.0-156-generic-x86_64-with-glibc2.39",
+    "packages": {
+      "gui-recover": "0.2.0a1",
+      "browsergym-core": "0.14.3",
+      "browsergym-miniwob": "0.14.3",
+      "gymnasium": "1.4.0",
+      "playwright": "1.44.0",
+      "torch": "2.6.0",
+      "transformers": "4.49.0",
+      "pillow": "13.0.0",
+      "numpy": "2.4.6"
+    },
+    "git_commit": "25c4bddfa83332eb32d16dac606f215bc9a11b9a",
+    "git_dirty": false,
+    "miniwob_commit": "7fd85d71a4b60325c6585396ec4f48377d049838",
+    "cuda_visible_devices": "0"
+  },
+  "config_sha256": "23913e13d425ef7d9b4ff6b73625ba13a3810d9fe2aff6a0b4ef7c7238d53900",
+  "reference_rule_plan_sha256": "eba5a4f2e666474e1c1e2f81040fad5402a70c0818a0ad9533726685ea6e2d00",
+  "summary": {
+    "profile": "formal",
+    "episodes_by_split": {
+      "train": 27,
+      "test": 48
+    },
+    "index_sha256": {
+      "train": "fa0d57b1769cd3a431fc87c2bef9625284b06045e37fcd318e45ad4d2dcbd852",
+      "test": "f5b57b77b9d45ca6a07518d31be954f63d116f8023872d64a6c3210fa984071f"
+    },
+    "q_sha256": "93179e564508afb83f994229ca7975cbfeb6221b0d87e193d557e70e6e18b9e6",
+    "plan_sha256": "d58b1a1f9b368db1a23d5ba8e41135cf48537fbd83839643a891a85bd2e0913a",
+    "bank_sha256": "225f4ac5fda7816793ff393ddd4b667957e1634dc0dab0b5007616d15ff7a7c9",
+    "conditions": {
+      "none": {
+        "always_probe": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.98,
+          "waits": 0,
+          "probes": 2,
+          "repairs": 0,
+          "actor_requests": 4,
+          "browser_operations": 8
+        },
+        "skip_after_wait": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.98,
+          "waits": 0,
+          "probes": 2,
+          "repairs": 0,
+          "actor_requests": 4,
+          "browser_operations": 8
+        },
+        "learned_probe": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.98,
+          "waits": 0,
+          "probes": 2,
+          "repairs": 0,
+          "actor_requests": 4,
+          "browser_operations": 8
+        },
+        "learned_vs_always": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "deferred-input": {
+        "always_probe": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.96,
+          "waits": 2,
+          "probes": 2,
+          "repairs": 0,
+          "actor_requests": 4,
+          "browser_operations": 10
+        },
+        "skip_after_wait": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.98,
+          "waits": 2,
+          "probes": 0,
+          "repairs": 0,
+          "actor_requests": 4,
+          "browser_operations": 6
+        },
+        "learned_probe": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.98,
+          "waits": 2,
+          "probes": 0,
+          "repairs": 0,
+          "actor_requests": 4,
+          "browser_operations": 6
+        },
+        "learned_vs_always": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "drop-input": {
+        "always_probe": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.9299999999999999,
+          "waits": 2,
+          "probes": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "browser_operations": 8
+        },
+        "skip_after_wait": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.9299999999999999,
+          "waits": 2,
+          "probes": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "browser_operations": 8
+        },
+        "learned_probe": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.9299999999999999,
+          "waits": 2,
+          "probes": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "browser_operations": 8
+        },
+        "learned_vs_always": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "partial-input": {
+        "always_probe": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.95,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "browser_operations": 6
+        },
+        "skip_after_wait": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.95,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "browser_operations": 6
+        },
+        "learned_probe": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.95,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "browser_operations": 6
+        },
+        "learned_vs_always": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "wrong-input": {
+        "always_probe": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.95,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "browser_operations": 6
+        },
+        "skip_after_wait": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.95,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "browser_operations": 6
+        },
+        "learned_probe": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.95,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "browser_operations": 6
+        },
+        "learned_vs_always": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "case-input": {
+        "always_probe": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.95,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "browser_operations": 6
+        },
+        "skip_after_wait": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.95,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "browser_operations": 6
+        },
+        "learned_probe": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.95,
+          "waits": 0,
+          "probes": 0,
+          "repairs": 2,
+          "actor_requests": 6,
+          "browser_operations": 6
+        },
+        "learned_vs_always": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "trailing-space-input": {
+        "always_probe": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.9299999999999999,
+          "waits": 0,
+          "probes": 2,
+          "repairs": 2,
+          "actor_requests": 6,
+          "browser_operations": 10
+        },
+        "skip_after_wait": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.9299999999999999,
+          "waits": 0,
+          "probes": 2,
+          "repairs": 2,
+          "actor_requests": 6,
+          "browser_operations": 10
+        },
+        "learned_probe": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.9299999999999999,
+          "waits": 0,
+          "probes": 2,
+          "repairs": 2,
+          "actor_requests": 6,
+          "browser_operations": 10
+        },
+        "learned_vs_always": {
+          "gains": 0,
+          "losses": 0
+        }
+      },
+      "deferred-trailing-space-input": {
+        "always_probe": {
+          "episodes": 2,
+          "successes": 2,
+          "mean_adjusted_return": 0.91,
+          "waits": 2,
+          "probes": 2,
+          "repairs": 2,
+          "actor_requests": 6,
+          "browser_operations": 12
+        },
+        "skip_after_wait": {
+          "episodes": 2,
+          "successes": 0,
+          "mean_adjusted_return": -0.02,
+          "waits": 2,
+          "probes": 0,
+          "repairs": 0,
+          "actor_requests": 4,
+          "browser_operations": 6
+        },
+        "learned_probe": {
+          "episodes": 2,
+          "successes": 0,
+          "mean_adjusted_return": -0.02,
+          "waits": 2,
+          "probes": 0,
+          "repairs": 0,
+          "actor_requests": 4,
+          "browser_operations": 6
+        },
+        "learned_vs_always": {
+          "gains": 0,
+          "losses": 2
+        }
+      }
+    },
+    "learned_routing": {
+      "learned_choice": 8
+    },
+    "promotion_gate": {
+      "no_clean_repairs": true,
+      "preserved_primary_successes": true,
+      "fewer_primary_probes": true,
+      "preserved_delayed_tail_challenge": false
+    },
+    "inference": {
+      "logical_requests": 190,
+      "actual_generations": 23,
+      "actual_input_tokens": 8206,
+      "actual_generated_tokens": 294,
+      "scope": "Actual token totals exclude cached/reused original predictions with unavailable token counts"
+    },
+    "peak_cuda_reserved_bytes": 5192548352
+  },
+  "audit": {
+    "status": "passed",
+    "checkpoint_replayed": true,
+    "episodes_by_split": {
+      "train": 27,
+      "test": 48
+    },
+    "decisions": 211,
+    "browser_operations": 285,
+    "screenshots": 354,
+    "restored_probes": 34,
+    "test_episode_matches_skip_rule": 16,
+    "test_episodes_per_policy": 16,
+    "delayed_tail_alias_pairs": 2
+  },
+  "peak_sampled_gpu_mib": 5309,
+  "implementation_ci": "https://github.com/ljk-777/GUI-Recover/actions/runs/44684330024"
+}

@@ -1,0 +1,23 @@
+{
+  "task": "enter-text",
+  "seed": 78000,
+  "condition": "deferred-trailing-space-input",
+  "policies": {
+    "always_probe": {
+      "waited": {
+        "image": "002.png",
+        "sha256": "4f4de3aedb2f604abe4222eb809369c4437e22eab08e1217354054d4dc78a9e2"
+      },
+      "success": true,
+      "trace_sha256": "21f5eb6203b89e910aba02ce79a17a7bdcf17ad99998c9c02d13411e68a376ca"
+    },
+    "learned_probe": {
+      "waited": {
+        "image": "002.png",
+        "sha256": "4f4de3aedb2f604abe4222eb809369c4437e22eab08e1217354054d4dc78a9e2"
+      },
+      "success": false,
+      "trace_sha256": "46567372c4b9ab60a96422d2ae95a726e8e7f3f57d6f6af859ea735b6ee7bf56"
+    }
+  }
+}

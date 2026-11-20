@@ -1,0 +1,35 @@
+[
+  {
+    "glyph": {
+      "status": "empty",
+      "reason": "no_visible_ink",
+      "region": [
+        23,
+        102,
+        212,
+        131
+      ]
+    },
+    "selection": null,
+    "decision": "WAIT"
+  },
+  {
+    "glyph": {
+      "status": "matched",
+      "reason": "rendered_text_comparison",
+      "region": [
+        23,
+        102,
+        212,
+        131
+      ],
+      "score": 1.0,
+      "ink_shape": [
+        14,
+        67
+      ]
+    },
+    "selection": null,
+    "decision": "CONTINUE"
+  }
+]
