@@ -79,6 +79,14 @@ def native_input_pair(raw):
     return {"action": "INPUT", "position": first["coordinate"], "value": second.get("text", second.get("value"))}
 
 
+def native_action_after_note(raw):
+    """Allow one trailing JSON action after a bounded plain-text paragraph."""
+    note, _, action = raw.strip().rpartition("\n\n")
+    if not 0 < len(note) <= 1024 or any(marker in note for marker in ("{", "}", "[", "]", "```")):
+        raise ActionError("Expected a single action after a plain-text note")
+    return read_reply(action)
+
+
 def normalize_qwen_action(data, size, *, native_navigation=False):
     if not isinstance(data, dict) or set(data) != {"action", "value", "position"}:
         raise ActionError("Expected one action dictionary")
@@ -254,7 +262,10 @@ class QwenGroundingPolicy:
                 if match is None:
                     if not native_navigation:
                         raise
-                    data = native_input_pair(raw)
+                    try:
+                        data = native_input_pair(raw)
+                    except (ValueError, RecursionError):
+                        data = native_action_after_note(raw)
                     response_format = "native_navigation"
                 else:
                     data = {"action": "SCROLL", "value": int(match[1]), "position": None}

@@ -7,7 +7,7 @@ from decimal import Decimal
 from PIL import Image, ImageDraw
 
 from .actions import Action, ActionError
-from .qwen_grounding import normalize_qwen_action, parse_visible_answer, read_reply
+from .qwen_grounding import native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
 from .verification import pixel_hash
 
 
@@ -56,7 +56,10 @@ def evidence_clipped(goal, box, size):
 
 
 def evidence_navigation(raw, size):
-    data = read_reply(raw)
+    try:
+        data = read_reply(raw)
+    except json.JSONDecodeError:
+        data = native_action_after_note(raw)
     if not isinstance(data, dict) or "action" not in data:
         return None
     action = normalize_qwen_action(data, size, native_navigation=True)

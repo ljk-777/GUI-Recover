@@ -79,6 +79,11 @@ def test_native_click_and_type_use_one_validated_input():
     assert actor.predict(obs, [], allow_answer=False) == ""
     actor._generate = lambda messages: '{"action":"key","key":"Return"}'
     assert parse_action(actor.predict(obs, [], allow_answer=False)) == Action("ENTER")
+    scroll = '{"action":"SCROLL","value":"down","position":null}'
+    actor._generate = lambda messages: f"The target is below the viewport.\n\n{scroll}"
+    assert parse_action(actor.predict(obs, [], allow_answer=False)) == Action("SCROLL", "down")
+    actor._generate = lambda messages: f"{scroll}\n\n{scroll}"
+    assert actor.predict(obs, [], allow_answer=False) == ""
 
 
 def test_evidence_search_can_navigate_but_cannot_submit():
