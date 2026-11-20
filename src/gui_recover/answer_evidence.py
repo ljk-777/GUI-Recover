@@ -4,8 +4,10 @@ import json
 import re
 from decimal import Decimal
 
+from PIL import Image, ImageDraw
+
 from .actions import Action, ActionError
-from .qwen_grounding import read_reply
+from .qwen_grounding import normalize_qwen_action, parse_visible_answer, read_reply
 from .verification import pixel_hash
 
 
@@ -14,8 +16,12 @@ _AMOUNT = re.compile(r"(?<![\w.])(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]+)
 
 def evidence_box(raw, size):
     data = read_reply(raw)
-    if not isinstance(data, dict) or set(data) != {"bbox_2d"}:
+    if isinstance(data, list) and len(data) == 1:
+        data = data[0]
+    if not isinstance(data, dict) or set(data) not in ({"bbox_2d"}, {"bbox_2d", "label"}):
         raise ActionError("Expected one evidence box")
+    if "label" in data and (not isinstance(data["label"], str) or len(data["label"]) > 200):
+        raise ActionError("Expected a short evidence label")
     box = data["bbox_2d"]
     if box is None:
         return None
@@ -49,6 +55,16 @@ def evidence_clipped(goal, box, size):
     return bool(requires_row and box[3] >= size[1] - 2)
 
 
+def evidence_navigation(raw, size):
+    data = read_reply(raw)
+    if not isinstance(data, dict) or "action" not in data:
+        return None
+    action = normalize_qwen_action(data, size, native_navigation=True)
+    if action.action == "ANSWER":
+        raise ActionError("An evidence search cannot submit an answer")
+    return action
+
+
 def evidence_answer(raw, goal):
     data = read_reply(raw)
     if not isinstance(data, dict) or set(data) != {"answer", "evidence"}:
@@ -73,13 +89,38 @@ def evidence_answer(raw, goal):
     return answer.strip(), "evidence_answer"
 
 
+def confirmation_image(screen, crop, bounds):
+    overview = screen.convert("RGB")
+    overview.thumbnail((448, 336), Image.Resampling.LANCZOS)
+    ow, oh = overview.size
+    scaled = (bounds[0] * ow // screen.width, bounds[1] * oh // screen.height,
+              min(ow - 1, bounds[2] * ow // screen.width),
+              min(oh - 1, bounds[3] * oh // screen.height))
+    ImageDraw.Draw(overview).rectangle(scaled, outline="#176fde", width=2)
+    panel = Image.new("RGB", (ow + 12 + crop.width, max(oh, crop.height)), "white")
+    panel.paste(overview)
+    panel.paste(crop, (ow + 12, 0))
+    return panel
+
+
+def answer_signature(answer):
+    value = " ".join(answer.casefold().rstrip(".").split())
+    if re.fullmatch(r"\$?[0-9][0-9,. ]*(?:[–—-]\s*\$?[0-9][0-9,. ]*)?", value):
+        amounts = tuple(Decimal(amount.replace(",", "")) for amount in _AMOUNT.findall(value))
+        if amounts:
+            return amounts
+    return value
+
+
 class EvidenceAnswerPolicy:
     """Use one model invocation per prediction, including crop localization."""
 
-    def __init__(self, actor):
+    def __init__(self, actor, *, confirm=False):
         self.actor = actor
+        self.confirm = confirm
         self.checked_frames = set()
         self.pending_crop = None
+        self.pending_answer = None
 
     @property
     def last_metrics(self):
@@ -89,6 +130,7 @@ class EvidenceAnswerPolicy:
         self.actor.reset(seed)
         self.checked_frames.clear()
         self.pending_crop = None
+        self.pending_answer = None
 
     def set_feedback(self, message):
         self.actor.set_feedback(message)
@@ -105,9 +147,27 @@ class EvidenceAnswerPolicy:
             'Return one JSON object like {"bbox_2d":[left,top,right,bottom]}. '
             'If the relevant region is not visible, return {"bbox_2d":null}. Do not answer the question.'
         )
+        if self.confirm:
+            prompt = (
+                f"Task: {observation.goal}\n"
+                f"Use the visible state of this {width} by {height} screenshot. "
+                'If a specific visible region could support all requested details, return {"bbox_2d":[left,top,right,bottom]}. '
+                "Choose a tight box with the relevant text or photo and enough context. "
+                "If the user first needs a search, category, sort, or item opened, do one navigation action to reach it. "
+                'Return {"action":"CLICK","value":null,"position":[x,y]} for a visible control, '
+                '{"action":"INPUT","value":"query","position":[x,y]} to type into a visible search field, '
+                '{"action":"ENTER","value":null,"position":null} to submit a filled search field, or '
+                '{"action":"SCROLL","value":"down","position":null} to reveal lower content. '
+                'Coordinates are integer pixels. Return {"bbox_2d":null} if neither option is clear. '
+                "Return one JSON response and never answer the task directly."
+            )
         raw = self.actor.ask(canvas, prompt)
         self.last_metrics.update(evidence_stage="locate", evidence_frame=frame, provider_format="evidence_invalid")
         try:
+            navigation = evidence_navigation(raw, canvas.size) if self.confirm else None
+            if navigation is not None:
+                self.last_metrics["provider_format"] = "evidence_navigation"
+                return json.dumps(navigation.to_dict(), ensure_ascii=False)
             box = evidence_box(raw, canvas.size)
         except (ValueError, RecursionError):
             return None
@@ -141,11 +201,47 @@ class EvidenceAnswerPolicy:
             return None
         self.last_metrics["provider_format"] = status
         if answer is not None:
+            if self.confirm:
+                self.pending_answer = frame, crop, bounds, answer
+                return None
             return json.dumps(Action("ANSWER", answer).to_dict(), ensure_ascii=False)
         return None
 
+    def verify(self, observation, frame, crop, bounds, candidate):
+        panel = confirmation_image(observation.screenshot, crop, bounds)
+        canvas = self.actor.prepare_image(panel)
+        prompt = (
+            f"Question: {observation.goal}\n"
+            "The left panel is the whole viewport and the blue outline marks the area enlarged on the right. "
+            "Check the requested item's identity and the full scope in the overview, then read the enlargement. "
+            "For a page, row, or search question, verify that the required results are visible. "
+            "Give every requested component. A single price cannot answer a price range. "
+            "If anything required is missing, return {\"answer\":null}. "
+            "Otherwise return one JSON object with one key answer and a short string value."
+        )
+        raw = self.actor.ask(canvas, prompt)
+        self.last_metrics.update(evidence_stage="confirm", evidence_frame=frame, evidence_bounds=list(bounds),
+                                 evidence_panel_sha256=pixel_hash(panel), provider_format="evidence_invalid")
+        try:
+            answer = parse_visible_answer(raw)
+        except (ValueError, RecursionError):
+            return None
+        if answer is None:
+            self.last_metrics["provider_format"] = "evidence_verify_abstained"
+            return None
+        if answer_signature(candidate) != answer_signature(answer):
+            self.last_metrics["provider_format"] = "evidence_verify_disagreed"
+            return None
+        self.last_metrics["provider_format"] = "evidence_verify_agreed"
+        return json.dumps(Action("ANSWER", candidate).to_dict(), ensure_ascii=False)
+
     def predict(self, observation, history):
         frame = pixel_hash(observation.screenshot)
+        if self.pending_answer is not None:
+            pending_frame, crop, bounds, candidate = self.pending_answer
+            self.pending_answer = None
+            if frame == pending_frame:
+                return self.verify(observation, frame, crop, bounds, candidate)
         if self.pending_crop is not None:
             pending_frame, crop, bounds = self.pending_crop
             self.pending_crop = None

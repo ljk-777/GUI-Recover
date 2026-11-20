@@ -11,6 +11,8 @@ from .policies import ShowUIPolicy
 
 QWEN_REVISION = "66285546d2b821cf421d4f5eb2576359d3770cd3"
 QWEN_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
+QWEN_7B_MODEL = "Qwen/Qwen2.5-VL-7B-Instruct"
+QWEN_7B_MIRROR_REVISION = "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f"
 _LINE_SCROLL = re.compile(r"Action: SCROLL\nValue: ([+-]?[0-9]{1,6})(?:\nPosition: \[[0-9]{1,5}, [0-9]{1,5}\])?")
 VISIBLE_ANSWER_PROMPT = (
     "Check whether this screenshot contains enough evidence to answer the question. "
@@ -61,12 +63,53 @@ def parse_visible_answer(raw):
     return answer.strip()
 
 
+def native_input_pair(raw):
+    """Recognize one coordinate click followed by one text input."""
+    text = raw.strip()
+    decoder = json.JSONDecoder(object_pairs_hook=_unique_dict)
+    first, offset = decoder.raw_decode(text)
+    remainder = text[offset:].lstrip()
+    second, offset = decoder.raw_decode(remainder)
+    if (remainder[offset:].strip() or not isinstance(first, dict) or not isinstance(second, dict)
+            or set(first) != {"action", "coordinate"} or first["action"] != "click"
+            or set(second) not in ({"action", "text"}, {"action", "value"}) or second["action"] != "type"):
+        raise ActionError("Unexpected native action sequence")
+    return {"action": "INPUT", "position": first["coordinate"], "value": second.get("text", second.get("value"))}
+
+
+def normalize_qwen_action(data, size, *, native_navigation=False):
+    if not isinstance(data, dict) or set(data) != {"action", "value", "position"}:
+        raise ActionError("Expected one action dictionary")
+    if not isinstance(data["action"], str):
+        raise ActionError("Expected one named action")
+    kind, value, position = data["action"].upper(), data["value"], data["position"]
+    if kind == "LEFT_CLICK":
+        kind = "CLICK"
+    if kind == "CLICK" and isinstance(value, str):
+        # A visible label may accompany the predicted point, but the executor
+        # consumes only the verified position.
+        value = None
+    if kind in ("CLICK", "INPUT"):
+        position = parse_pixel_point(json.dumps({"point_2d": position}), *size)
+    elif kind == "SCROLL":
+        finite_number = type(value) is int or (type(value) is float and isfinite(value))
+        if finite_number and value:
+            value = "up" if value < 0 else "down"
+        position = None
+    action = parse_action(json.dumps({"action": kind, "value": value, "position": position}))
+    if action.action not in ("CLICK", "INPUT", "SCROLL", "ANSWER") and not (
+            native_navigation and action.action == "ENTER"):
+        raise ActionError("Unsupported Qwen navigation action")
+    return action
+
+
 class QwenGroundingPolicy:
     """A bounded point backend with the same ground/image/query contract as ShowUI."""
 
     _generate = ShowUIPolicy._generate
 
-    def __init__(self, model, *, revision=QWEN_REVISION, max_new_tokens=48, max_pixels=448 * 448, device="cuda"):
+    def __init__(self, model, *, revision=QWEN_REVISION, max_new_tokens=48, max_pixels=448 * 448,
+                 device="cuda", load_in_4bit=False, native_navigation=False):
         import torch
         from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
 
@@ -74,22 +117,47 @@ class QwenGroundingPolicy:
             raise ValueError("Expected Qwen device cuda or cpu")
         if device == "cuda" and (not torch.cuda.is_available() or not torch.cuda.is_bf16_supported()):
             raise RuntimeError("Qwen CUDA grounding requires a BF16 GPU")
-        model = str(Path(model).resolve(strict=True))
+        if load_in_4bit and device != "cuda":
+            raise ValueError("The 4-bit profile requires CUDA")
+        model_dir = Path(model).resolve(strict=True)
+        manifest = None
+        weights = {}
+        if load_in_4bit:
+            from transformers import BitsAndBytesConfig
+
+            manifest = json.loads((model_dir / "download_manifest.json").read_text())
+            if (manifest["repository"] != QWEN_7B_MODEL
+                    or manifest["weight_revision"] != QWEN_7B_MIRROR_REVISION):
+                raise ValueError("Expected the pinned Qwen 7B snapshot")
+            weights = {"device_map": {"": 0},
+                       "quantization_config": BitsAndBytesConfig(load_in_4bit=True,
+                           bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16,
+                           bnb_4bit_use_double_quant=True)}
+        model = str(model_dir)
         self.device = "cuda:0" if device == "cuda" else "cpu"
         self.torch = torch
         self.max_new_tokens = max_new_tokens
+        self.native_navigation = native_navigation
         self.min_pixels = 56 * 56
         self.max_pixels = max_pixels
         self.processor = AutoProcessor.from_pretrained(model, local_files_only=True,
             min_pixels=self.min_pixels, max_pixels=self.max_pixels, trust_remote_code=False)
         self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(model, local_files_only=True,
             torch_dtype=torch.bfloat16, attn_implementation="sdpa", use_safetensors=True,
-            trust_remote_code=False).to(self.device).eval()
+            trust_remote_code=False, **weights)
+        if not load_in_4bit:
+            self.model = self.model.to(self.device)
+        self.model.eval()
         self.last_metrics = {}
         self.recovery_feedback = None
         self.config = {"model": QWEN_MODEL, "revision": revision, "dtype": "bfloat16", "device": device,
             "min_pixels": self.min_pixels, "max_pixels": self.max_pixels, "max_new_tokens": self.max_new_tokens,
             "do_sample": False, "coordinate_format": "integer pixels in the resized image"}
+        if manifest is not None:
+            self.config.update(model=QWEN_7B_MODEL, revision=QWEN_7B_MIRROR_REVISION,
+                               quantization="bitsandbytes NF4 double quantization", asset_provenance=manifest)
+        if native_navigation:
+            self.config["native_navigation"] = True
 
     def reset(self, seed):
         self.torch.manual_seed(seed)
@@ -142,6 +210,7 @@ class QwenGroundingPolicy:
     def predict(self, observation, history, *, allow_answer=True):
         canvas = self.prepare_image(observation.screenshot)
         width, height = canvas.size
+        native_navigation = getattr(self, "native_navigation", False)
         history = history[-4:]
         if not allow_answer:
             pixel_history = []
@@ -156,6 +225,9 @@ class QwenGroundingPolicy:
                            if allow_answer else "Use only CLICK, INPUT or SCROLL to find the missing visual evidence. "
                            'For example, {"action":"SCROLL","value":"down","position":null}. '
                            "Click a relevant photo or listing to inspect it, or scroll to reveal more of the page.")
+        if native_navigation:
+            allowed_actions = allowed_actions.replace(" Use only these four actions.", "")
+            allowed_actions += ' When a search box is focused, use {"action":"ENTER","value":null,"position":null} to submit it.'
         request = (
             f"Task: {observation.goal}\n"
             f"Previous actions: {json.dumps(history, ensure_ascii=False)}\n"
@@ -178,31 +250,21 @@ class QwenGroundingPolicy:
                 # executor always uses the viewport center and a fixed step.
                 match = _LINE_SCROLL.fullmatch(raw.strip())
                 if match is None:
-                    raise
-                data = {"action": "SCROLL", "value": int(match[1]), "position": None}
-                response_format = "line_scroll"
-            if not isinstance(data, dict) or set(data) != {"action", "value", "position"}:
-                raise ValueError("Expected one action dictionary")
-            if not isinstance(data["action"], str):
-                raise ValueError("Expected one named action")
-            data["action"] = data["action"].upper()
-            if data["action"] == "LEFT_CLICK":
-                data["action"] = "CLICK"
-            if data["action"] == "CLICK" and isinstance(data["value"], str):
-                # The model sometimes echoes an observed label beside a click.
-                # The trusted executor consumes only the verified position.
-                data["value"] = None
-            if data["action"] in ("CLICK", "INPUT"):
-                data["position"] = parse_pixel_point(json.dumps({"point_2d": data["position"]}), width, height)
-            elif data["action"] == "SCROLL":
-                value = data["value"]
-                finite_number = type(value) is int or (type(value) is float and isfinite(value))
-                if finite_number and value:
-                    data["value"] = "up" if value < 0 else "down"
-                data["position"] = None
-            action = parse_action(json.dumps(data))
-            if action.action not in ("CLICK", "INPUT", "SCROLL", "ANSWER"):
-                raise ValueError("Unsupported Qwen navigation action")
+                    if not native_navigation:
+                        raise
+                    data = native_input_pair(raw)
+                    response_format = "native_navigation"
+                else:
+                    data = {"action": "SCROLL", "value": int(match[1]), "position": None}
+                    response_format = "line_scroll"
+            if native_navigation and isinstance(data, dict):
+                if set(data) == {"action", "coordinate"} and data["action"] == "click":
+                    data = {"action": "CLICK", "value": None, "position": data["coordinate"]}
+                    response_format = "native_navigation"
+                elif data == {"action": "key", "key": "Enter"} or data == {"action": "key", "key": "Return"}:
+                    data = {"action": "ENTER", "value": None, "position": None}
+                    response_format = "native_navigation"
+            action = normalize_qwen_action(data, canvas.size, native_navigation=native_navigation)
             if action.action == "ANSWER" and not allow_answer:
                 self.last_metrics["provider_format"] = "answer_blocked"
                 return None
