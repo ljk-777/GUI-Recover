@@ -124,7 +124,7 @@ def test_staged_holdout_keeps_complete_pairs_and_freezes_the_next_phase(tmp_path
     def fake_episode(_env, _policy, task, seed, _budget, pending, **options):
         recorded.append((task, options["answer_check"]))
         pending.mkdir()
-        failed = task == "visualwebarena.233" and len(recorded) == 16
+        failed = task == "visualwebarena.36" and len(recorded) == 16
         row = dict.fromkeys(("predictions", "model_calls", "steps", "invalid_predictions", "invalid_action_retries",
                              "repaired_predictions", "scroll_feedbacks", "scroll_detection_signals", "answer_checks",
                              "answers_submitted", "answers_from_checks"), 0)
@@ -141,7 +141,7 @@ def test_staged_holdout_keeps_complete_pairs_and_freezes_the_next_phase(tmp_path
         live.run_study(actor, **run, input_phase="finish")
     live.run_study(actor, **run, input_phase="classifieds")
     assert len(recorded) == 14
-    assert all(task != "visualwebarena.233" for task, _mode in recorded)
+    assert all(task != "visualwebarena.36" for task, _mode in recorded)
     assert not (out / "summary.json").exists()
     with pytest.raises(ValueError, match="original code, model"):
         live.run_study(SimpleNamespace(config={"revision": "changed"}), **run, input_phase="finish")
@@ -151,5 +151,5 @@ def test_staged_holdout_keeps_complete_pairs_and_freezes_the_next_phase(tmp_path
     live.run_study(actor, **run, input_phase="finish")
     summary = json.loads((out / "summary.json").read_text())
     assert summary["task_ids"] == list(live.TASK_SETS[live.INPUT_HOLDOUT_TASK_SET])
-    assert recorded[14:] == [("visualwebarena.233", True), ("visualwebarena.233", False), ("visualwebarena.233", False)]
+    assert recorded[14:] == [("visualwebarena.36", True), ("visualwebarena.36", False), ("visualwebarena.36", False)]
     assert all(row["episodes"] == 8 for row in summary["strategies"].values())
