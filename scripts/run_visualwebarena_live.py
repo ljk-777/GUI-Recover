@@ -7,6 +7,7 @@ from importlib.resources import files
 import json
 import os
 from pathlib import Path
+from tempfile import mkdtemp
 from unittest.mock import patch
 from urllib.parse import urlsplit
 from urllib.request import urlopen
@@ -33,6 +34,7 @@ HOLDOUT_PROTOCOL_SHA256 = "df60ebc2e7cb257d63b22a1d6eac4322e5ea53eed75f695850efc
 INPUT_HOLDOUT_TASK_SET = "evidence-cards-input-holdout"
 INPUT_PROTOCOL_SHA256 = "d97cc17118a061eb822879c109bdd6202431f60a41ad4dc0d1970e45ca2087fe"
 INPUT_MEDIA_SHA256 = "88a7fcad2505d581b266427896265c71367cbc067ed1da461eba127a45b20f58"
+INPUT_SHOPPING_TASKS = (233,)
 TASK_SETS = {
     "diagnostic": READ_ONLY_TASKS,
     "transfer": TRANSFER_TASKS,
@@ -126,7 +128,8 @@ def input_holdout_archive(directory):
             row["image"] = [reference_name(item) for item in image]
     canonical = json.dumps(entries, sort_keys=True, separators=(",", ":")).encode()
     if (tuple(protocol["task_ids"]) != task_ids
-            or hashlib.sha256(canonical).hexdigest() != protocol["entries_sha256"]):
+            or hashlib.sha256(canonical).hexdigest() != protocol["entries_sha256"]
+            or tuple(row["task_id"] for row in entries if "shopping" in row["sites"]) != INPUT_SHOPPING_TASKS):
         raise ValueError("Installed VisualWebArena tasks differ from the frozen native entries")
     archive = LocalReferenceArchive(directory, INPUT_MEDIA_SHA256, homepage=os.environ["VWA_HOMEPAGE"])
     input_manifest = {}
@@ -143,11 +146,14 @@ def input_holdout_archive(directory):
                                                "start_pages": len(row["start_url"].split(" |AND| "))}
     if references != set(archive.images):
         raise ValueError("Task references differ from the registered file set")
+    return archive, input_manifest
+
+
+def probe_shopping():
     classifieds, shopping = (urlsplit(os.environ[f"VWA_{site}"]) for site in ("CLASSIFIEDS", "SHOPPING"))
     if (classifieds.scheme, classifieds.netloc) == (shopping.scheme, shopping.netloc):
         raise ValueError("The locked cross-site task requires a separately configured Shopping origin")
     probe_instance("SHOPPING")
-    return archive, input_manifest
 
 
 def expand_listing_view():
@@ -272,20 +278,79 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
                 "links": visible_listing_links(page, os.environ["VWA_CLASSIFIEDS"], positions)}
 
 
-def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None, input_manifest=None):
+def stage_input_holdout(out, phase, model, input_manifest):
+    """Freeze the rollout code and shared environment before the first staged episode."""
+    import gui_recover
+
+    package_root = Path(gui_recover.__file__).parent
+    versions = ("browsergym-core", "browsergym-visualwebarena", "torch", "transformers",
+                "bitsandbytes", "playwright", "rapidocr", "onnxruntime")
+    plan = {
+        "protocol_sha256": INPUT_PROTOCOL_SHA256,
+        "reference_files_sha256": INPUT_MEDIA_SHA256,
+        "input_manifest": input_manifest,
+        "model": model,
+        "classifieds": os.environ["VWA_CLASSIFIEDS"],
+        "homepage": os.environ["VWA_HOMEPAGE"],
+        "versions": {name: importlib.metadata.version(name) for name in versions},
+        "source_files": {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                         for path in [Path(__file__), *sorted(package_root.glob("*.py"))]},
+    }
+    state = out / "input-holdout-plan.json"
+    full_summary = out / "summary.json"
+    if full_summary.exists():
+        raise ValueError("The registered input holdout already has a full summary")
+    if out.exists():
+        if not state.is_file() or json.loads(state.read_text()) != plan:
+            raise ValueError("The staged holdout requires its original code, model, environment and inputs")
+    else:
+        if phase == "finish":
+            raise ValueError("Run the Classifieds phase before the cross-site phase")
+        out.mkdir(parents=True)
+        write_json(state, plan)
+    classifieds_tasks = tuple(task_id for task_id in TASK_SETS[INPUT_HOLDOUT_TASK_SET]
+                              if task_id not in INPUT_SHOPPING_TASKS)
+    if phase == "classifieds":
+        return classifieds_tasks
+    finished_pairs = all((out / f"visualwebarena.{task_id}-{mode}" / "episode.json").is_file()
+                         for task_id in classifieds_tasks for mode in STUDY_MODES["evidence-cards"])
+    if not finished_pairs:
+        raise ValueError("Complete all seven Classifieds pairs before the cross-site phase")
+    return TASK_SETS[INPUT_HOLDOUT_TASK_SET]
+
+
+def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None, input_manifest=None,
+              input_phase="all"):
     if task_set == HOLDOUT_TASK_SET and not holdout_profile(study, max_steps, actor.config):
         raise ValueError("The locked cohort requires the registered 8-decision Qwen 7B NF4 comparison")
     use_inputs = task_set == INPUT_HOLDOUT_TASK_SET
     if use_inputs and (reference_archive is None or input_manifest is None
                        or not holdout_profile(study, max_steps, actor.config, "evidence-cards")):
         raise ValueError("The new holdout requires its media archive and registered 8-decision comparison")
-    out.mkdir(parents=True, exist_ok=False)
+    staged = input_phase != "all"
+    if staged:
+        if not use_inputs or input_phase not in ("classifieds", "finish"):
+            raise ValueError("Staged execution is only available for the registered image-and-tab holdout")
+        task_ids = stage_input_holdout(out, input_phase, actor.config, input_manifest)
+    else:
+        out.mkdir(parents=True, exist_ok=False)
+        task_ids = TASK_SETS[task_set]
     screen_reader = RapidScreenReader() if study in OCR_MODES else None
     listing_site = os.environ["VWA_CLASSIFIEDS"] if study in LINK_MODES else None
-    task_ids = TASK_SETS[task_set]
     strategies = {mode: [] for mode in STUDY_MODES[study]}
+    new_pairs = INPUT_SHOPPING_TASKS if input_phase == "finish" else task_ids
     for task_id in task_ids:
         for mode in strategies:
+            task = f"visualwebarena.{task_id}"
+            branch = out / f"{task}-{mode}"
+            if staged and branch.is_dir():
+                row = json.loads((branch / "episode.json").read_text())
+                if row.get("task") != task or row.get("seed") != 0 or row.get("reason") == "runtime_error":
+                    raise ValueError(f"Inconsistent staged episode {branch}")
+                strategies[mode].append(row)
+                continue
+            if task_id not in new_pairs:
+                raise ValueError(f"Missing required staged episode {branch}")
             if study in ANSWER_STUDIES:
                 recovery, invalid_retry = "scroll-feedback", "feedback"
             elif study == "format":
@@ -296,7 +361,7 @@ def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None,
             env = VisualWebArenaEnvironment(task_id, enable_card_view=mode == "evidence-cards",
                                             enable_browser_context=use_inputs, reference_archive=reference_archive)
             try:
-                branch = out / f"{env.task}-{mode}"
+                pending = Path(mkdtemp(prefix=".episode-", dir=out)) / branch.name if staged else branch
                 using_evidence = study in EVIDENCE_STUDIES and mode != "answer-check"
                 policy = actor
                 if using_evidence:
@@ -306,16 +371,25 @@ def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None,
                         listing_preview=env.preview_listing_links if listing_site is not None else None,
                         ranked_capture=env.capture_cards if mode == "evidence-cards" else None,
                     )
-                row = run_episode(env, policy, env.task, 0, max_steps, branch,
+                row = run_episode(env, policy, env.task, 0, max_steps, pending,
                                   recovery=recovery, invalid_action_retry=invalid_retry,
                                   answer_check=mode == "answer-check",
                                   allow_observation_only=using_evidence,
                                   submit_answer=True, success_check=exact_vwa_success)
-                render_replay(branch)
+                render_replay(pending)
+                if staged:
+                    if row["reason"] == "runtime_error":
+                        raise RuntimeError(f"Infrastructure failure in {task} {mode}; trace retained in {pending}")
+                    pending.rename(branch)
+                    pending.parent.rmdir()
                 strategies[mode].append(row)
-                print(f"{env.task} {mode}: {row['reason']} ({row['predictions']} predictions)", flush=True)
+                progress = "recorded" if staged else f"{row['reason']} ({row['predictions']} predictions)"
+                print(f"{env.task} {mode}: {progress}", flush=True)
             finally:
                 env.close()
+    if input_phase == "classifieds":
+        print("Seven Classifieds pairs recorded. Finish the registered run when Shopping is ready.", flush=True)
+        return
     counts = ("predictions", "model_calls", "steps", "invalid_predictions",
               "invalid_action_retries", "repaired_predictions")
     if study in ("scroll", *ANSWER_STUDIES):
@@ -337,7 +411,14 @@ def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None,
     if use_inputs:
         summary.update(protocol_sha256=INPUT_PROTOCOL_SHA256, reference_files_sha256=INPUT_MEDIA_SHA256,
                        browser_context=True, input_manifest=input_manifest)
-    write_json(out / "summary.json", summary)
+    final_summary = out / "summary.json"
+    if staged:
+        pending_summary = Path(mkdtemp(prefix=".summary-", dir=out)) / final_summary.name
+        write_json(pending_summary, summary)
+        pending_summary.rename(final_summary)
+        pending_summary.parent.rmdir()
+    else:
+        write_json(final_summary, summary)
 
 
 def main():
@@ -352,6 +433,8 @@ def main():
     parser.add_argument("--task-set", choices=TASK_SETS, default="diagnostic")
     parser.add_argument("--study", choices=STUDY_MODES, default="visual")
     parser.add_argument("--cohort-dir", type=Path, help="Registered input holdout protocol and reference archive")
+    parser.add_argument("--input-phase", choices=("all", "classifieds", "finish"), default="all",
+                        help="Record the seven single-site pairs first or finish the same run with Shopping")
     args = parser.parse_args()
     ready = live_preflight()
     if args.preflight:
@@ -369,12 +452,16 @@ def main():
     if args.task_set == INPUT_HOLDOUT_TASK_SET and (args.cohort_dir is None or args.study != "evidence-cards"
                                                     or args.max_steps != 8 or not args.qwen_7b_4bit):
         parser.error("The input holdout needs --cohort-dir, --study evidence-cards, --max-steps 8, and --qwen-7b-4bit")
+    if args.input_phase != "all" and args.task_set != INPUT_HOLDOUT_TASK_SET:
+        parser.error("--input-phase is only used by the registered image-and-tab holdout")
     if args.qwen_7b_4bit and (args.actor != "qwen" or args.device != "cuda"):
         parser.error("The Qwen 7B 4-bit profile requires --actor qwen --device cuda")
     probe_instance()
     reference_archive, input_manifest = (input_holdout_archive(args.cohort_dir)
                                          if args.task_set == INPUT_HOLDOUT_TASK_SET else (None, None))
-    if args.out.exists():
+    if args.task_set == INPUT_HOLDOUT_TASK_SET and args.input_phase != "classifieds":
+        probe_shopping()
+    if args.out.exists() and args.input_phase == "all":
         parser.error("Use a fresh output directory")
     if args.actor == "showui":
         if args.device != "cuda":
@@ -386,7 +473,7 @@ def main():
                                     load_in_4bit=args.qwen_7b_4bit,
                                     native_navigation=args.study in CONFIRM_MODES)
     run_study(actor, out=args.out, study=args.study, task_set=args.task_set, max_steps=args.max_steps,
-              reference_archive=reference_archive, input_manifest=input_manifest)
+              reference_archive=reference_archive, input_manifest=input_manifest, input_phase=args.input_phase)
     return 0
 
 

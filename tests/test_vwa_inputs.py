@@ -2,7 +2,9 @@ import base64
 import hashlib
 import io
 import json
+from pathlib import Path
 import tarfile
+from types import SimpleNamespace
 
 import pytest
 from PIL import Image, ImageDraw
@@ -101,3 +103,53 @@ def test_reference_region_uses_the_unique_visible_match_and_its_title():
     screen.paste(reference, (54, 4))
     receipt["source_pixels"] = pixel_hash(screen)
     assert reference_title_region(screen, reference, receipt, site) is None
+
+
+def test_staged_holdout_keeps_complete_pairs_and_freezes_the_next_phase(tmp_path, monkeypatch):
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1] / "scripts"))
+    import run_visualwebarena_live as live
+
+    monkeypatch.setenv("VWA_CLASSIFIEDS", "http://localhost:19980")
+    monkeypatch.setenv("VWA_HOMEPAGE", "http://localhost:19981")
+    monkeypatch.setattr(live.importlib.metadata, "version", lambda _name: "1")
+    monkeypatch.setattr(live, "holdout_profile", lambda *args: True)
+    monkeypatch.setattr(live, "RapidScreenReader", lambda: SimpleNamespace(config={}))
+    monkeypatch.setattr(live, "EvidenceAnswerPolicy", lambda *args, **kwargs: None)
+    monkeypatch.setattr(live, "VisualWebArenaEnvironment", lambda task_id, **_options: SimpleNamespace(
+        task=f"visualwebarena.{task_id}", preview_listing_links=None, capture_cards=None, close=lambda: None))
+    monkeypatch.setattr(live, "render_replay", lambda _pending: None)
+
+    recorded = []
+
+    def fake_episode(_env, _policy, task, seed, _budget, pending, **options):
+        recorded.append((task, options["answer_check"]))
+        pending.mkdir()
+        failed = task == "visualwebarena.233" and len(recorded) == 16
+        row = dict.fromkeys(("predictions", "model_calls", "steps", "invalid_predictions", "invalid_action_retries",
+                             "repaired_predictions", "scroll_feedbacks", "scroll_detection_signals", "answer_checks",
+                             "answers_submitted", "answers_from_checks"), 0)
+        row.update(task=task, seed=seed, success=False, reason="runtime_error" if failed else "step_limit")
+        live.write_json(pending / "episode.json", row)
+        return row
+
+    monkeypatch.setattr(live, "run_episode", fake_episode)
+    actor = SimpleNamespace(config={"revision": "fixed"})
+    out = tmp_path / "study"
+    run = dict(out=out, study="evidence-cards", task_set=live.INPUT_HOLDOUT_TASK_SET, max_steps=8,
+               reference_archive=object(), input_manifest={})
+    with pytest.raises(ValueError, match="before the cross-site phase"):
+        live.run_study(actor, **run, input_phase="finish")
+    live.run_study(actor, **run, input_phase="classifieds")
+    assert len(recorded) == 14
+    assert all(task != "visualwebarena.233" for task, _mode in recorded)
+    assert not (out / "summary.json").exists()
+    with pytest.raises(ValueError, match="original code, model"):
+        live.run_study(SimpleNamespace(config={"revision": "changed"}), **run, input_phase="finish")
+    with pytest.raises(RuntimeError, match="trace retained"):
+        live.run_study(actor, **run, input_phase="finish")
+    assert not (out / "summary.json").exists()
+    live.run_study(actor, **run, input_phase="finish")
+    summary = json.loads((out / "summary.json").read_text())
+    assert summary["task_ids"] == list(live.TASK_SETS[live.INPUT_HOLDOUT_TASK_SET])
+    assert recorded[14:] == [("visualwebarena.233", True), ("visualwebarena.233", False), ("visualwebarena.233", False)]
+    assert all(row["episodes"] == 8 for row in summary["strategies"].values())

@@ -341,6 +341,8 @@ python scripts/audit_visualwebarena_live.py runs/visualwebarena-input-holdout \
   --out runs/visualwebarena-input-holdout-audit.json
 ~~~
 
+If Shopping is temporarily unavailable, add `--input-phase classifieds` to the run command to record the seven single-site pairs. Once Shopping is available, run the same command with `--input-phase finish` and the same output directory. The saved plan requires the original rollout code, model configuration, package versions, shared backend URLs, and registered inputs. Each completed trajectory is kept so an interrupted phase can be retried. The full summary and the acceptance report require all eight pairs.
+
 [Second registered holdout protocol](../examples/vwa-input-heldout-protocol.json)
 
 On a synthetic development fixture derived from an already used Classifieds task, both strategies started from the same screenshot, tab state, and reference image. Each switched browser tabs once, made three model calls, and earned native reward `1.0`. The evidence policy also recorded the thumbnail match, title crop read, and independent confirmation. The registered holdout does not include this fixture.
