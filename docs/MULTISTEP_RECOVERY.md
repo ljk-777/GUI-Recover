@@ -208,4 +208,13 @@ python scripts/audit_visualwebarena_live.py runs/visualwebarena-confirm-transfer
 
 The CUDA profile needs the pinned Torch and Transformers versions plus `bitsandbytes==0.45.3` and `accelerate==1.4.0`.
 
+| Transfer strategy | Model calls | Navigation actions | Wrong submissions | Native successes |
+| --- | ---: | ---: | ---: | ---: |
+| Answer check | 36 | 7 | 1 | 0/8 |
+| Evidence and independent confirmation | 45 | 22 | 0 | 0/8 |
+
+The audit verified 16 trajectories, 46 screenshots, and identical initial pixels for all eight pairs. The candidate produced no evidence crop on these homepage-start tasks. It either kept navigating or received an invalid navigation reply, so the transfer run did not reach independent confirmation. The measured peak allocation was 7.04 GiB on an RTX 4090 D. This comparison missed the success gate.
+
+[Frozen plan and per-task confirmation results](../examples/vwa-confirmation-results.json)
+
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
