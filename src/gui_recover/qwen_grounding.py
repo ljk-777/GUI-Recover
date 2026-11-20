@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from .actions import ActionError
+from .actions import ActionError, _unique_dict
 from .policies import ShowUIPolicy
 
 
@@ -18,7 +18,9 @@ def parse_pixel_point(raw, width, height):
     if raw.startswith("```") and raw.endswith("```"):
         raw = "\n".join(raw.splitlines()[1:-1])
     try:
-        data = json.loads(raw)
+        data = json.loads(raw, object_pairs_hook=_unique_dict)
+        if isinstance(data, list) and len(data) == 1:
+            data = data[0]
         if not isinstance(data, dict) or set(data) != {"point_2d"}:
             raise ValueError("Expected a point_2d object")
         point = data["point_2d"]

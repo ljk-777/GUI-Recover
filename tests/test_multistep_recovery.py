@@ -16,7 +16,9 @@ def test_transfer_task_must_be_entirely_held_out():
         validate_plan(plan)
 
 
-@pytest.mark.parametrize("raw", ['[2,3]', '{"point_2d":[true,3]}', '{"point_2d":[10,5]}', '{"point_2d":[2,3],"tool":"click"}'])
+@pytest.mark.parametrize("raw", ['[2,3]', '{"point_2d":[true,3]}', '{"point_2d":[10,5]}',
+    '{"point_2d":[2,3],"tool":"click"}', '{"point_2d":[2,3],"point_2d":[4,5]}',
+    '[{"point_2d":[2,3]},{"point_2d":[4,5]}]'])
 def test_qwen_pixel_adapter_rejects_unusable_outputs(raw):
     with pytest.raises(ActionError):
         parse_pixel_point(raw, 10, 10)
@@ -24,6 +26,7 @@ def test_qwen_pixel_adapter_rejects_unusable_outputs(raw):
 
 def test_qwen_pixels_are_mapped_to_centers():
     assert parse_pixel_point('{"point_2d":[2,3]}', 10, 20) == (0.25, 0.175)
+    assert parse_pixel_point('```json\n[{"point_2d":[2,3]}]\n```', 10, 20) == (0.25, 0.175)
 
 
 @pytest.mark.integration
