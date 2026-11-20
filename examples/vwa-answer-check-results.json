@@ -1,0 +1,665 @@
+{
+  "benchmark": "VisualWebArena Classifieds",
+  "success": "Native reward equals 1 on a terminated, non-truncated episode",
+  "source_commit": "af7809d89da169e4f427c502bfb4a703d8064e62",
+  "controlled_site": {
+    "variant": "Optimized VWA Classifieds with re-encoded AVIF assets",
+    "web_and_db_image_digests": {
+      "web": "sha256:b2df5018c66bb48ce1828bef3f28171b90c4c74027ab0a3611d93cbb7a4509f7",
+      "db": "sha256:70c327b1c16aac0b17c05fd59ef79f6930a1389e9da45b04d33cd47f327b7d1a"
+    }
+  },
+  "runtime": {
+    "gpu": "NVIDIA GeForce RTX 4090 D, 12032 MiB",
+    "browsergym_core": "0.14.3",
+    "browsergym_visualwebarena": "0.14.3",
+    "libvisualwebarena": "0.0.15",
+    "playwright": "1.44.0",
+    "torch": "2.6.0",
+    "transformers": "4.49.0"
+  },
+  "model": {
+    "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+    "revision": "66285546d2b821cf421d4f5eb2576359d3770cd3",
+    "dtype": "bfloat16",
+    "device": "cuda",
+    "min_pixels": 3136,
+    "max_pixels": 614656,
+    "max_new_tokens": 96,
+    "do_sample": false,
+    "coordinate_format": "integer pixels in the resized image"
+  },
+  "runs": {
+    "diagnostic": {
+      "run": "visualwebarena-answer-diagnostic-001",
+      "study": "answer",
+      "task_set": "answer-diagnostic",
+      "prediction_budget": 8,
+      "screenshots": 19,
+      "provider_formats": {
+        "navigation": {
+          "json": 8,
+          "invalid": 6
+        },
+        "answer-check": {
+          "answer_json": 2,
+          "answer_abstained": 2,
+          "json": 3,
+          "invalid": 2
+        }
+      },
+      "peak_cuda_allocated_bytes": 9212939264,
+      "by_task": {
+        "118": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "navigation": {
+              "predictions": 6,
+              "model_calls": 6,
+              "steps": 4,
+              "invalid_predictions": 2,
+              "invalid_action_retries": 1,
+              "repaired_predictions": 1,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 1,
+              "scroll_feedbacks": 1,
+              "success": false,
+              "reason": "invalid_action"
+            },
+            "answer-check": {
+              "predictions": 1,
+              "model_calls": 1,
+              "steps": 1,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 1,
+              "answers_submitted": 1,
+              "answers_from_checks": 1,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "task_failure"
+            }
+          },
+          "answer_outcome": {
+            "navigation": null,
+            "answer-check": {
+              "source": "answer-check",
+              "prediction": 1,
+              "native_reward": 0.0
+            }
+          }
+        },
+        "128": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "navigation": {
+              "predictions": 5,
+              "model_calls": 5,
+              "steps": 3,
+              "invalid_predictions": 2,
+              "invalid_action_retries": 1,
+              "repaired_predictions": 0,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 1,
+              "scroll_feedbacks": 1,
+              "success": false,
+              "reason": "invalid_action"
+            },
+            "answer-check": {
+              "predictions": 7,
+              "model_calls": 7,
+              "steps": 3,
+              "invalid_predictions": 2,
+              "invalid_action_retries": 1,
+              "repaired_predictions": 0,
+              "answer_checks": 2,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 1,
+              "scroll_feedbacks": 1,
+              "success": false,
+              "reason": "invalid_action"
+            }
+          },
+          "answer_outcome": {
+            "navigation": null,
+            "answer-check": null
+          }
+        },
+        "221": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "navigation": {
+              "predictions": 3,
+              "model_calls": 3,
+              "steps": 1,
+              "invalid_predictions": 2,
+              "invalid_action_retries": 1,
+              "repaired_predictions": 0,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "invalid_action"
+            },
+            "answer-check": {
+              "predictions": 1,
+              "model_calls": 1,
+              "steps": 1,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 1,
+              "answers_submitted": 1,
+              "answers_from_checks": 1,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "task_failure"
+            }
+          },
+          "answer_outcome": {
+            "navigation": null,
+            "answer-check": {
+              "source": "answer-check",
+              "prediction": 1,
+              "native_reward": 0.0
+            }
+          }
+        }
+      },
+      "strategies": {
+        "navigation": {
+          "episodes": 3,
+          "successes": 0,
+          "success_rate": 0.0,
+          "mean_steps": 2.6666666666666665,
+          "reasons": {
+            "invalid_action": 3
+          },
+          "predictions": 14,
+          "model_calls": 14,
+          "steps": 8,
+          "invalid_predictions": 6,
+          "invalid_action_retries": 3,
+          "repaired_predictions": 1,
+          "scroll_feedbacks": 2,
+          "scroll_detection_signals": 2,
+          "answer_checks": 0,
+          "answers_submitted": 0,
+          "answers_from_checks": 0
+        },
+        "answer-check": {
+          "episodes": 3,
+          "successes": 0,
+          "success_rate": 0.0,
+          "mean_steps": 1.6666666666666667,
+          "reasons": {
+            "task_failure": 2,
+            "invalid_action": 1
+          },
+          "predictions": 9,
+          "model_calls": 9,
+          "steps": 5,
+          "invalid_predictions": 2,
+          "invalid_action_retries": 1,
+          "repaired_predictions": 0,
+          "scroll_feedbacks": 1,
+          "scroll_detection_signals": 1,
+          "answer_checks": 4,
+          "answers_submitted": 2,
+          "answers_from_checks": 2
+        }
+      }
+    },
+    "transfer": {
+      "run": "visualwebarena-answer-transfer-001",
+      "study": "answer",
+      "task_set": "answer-transfer",
+      "prediction_budget": 8,
+      "screenshots": 47,
+      "provider_formats": {
+        "navigation": {
+          "json": 21,
+          "invalid": 14
+        },
+        "answer-check": {
+          "answer_abstained": 8,
+          "json": 6,
+          "invalid": 6,
+          "answer_json": 4,
+          "answer_invalid": 1
+        }
+      },
+      "peak_cuda_allocated_bytes": 9212939264,
+      "by_task": {
+        "10": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "navigation": {
+              "predictions": 3,
+              "model_calls": 3,
+              "steps": 1,
+              "invalid_predictions": 2,
+              "invalid_action_retries": 1,
+              "repaired_predictions": 0,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "invalid_action"
+            },
+            "answer-check": {
+              "predictions": 5,
+              "model_calls": 5,
+              "steps": 1,
+              "invalid_predictions": 2,
+              "invalid_action_retries": 1,
+              "repaired_predictions": 0,
+              "answer_checks": 2,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "invalid_action"
+            }
+          },
+          "answer_outcome": {
+            "navigation": null,
+            "answer-check": null
+          }
+        },
+        "13": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "navigation": {
+              "predictions": 3,
+              "model_calls": 3,
+              "steps": 1,
+              "invalid_predictions": 2,
+              "invalid_action_retries": 1,
+              "repaired_predictions": 1,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "invalid_action"
+            },
+            "answer-check": {
+              "predictions": 5,
+              "model_calls": 5,
+              "steps": 1,
+              "invalid_predictions": 2,
+              "invalid_action_retries": 1,
+              "repaired_predictions": 1,
+              "answer_checks": 2,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "invalid_action"
+            }
+          },
+          "answer_outcome": {
+            "navigation": null,
+            "answer-check": null
+          }
+        },
+        "41": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "navigation": {
+              "predictions": 7,
+              "model_calls": 7,
+              "steps": 5,
+              "invalid_predictions": 2,
+              "invalid_action_retries": 1,
+              "repaired_predictions": 1,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 1,
+              "scroll_feedbacks": 1,
+              "success": false,
+              "reason": "invalid_action"
+            },
+            "answer-check": {
+              "predictions": 1,
+              "model_calls": 1,
+              "steps": 1,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 1,
+              "answers_submitted": 1,
+              "answers_from_checks": 1,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "task_failure"
+            }
+          },
+          "answer_outcome": {
+            "navigation": null,
+            "answer-check": {
+              "source": "answer-check",
+              "prediction": 1,
+              "native_reward": 0.0
+            }
+          }
+        },
+        "42": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "navigation": {
+              "predictions": 6,
+              "model_calls": 6,
+              "steps": 4,
+              "invalid_predictions": 2,
+              "invalid_action_retries": 1,
+              "repaired_predictions": 1,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 1,
+              "scroll_feedbacks": 1,
+              "success": false,
+              "reason": "invalid_action"
+            },
+            "answer-check": {
+              "predictions": 1,
+              "model_calls": 1,
+              "steps": 1,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 1,
+              "answers_submitted": 1,
+              "answers_from_checks": 1,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "task_failure"
+            }
+          },
+          "answer_outcome": {
+            "navigation": null,
+            "answer-check": {
+              "source": "answer-check",
+              "prediction": 1,
+              "native_reward": 0.0
+            }
+          }
+        },
+        "150": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "navigation": {
+              "predictions": 2,
+              "model_calls": 2,
+              "steps": 0,
+              "invalid_predictions": 2,
+              "invalid_action_retries": 1,
+              "repaired_predictions": 0,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "invalid_action"
+            },
+            "answer-check": {
+              "predictions": 3,
+              "model_calls": 3,
+              "steps": 0,
+              "invalid_predictions": 2,
+              "invalid_action_retries": 1,
+              "repaired_predictions": 0,
+              "answer_checks": 1,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "invalid_action"
+            }
+          },
+          "answer_outcome": {
+            "navigation": null,
+            "answer-check": null
+          }
+        },
+        "163": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "navigation": {
+              "predictions": 8,
+              "model_calls": 8,
+              "steps": 8,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 2,
+              "scroll_feedbacks": 2,
+              "success": false,
+              "reason": "step_limit"
+            },
+            "answer-check": {
+              "predictions": 8,
+              "model_calls": 8,
+              "steps": 4,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 4,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 1,
+              "scroll_feedbacks": 1,
+              "success": false,
+              "reason": "step_limit"
+            }
+          },
+          "answer_outcome": {
+            "navigation": null,
+            "answer-check": null
+          }
+        },
+        "192": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "navigation": {
+              "predictions": 3,
+              "model_calls": 3,
+              "steps": 1,
+              "invalid_predictions": 2,
+              "invalid_action_retries": 1,
+              "repaired_predictions": 1,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "invalid_action"
+            },
+            "answer-check": {
+              "predictions": 1,
+              "model_calls": 1,
+              "steps": 1,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 1,
+              "answers_submitted": 1,
+              "answers_from_checks": 1,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "task_failure"
+            }
+          },
+          "answer_outcome": {
+            "navigation": null,
+            "answer-check": {
+              "source": "answer-check",
+              "prediction": 1,
+              "native_reward": 0.0
+            }
+          }
+        },
+        "209": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "navigation": {
+              "predictions": 3,
+              "model_calls": 3,
+              "steps": 1,
+              "invalid_predictions": 2,
+              "invalid_action_retries": 1,
+              "repaired_predictions": 0,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "invalid_action"
+            },
+            "answer-check": {
+              "predictions": 1,
+              "model_calls": 1,
+              "steps": 1,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 1,
+              "answers_submitted": 1,
+              "answers_from_checks": 1,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "task_failure"
+            }
+          },
+          "answer_outcome": {
+            "navigation": null,
+            "answer-check": {
+              "source": "answer-check",
+              "prediction": 1,
+              "native_reward": 0.0
+            }
+          }
+        }
+      },
+      "strategies": {
+        "navigation": {
+          "episodes": 8,
+          "successes": 0,
+          "success_rate": 0.0,
+          "mean_steps": 2.625,
+          "reasons": {
+            "invalid_action": 7,
+            "step_limit": 1
+          },
+          "predictions": 35,
+          "model_calls": 35,
+          "steps": 21,
+          "invalid_predictions": 14,
+          "invalid_action_retries": 7,
+          "repaired_predictions": 4,
+          "scroll_feedbacks": 4,
+          "scroll_detection_signals": 4,
+          "answer_checks": 0,
+          "answers_submitted": 0,
+          "answers_from_checks": 0
+        },
+        "answer-check": {
+          "episodes": 8,
+          "successes": 0,
+          "success_rate": 0.0,
+          "mean_steps": 1.25,
+          "reasons": {
+            "invalid_action": 3,
+            "task_failure": 4,
+            "step_limit": 1
+          },
+          "predictions": 25,
+          "model_calls": 25,
+          "steps": 10,
+          "invalid_predictions": 6,
+          "invalid_action_retries": 3,
+          "repaired_predictions": 1,
+          "scroll_feedbacks": 1,
+          "scroll_detection_signals": 1,
+          "answer_checks": 13,
+          "answers_submitted": 4,
+          "answers_from_checks": 4
+        }
+      }
+    }
+  },
+  "native_wiring_check": {
+    "kind": "privileged_known_answer_wiring_check",
+    "model_calls": 0,
+    "cases": [
+      {
+        "task_id": 128,
+        "reward": 1.0,
+        "terminated": true,
+        "truncated": false,
+        "success": true
+      },
+      {
+        "task_id": 221,
+        "reward": 1.0,
+        "terminated": true,
+        "truncated": false,
+        "success": true
+      },
+      {
+        "task_id": 41,
+        "reward": 1.0,
+        "terminated": true,
+        "truncated": false,
+        "success": true
+      },
+      {
+        "task_id": 209,
+        "reward": 1.0,
+        "terminated": true,
+        "truncated": false,
+        "success": true
+      }
+    ]
+  }
+}
