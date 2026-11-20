@@ -105,6 +105,10 @@ def priced_titles(rows, size):
     return matches
 
 
+def _title_text(value):
+    return " ".join(value.casefold().split()).rstrip(".…").rstrip()
+
+
 def listing_selection(raw, rows, size, count):
     """Resolve selected visible text centers to normalized browser points."""
     try:
@@ -115,14 +119,25 @@ def listing_selection(raw, rows, size, count):
         return None
     if set(data) != {"listings"}:
         raise ActionError("Expected only listing indices")
-    indices = data["listings"]
-    if indices is None:
+    selected = data["listings"]
+    if selected is None:
         return [], []
-    if (not isinstance(indices, list) or not count[0] <= len(indices) <= min(count[1], 3)
-            or any(type(index) is not int or not 0 <= index < len(rows) for index in indices)):
+    if not isinstance(selected, list) or not count[0] <= len(selected) <= min(count[1], 3):
         raise ActionError("Expected the required number of distinct visible titles")
     prices = priced_titles(rows, size)
-    indices = [prices.get(index, index) for index in indices]
+    indices = []
+    for value in selected:
+        if type(value) is int and 0 <= value < len(rows):
+            indices.append(prices.get(value, value))
+            continue
+        if isinstance(value, str) and 0 < len(value.strip()) <= 100:
+            label = _title_text(value)
+            matches = [index for index, row in enumerate(rows) if label and _title_text(row["text"]) == label]
+            if len(matches) == 1:
+                index = matches[0]
+                indices.append(prices.get(index, index))
+                continue
+        raise ActionError("Listing choice is neither a visible index nor a unique rendered title")
     if len(set(indices)) != len(indices):
         raise ActionError("Multiple selections point to the same listing title")
     return indices, normalized_points([

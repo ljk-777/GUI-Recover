@@ -56,6 +56,14 @@ def test_aligned_price_selection_maps_to_the_clickable_title_once():
         listing_selection('{"listings":[0,3]}', rows, (100, 40), (2, 2))
 
 
+def test_literal_title_selection_needs_unique_rendered_text():
+    assert listing_selection('{"listings":["oak frame...","Blue Canvas"]}', ROWS, (100, 40), (2, 2))[0] == [0, 1]
+    with pytest.raises(ActionError, match="unique rendered title"):
+        listing_selection('{"listings":["Oak frame","Blue canvas"]}', ROWS + [ROWS[0]], (100, 40), (2, 2))
+    with pytest.raises(ActionError, match="unique rendered title"):
+        listing_selection('{"listings":["Oak","Blue canvas"]}', ROWS, (100, 40), (2, 2))
+
+
 @pytest.mark.parametrize("confirm,expected", [([1, 0], True), ([0, 2], False), (None, False)])
 def test_listing_policy_submits_only_agreed_browser_destinations(confirm, expected):
     class Actor:

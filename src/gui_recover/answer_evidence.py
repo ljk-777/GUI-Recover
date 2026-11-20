@@ -14,6 +14,7 @@ from .visible_links import agreed_listing_answer, link_answer_count, listing_sel
 
 
 _AMOUNT = re.compile(r"(?<![\w.])(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]+)?(?![\w.])")
+_PRICE_QUESTION = re.compile(r"\b(?:cheapest|costliest|expensive|prices?|priced|budget|costs?)\b|\$", re.IGNORECASE)
 
 
 def evidence_box(raw, size):
@@ -305,14 +306,20 @@ class EvidenceAnswerPolicy:
                 f"Previous browser actions: {json.dumps(recent, ensure_ascii=False)}.\nVisible text:\n{controls}"
             )
         if link_count is not None:
+            price_question = bool(_PRICE_QUESTION.search(observation.goal))
+            selection_format = ('as an array in a JSON object keyed "listings". ' if price_question else
+                                'such as {"listings":[10,12]}. ')
+            row_scope = ("If the question limits the answer to a visible row, compare that row's cards in place. "
+                         if price_question else "")
+            seen = listing_screen_text(rows, canvas.size) if price_question else f"Visible text:\n{controls}"
             prompt = (
                 f"Task: {observation.goal}\n"
                 "Find all requested listings using the screenshot, their positions, and the indexed text. "
                 f"The answer needs {link_count[0]} to {link_count[1]} distinct listing links. "
                 "When the full requested group is visible, select the text index for each matching listing TITLE, "
-                'as an array in a JSON object keyed "listings". Exclude navigation, prices, labels, and unrelated cards. '
+                f"{selection_format}Exclude navigation, prices, labels, and unrelated cards. "
                 "Check any required ordering, category, price, and result scope before selecting. "
-                "If the question limits the answer to a visible row, compare that row's cards in place. "
+                f"{row_scope}"
                 "If the right results are not shown, issue one navigation command. "
                 'Use {"action":"CLICK","value":null,"control":index} for a visible button or filter, '
                 '{"action":"SEARCH","value":"short query","control":index} on the empty Keyword placeholder to search, '
@@ -320,7 +327,7 @@ class EvidenceAnswerPolicy:
                 '{"action":"SCROLL","value":"down","position":null} to see lower listings. '
                 'Return {"listings":null} only if you cannot select or navigate. Never type or invent a URL. '
                 f"Return one JSON object.\nPrevious actions: {json.dumps(recent, ensure_ascii=False)}.\n"
-                f"{listing_screen_text(rows, canvas.size)}"
+                f"{seen}"
             )
         raw = self.actor.ask(canvas, prompt)
         self.last_metrics.update(evidence_stage="locate", evidence_frame=frame, provider_format="evidence_invalid")
@@ -426,8 +433,10 @@ class EvidenceAnswerPolicy:
 
     def verify_links(self, observation, frame, rows, selected, destinations, count):
         canvas = self.actor.prepare_image(observation.screenshot)
+        seen = (listing_screen_text(rows, canvas.size) if _PRICE_QUESTION.search(observation.goal)
+                else f"Visible text from the screenshot:\n{indexed_text(rows)}")
         raw = self.actor.ask(canvas, (
-            f"{listing_screen_text(rows, canvas.size)}\n\n"
+            f"{seen}\n\n"
             f"Question: {observation.goal}\n"
             "Identify the complete set of matching listing titles using the screenshot. "
             "Check the scope, ordering, and visible card details. Exclude headings and controls. "
