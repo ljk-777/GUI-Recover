@@ -5,7 +5,7 @@ from PIL import Image
 
 from gui_recover.actions import Action, ActionError, parse_action
 from gui_recover.answer_evidence import (EvidenceAnswerPolicy, answer_signature, evidence_answer, evidence_box,
-                                         evidence_clipped, evidence_navigation, native_crop)
+                                         confirmation_image, evidence_clipped, evidence_navigation, native_crop)
 from gui_recover.environment import VisualObservation
 from gui_recover.qwen_grounding import QwenGroundingPolicy, parse_visible_answer
 
@@ -91,6 +91,23 @@ def test_evidence_search_can_navigate_but_cannot_submit():
     assert evidence_navigation(reply, (20, 20)) == Action("INPUT", "red boat", (0.275, 0.425))
     with pytest.raises(ActionError):
         evidence_navigation('{"action":"ANSWER","value":"red","position":null}', (20, 20))
+
+
+def test_only_a_visual_transition_after_a_click_becomes_context():
+    before = VisualObservation("What color is the item?", Image.new("RGB", (200, 120), "yellow"))
+    after = VisualObservation(before.goal, Image.new("RGB", (200, 120), "blue"))
+    policy = EvidenceAnswerPolicy(object(), confirm=True, use_navigation_context=True)
+    click = Action("CLICK", position=(0.25, 0.75))
+    policy.observe_transition(before, before, click)
+    policy.observe_transition(before, after, Action("SCROLL", "down"))
+    assert policy.navigation_context is None
+    policy.observe_transition(before, after, click)
+    origin, position = policy.navigation_context
+    assert position == click.position and origin.getpixel((0, 0)) == (255, 255, 0)
+    crop = after.screenshot.crop((30, 40, 80, 100))
+    plain = confirmation_image(after.screenshot, crop, (30, 40, 80, 100))
+    linked = confirmation_image(after.screenshot, crop, (30, 40, 80, 100), policy.navigation_context)
+    assert linked.height > plain.height
 
 
 @pytest.mark.parametrize("confirm,reply,expected", [
