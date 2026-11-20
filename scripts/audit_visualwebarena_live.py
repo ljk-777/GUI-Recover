@@ -12,7 +12,7 @@ from gui_recover.answer_evidence import (
     answer_signature, confirmation_image, evidence_answer, evidence_box, evidence_clipped, evidence_navigation,
     native_crop,
 )
-from gui_recover.qwen_grounding import parse_visible_answer, read_reply
+from gui_recover.qwen_grounding import native_action_after_note, parse_visible_answer, read_reply
 from gui_recover.runner import INVALID_ACTION_FEEDBACK, aggregate, write_json
 from gui_recover.verification import pixel_hash
 from gui_recover.visual_text_audit import checked_file, read_json, require
@@ -43,8 +43,12 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         require(metrics.get("evidence_stage") == stage, "Evidence check schedule disagrees with the observed frame")
         if stage is None:
             if raw is None:
-                require(metrics["provider_format"] == "answer_blocked"
-                        and read_reply(reply)["action"].upper() == "ANSWER", "Unexpected non-action navigation decision")
+                try:
+                    blocked = read_reply(reply)
+                except json.JSONDecodeError:
+                    blocked = native_action_after_note(reply)
+                require(metrics["provider_format"] == "answer_blocked" and blocked["action"].upper() == "ANSWER",
+                        "Unexpected non-action navigation decision")
             elif raw:
                 require(parse_action(raw).action != "ANSWER", "Navigation bypassed the evidence check")
             continue
