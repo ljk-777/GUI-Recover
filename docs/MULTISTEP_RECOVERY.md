@@ -103,4 +103,17 @@ The server ran the optimized Classifieds site with fixed web and database image 
 
 Qwen then ran the same three task IDs in each arm on the single GPU with a two-step budget. Each arm executed three actions in total and finished zero tasks. One task hit the step limit and two produced invalid model actions. The feedback arm issued zero recovery messages. This run validates the live connection and action loop and leaves the recovery effect on VisualWebArena unmeasured.
 
+### Evaluate invalid-action recovery
+
+The Qwen adapter recognizes the observed labelled scroll form as one fixed-size scroll. Clicks and text input still require a valid position. The format study compares stopping, repeating the same request, and asking again with guidance about the action schema. A retry uses the same screenshot and action history. Each arm shares the same prediction budget, and a retry consumes one prediction from it. The study allows one retry per episode.
+
+```bash
+python scripts/run_visualwebarena_live.py --actor qwen --model models/Qwen2.5-VL-3B-Instruct \
+  --study format --task-set transfer --max-steps 6 --out runs/visualwebarena-format-transfer
+python scripts/audit_visualwebarena_format.py runs/visualwebarena-format-transfer \
+  --out runs/visualwebarena-format-transfer-audit.json
+```
+
+Use `--task-set diagnostic` to reproduce the three tasks that exposed the original parsing failures. The transfer set is a separate group of 10 registered Classifieds tasks with local string grading. The CPU audit checks the paired reset screenshots, prediction budgets, executed actions, and terminal reward. Its report tracks how often a retry produced a valid action and how often the original task earned full native reward.
+
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
