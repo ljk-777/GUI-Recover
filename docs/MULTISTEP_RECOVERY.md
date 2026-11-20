@@ -341,7 +341,7 @@ python scripts/audit_visualwebarena_live.py runs/visualwebarena-input-holdout \
   --out runs/visualwebarena-input-holdout-audit.json
 ~~~
 
-If Shopping is temporarily unavailable, add `--input-phase classifieds` to the run command to record the seven single-site pairs. Once Shopping is available, run the same command with `--input-phase finish` and the same output directory. The saved plan requires the original rollout code, model configuration, package versions, shared backend URLs, and registered inputs. Each completed trajectory is kept so an interrupted phase can be retried. The full summary and the acceptance report require all eight pairs.
+If Shopping is temporarily unavailable, add `--input-phase classifieds` to the run command to record the seven single-site pairs. BrowserGym still expects all site variables to contain valid URLs. During this phase, `VWA_SHOPPING` can use the Classifieds URL as a placeholder. Once Shopping is available, set `VWA_SHOPPING` to its actual URL and run the same command with `--input-phase finish` and the same output directory. The saved plan requires the original rollout code, model configuration, package versions, shared backend URLs, and registered inputs. Each completed trajectory is kept so an interrupted phase can be retried. The full summary and the acceptance report require all eight pairs.
 
 [Second registered holdout protocol](../examples/vwa-input-heldout-protocol.json)
 
