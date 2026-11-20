@@ -14,6 +14,7 @@ QWEN_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
 QWEN_7B_MODEL = "Qwen/Qwen2.5-VL-7B-Instruct"
 QWEN_7B_MIRROR_REVISION = "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f"
 _LINE_SCROLL = re.compile(r"Action: SCROLL\nValue: ([+-]?[0-9]{1,6})(?:\nPosition: \[[0-9]{1,5}, [0-9]{1,5}\])?")
+_CLICK_VALUE = re.compile(r"\[\s*([0-9]{1,5})\s*,\s*([0-9]{1,5})\s*\]")
 VISIBLE_ANSWER_PROMPT = (
     "Check whether this screenshot contains enough evidence to answer the question. "
     "For questions about a particular item or photo, check that it is the requested one. "
@@ -88,6 +89,25 @@ def native_action_after_note(raw):
 
 
 def normalize_qwen_action(data, size, *, native_navigation=False):
+    if native_navigation and isinstance(data, dict) and isinstance(data.get("action"), str):
+        native_kind = data["action"].upper()
+        if native_kind == "SCROLL" and set(data) == {"action", "value"}:
+            data = {**data, "position": None}
+        elif native_kind in ("CLICK", "LEFT_CLICK") and set(data) in (
+                {"action", "value"}, {"action", "value", "position"}):
+            value = data["value"]
+            point = value if isinstance(value, list) else None
+            if isinstance(value, str) and (match := _CLICK_VALUE.fullmatch(value.strip())):
+                point = [int(match[1]), int(match[2])]
+            if point is not None:
+                if len(point) != 2 or any(type(component) is not int for component in point):
+                    raise ActionError("Invalid coordinates in click value")
+                if data.get("position") is not None and data["position"] != point:
+                    raise ActionError("Conflicting click coordinates")
+                # Parse any supplied position too so booleans and floats are
+                # not accepted merely because they compare equal to integers.
+                position = data.get("position")
+                data = {"action": "CLICK", "value": None, "position": point if position is None else position}
     if not isinstance(data, dict) or set(data) != {"action", "value", "position"}:
         raise ActionError("Expected one action dictionary")
     if not isinstance(data["action"], str):

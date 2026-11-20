@@ -30,6 +30,7 @@ TASK_SETS = {
     "evidence-transfer": (23, 40, 43, 110, 161, 173, 174, 199),
     "evidence-confirm-transfer": (25, 27, 98, 100, 107, 109, 111, 178),
     "evidence-context-transfer": (14, 15, 16, 26, 50, 80, 83, 129),
+    "evidence-navigation-diagnostic": (14, 15, 221),
 }
 STUDY_MODES = {
     "visual": ("none", "feedback"),
