@@ -32,7 +32,10 @@ def normalized_points(positions):
 def listing_destination(url, origin):
     if not isinstance(url, str) or len(url) > 2048:
         return None
-    parsed = urlsplit(url)
+    try:
+        parsed = urlsplit(url)
+    except ValueError:
+        return None
     if ((parsed.scheme, parsed.netloc) != origin or parsed.username is not None
             or parsed.password is not None):
         return None
