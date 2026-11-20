@@ -416,13 +416,13 @@ class EvidenceAnswerPolicy:
     def verify_links(self, observation, frame, rows, selected, destinations, count):
         canvas = self.actor.prepare_image(observation.screenshot)
         raw = self.actor.ask(canvas, (
+            f"Visible text from the screenshot:\n{indexed_text(rows)}\n\n"
             f"Question: {observation.goal}\n"
-            "Independently identify the complete requested set of listings in this screenshot. "
-            "Check the search/category context, ordering and visible card details before choosing. "
-            "Use the numbered text on each listing TITLE as its identifier. "
-            'Return one JSON object like {"listings":[5,9]}. If any required listing or condition is '
-            'unverifiable, return {"listings":null}. Never output URLs.\n'
-            f"Visible text:\n{indexed_text(rows)}"
+            "Identify the complete set of matching listing titles using the screenshot. "
+            "Check the scope, ordering, and visible card details. Exclude headings and controls. "
+            'Return one JSON object keyed "listings". Its value must be an array of the actual text indices '
+            f"from the listing titles, with {count[0]} to {count[1]} distinct entries. "
+            "Use null if any required listing or condition is unverifiable."
         ))
         self.last_metrics.update(evidence_stage="link_confirm", evidence_frame=frame,
                                  provider_format="evidence_link_disagreed")

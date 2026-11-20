@@ -18,8 +18,8 @@ from gui_recover.verification import pixel_hash
 from gui_recover.visible_links import agreed_listing_answer, link_answer_count, listing_selection, preview_destinations
 from gui_recover.visual_text_audit import checked_file, read_json, require
 from run_visualwebarena_live import (
-    ANSWER_STUDIES, CONFIRM_MODES, EVIDENCE_STUDIES, NAVIGATION_CONTEXT_MODES, OCR_MODES, STUDY_MODES, TASK_SETS,
-    exact_vwa_success,
+    ANSWER_STUDIES, CONFIRM_MODES, EVIDENCE_STUDIES, HOLDOUT_PROTOCOL_SHA256, HOLDOUT_TASK_SET,
+    NAVIGATION_CONTEXT_MODES, OCR_MODES, STUDY_MODES, TASK_SETS, exact_vwa_success, holdout_profile,
 )
 
 
@@ -202,7 +202,8 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                 answers.add(step)
             else:
                 require(raw is None, "Answer reached the browser without agreement")
-        require(metrics["provider_format"] == status, "Evidence status differs from the provider reply")
+        require(metrics["provider_format"] == status,
+                f"Evidence status at prediction {step}: reported {metrics['provider_format']}, reconstructed {status}")
     return stages, answers
 
 
@@ -387,6 +388,9 @@ def audit(directory):
     require(study in ("format", "scroll", *ANSWER_STUDIES) and summary["budget_unit"] == "predictions"
             and 1 <= budget <= 12 and list(task_ids) == summary["task_ids"], "Unexpected study manifest")
     require(("listing_origin" in summary) == (study == "evidence-links"), "Unexpected listing preview mode")
+    if task_set == HOLDOUT_TASK_SET:
+        require(summary.get("protocol_sha256") == HOLDOUT_PROTOCOL_SHA256
+                and holdout_profile(study, budget, summary["model"]), "Run differs from the locked holdout protocol")
     modes = STUDY_MODES[study]
     require(set(summary["strategies"]) == set(modes), "Unexpected study strategies")
     studies = {mode: [] for mode in modes}
@@ -446,6 +450,16 @@ def audit(directory):
             task["answer_outcome"][mode] for task in by_task.values())) for mode in modes}
         successes = {mode: summary["strategies"][mode]["successes"] for mode in modes}
         report["wrong_submissions"] = wrong
+        if task_set == HOLDOUT_TASK_SET:
+            candidate = modes[-1]
+            gate = {"paired_initial_pixels": all(task["identical_reset_pixels"] for task in by_task.values()),
+                    "within_call_cap": all(record["counts"]["model_calls"] <= 8
+                                           for records in studies.values() for record in records),
+                    "at_least_two_native_successes": successes[candidate] >= 2,
+                    "more_native_successes_than_control": successes[candidate] > successes["answer-check"],
+                    "fewer_wrong_submissions_than_control": wrong[candidate] < wrong["answer-check"]}
+            report.update(protocol_sha256=HOLDOUT_PROTOCOL_SHA256, acceptance_checks=gate,
+                          target_met=all(gate.values()))
         if task_set in ("evidence-transfer", "evidence-confirm-transfer", "evidence-context-transfer"):
             candidate = modes[-1]
             report["target_met"] = (len(task_ids) == 8 and budget == 8

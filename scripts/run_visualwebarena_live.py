@@ -13,7 +13,7 @@ from gui_recover.actions import Action, compile_action, parse_action
 from gui_recover.answer_evidence import EvidenceAnswerPolicy
 from gui_recover.environment import MiniwobEnvironment
 from gui_recover.policies import MODEL_REVISION, ShowUIPolicy
-from gui_recover.qwen_grounding import QwenGroundingPolicy
+from gui_recover.qwen_grounding import QWEN_7B_MIRROR_REVISION, QWEN_7B_MODEL, QwenGroundingPolicy
 from gui_recover.runner import aggregate, render_replay, run_episode, write_json
 from gui_recover.screen_text import RapidScreenReader
 from gui_recover.verification import pixel_hash
@@ -24,6 +24,8 @@ BACKEND_VARIABLES = ("VWA_CLASSIFIEDS", "VWA_SHOPPING", "VWA_REDDIT", "VWA_WIKIP
                      "VWA_HOMEPAGE", "VWA_CLASSIFIEDS_RESET_TOKEN")
 READ_ONLY_TASKS = (118, 120, 149)
 TRANSFER_TASKS = (11, 12, 22, 49, 119, 128, 148, 186, 221, 222)
+HOLDOUT_TASK_SET = "evidence-links-holdout"
+HOLDOUT_PROTOCOL_SHA256 = "df60ebc2e7cb257d63b22a1d6eac4322e5ea53eed75f695850efcc8d51407629"
 TASK_SETS = {
     "diagnostic": READ_ONLY_TASKS,
     "transfer": TRANSFER_TASKS,
@@ -37,6 +39,7 @@ TASK_SETS = {
     "evidence-ocr-diagnostic": (14, 15, 40, 83, 98, 221),
     "evidence-search-diagnostic": (14, 40, 98, 221),
     "evidence-direct-search-diagnostic": (40, 98, 221),
+    HOLDOUT_TASK_SET: (6, 7, 34, 35, 38, 39, 106, 108),
 }
 STUDY_MODES = {
     "visual": ("none", "feedback"),
@@ -85,6 +88,14 @@ def probe_instance():
 
 def exact_vwa_success(reward, terminated, truncated, _task_info):
     return bool(terminated and not truncated and reward == 1.0)
+
+
+def holdout_profile(study, budget, model):
+    return (study == "evidence-links" and budget == 8 and model.get("model") == QWEN_7B_MODEL
+            and model.get("revision") == QWEN_7B_MIRROR_REVISION and model.get("device") == "cuda"
+            and model.get("quantization") == "bitsandbytes NF4 double quantization"
+            and model.get("max_new_tokens") == 128 and model.get("max_pixels") == 784 * 784
+            and model.get("do_sample") is False and model.get("native_navigation") is True)
 
 
 class VisualWebArenaEnvironment(MiniwobEnvironment):
@@ -158,6 +169,8 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
 
 
 def run_study(actor, *, out, study, task_set, max_steps):
+    if task_set == HOLDOUT_TASK_SET and not holdout_profile(study, max_steps, actor.config):
+        raise ValueError("The locked cohort requires the registered 8-decision Qwen 7B NF4 comparison")
     out.mkdir(parents=True, exist_ok=False)
     screen_reader = RapidScreenReader() if study in OCR_MODES else None
     listing_site = os.environ["VWA_CLASSIFIEDS"] if study == "evidence-links" else None
@@ -209,6 +222,8 @@ def run_study(actor, *, out, study, task_set, max_steps):
     if listing_site is not None:
         site = urlsplit(listing_site)
         summary["listing_origin"] = f"{site.scheme}://{site.netloc}"
+    if task_set == HOLDOUT_TASK_SET:
+        summary["protocol_sha256"] = HOLDOUT_PROTOCOL_SHA256
     write_json(out / "summary.json", summary)
 
 
@@ -234,6 +249,9 @@ def main():
         parser.error("Provide local model, fresh output directory and a prediction budget of 1–12")
     if args.study != "visual" and args.actor != "qwen":
         parser.error("This study uses Qwen")
+    if args.task_set == HOLDOUT_TASK_SET and (args.study != "evidence-links" or args.max_steps != 8
+                                               or not args.qwen_7b_4bit):
+        parser.error("The locked cohort needs --study evidence-links --max-steps 8 --qwen-7b-4bit")
     if args.qwen_7b_4bit and (args.actor != "qwen" or args.device != "cuda"):
         parser.error("The Qwen 7B 4-bit profile requires --actor qwen --device cuda")
     probe_instance()
