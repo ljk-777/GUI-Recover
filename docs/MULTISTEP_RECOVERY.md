@@ -217,4 +217,29 @@ The audit verified 16 trajectories, 46 screenshots, and identical initial pixels
 
 [Frozen plan and per-task confirmation results](../examples/vwa-confirmation-results.json)
 
+### Carry the preceding click into item confirmation
+
+The context study keeps the preceding viewport and location of the most recent click that changed the rendered page. The independent reading sees that click alongside the current viewport and the selected crop. This lets it check item identity using a listing view and read details using the item view. The audit traces the orange click marker back to the executed action and reconstructs all three panels. The same profile accepts finite JSON numbers from the independent reader so a count such as `6` can agree with the string `"6"`.
+
+```bash
+python scripts/run_visualwebarena_live.py --actor qwen --qwen-7b-4bit \
+  --model models/Qwen2.5-VL-7B-Instruct --study evidence-context \
+  --task-set evidence-context-transfer --max-steps 8 --out runs/visualwebarena-context-transfer
+python scripts/audit_visualwebarena_live.py runs/visualwebarena-context-transfer \
+  --out runs/visualwebarena-context-transfer-audit.json
+```
+
+The context transfer set contains seven tasks that start on search results or category pages and one that starts on the homepage. All eight were fixed before model outcomes. The comparison keeps the model, call cap, and native score definition constant within each task pair.
+
+The numeric fix was also checked using the recorded replies on diagnostic task 221. The crop reader returned the string `"6"` and the independent reader returned the number `6`. The replay reconstructed the same viewport, crop, and confirmation image and received full reward from the native judge. The replay used three recorded model replies and made zero new model calls.
+
+| Transfer strategy | Model calls | Navigation actions | Wrong submissions | Native successes |
+| --- | ---: | ---: | ---: | ---: |
+| Answer check | 49 | 21 | 3 | 0/8 |
+| Evidence with click context | 55 | 25 | 0 | 0/8 |
+
+The audit verified 16 trajectories, 65 screenshots, and identical reset pixels in all eight task pairs. The candidate opened two crops for reading. One read abstained and the other produced a candidate on the eighth call. No transfer episode reached the independent confirmation stage within the cap. The comparison missed the success gate. The task 221 diagnostic remains separate from this transfer result.
+
+[Frozen click-context results and native replay receipt](../examples/vwa-context-evidence-results.json)
+
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
