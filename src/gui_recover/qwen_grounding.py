@@ -142,12 +142,23 @@ class QwenGroundingPolicy:
     def predict(self, observation, history, *, allow_answer=True):
         canvas = self.prepare_image(observation.screenshot)
         width, height = canvas.size
+        history = history[-4:]
+        if not allow_answer:
+            pixel_history = []
+            for entry in history:
+                action = dict(entry["action"])
+                if action["position"] is not None:
+                    x, y = action["position"]
+                    action["position"] = [min(width - 1, int(x * width)), min(height - 1, int(y * height))]
+                pixel_history.append({**entry, "action": action})
+            history = pixel_history
         allowed_actions = ("ANSWER has the exact short answer as value and null position. Use only these four actions."
                            if allow_answer else "Use only CLICK, INPUT or SCROLL to find the missing visual evidence. "
+                           'For example, {"action":"SCROLL","value":"down","position":null}. '
                            "Click a relevant photo or listing to inspect it, or scroll to reveal more of the page.")
         request = (
             f"Task: {observation.goal}\n"
-            f"Previous actions: {json.dumps(history[-4:], ensure_ascii=False)}\n"
+            f"Previous actions: {json.dumps(history, ensure_ascii=False)}\n"
             f"Latest execution error: {observation.last_action_error}\n"
             f"{self.recovery_feedback or ''}\n"
             "Return exactly one JSON object with keys action, value, position. "

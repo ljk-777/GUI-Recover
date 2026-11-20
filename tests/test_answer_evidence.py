@@ -4,7 +4,7 @@ import pytest
 from PIL import Image
 
 from gui_recover.actions import Action, ActionError, parse_action
-from gui_recover.answer_evidence import EvidenceAnswerPolicy, evidence_answer, evidence_box, native_crop
+from gui_recover.answer_evidence import EvidenceAnswerPolicy, evidence_answer, evidence_box, evidence_clipped, native_crop
 from gui_recover.environment import VisualObservation
 
 
@@ -30,6 +30,12 @@ def test_price_range_needs_both_endpoints_in_visible_facts():
     assert evidence_answer('{"answer":"$500 to $1,200","evidence":["One tag says $500"]}', goal) == (None, "evidence_incomplete")
     assert evidence_answer('{"answer":"$500 to $1,200","evidence":["$500 and $1200.00"]}', goal) == (
         "$500 to $1,200", "evidence_answer")
+
+
+def test_clipped_row_requires_navigation_to_reveal_it():
+    assert evidence_clipped("How many red items are in row three?", (20, 10, 70, 99), (100, 100))
+    assert not evidence_clipped("How many red items are in row three?", (20, 10, 70, 80), (100, 100))
+    assert not evidence_clipped("What brand is shown in the photo?", (20, 10, 70, 99), (100, 100))
 
 
 def test_policy_localizes_without_submitting_and_reads_only_the_cropped_frame():

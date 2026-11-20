@@ -43,6 +43,12 @@ def native_crop(screen, size, box):
     return screen.crop(bounds), bounds
 
 
+def evidence_clipped(goal, box, size):
+    """A range or ordinal row needs the visible extent of that row."""
+    requires_row = re.search(r"\brows?\b", goal.casefold())
+    return bool(requires_row and box[3] >= size[1] - 2)
+
+
 def evidence_answer(raw, goal):
     data = read_reply(raw)
     if not isinstance(data, dict) or set(data) != {"answer", "evidence"}:
@@ -107,6 +113,9 @@ class EvidenceAnswerPolicy:
             return None
         self.last_metrics["provider_format"] = "evidence_region" if box else "evidence_abstained"
         if box:
+            if evidence_clipped(observation.goal, box, canvas.size):
+                self.last_metrics["provider_format"] = "evidence_clipped"
+                return None
             crop, bounds = native_crop(observation.screenshot, canvas.size, box)
             self.pending_crop = frame, crop, bounds
             self.last_metrics["evidence_bounds"] = list(bounds)
@@ -116,9 +125,9 @@ class EvidenceAnswerPolicy:
         canvas = self.actor.prepare_image(crop)
         prompt = (
             f"Question: {observation.goal}\n"
-            "Inspect only the visible evidence in this crop. Identify the requested subject and list "
-            "the relevant observations in evidence before writing the short answer. "
-            "For a count, inspect and enumerate the visible items. For a range, read and give both endpoints. "
+            "Inspect this crop. Identify the requested subject and list at most three brief, relevant facts. "
+            "Omit unrelated text. For a count, count each visible group separately before adding. "
+            "For a price range, give both endpoints. For a total price, read rates and pack sizes before calculating. "
             "If the requested subject, scope, or any required detail cannot be verified, use null for answer. "
             'Return one JSON object with exactly two keys: "evidence" (a list of short strings), '
             'then "answer" (short string or null).'

@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 from urllib.request import urlopen
 
 from gui_recover.actions import Action, compile_action, parse_action
+from gui_recover.answer_evidence import EvidenceAnswerPolicy
 from gui_recover.environment import MiniwobEnvironment
 from gui_recover.policies import MODEL_REVISION, ShowUIPolicy
 from gui_recover.qwen_grounding import QwenGroundingPolicy
@@ -25,12 +26,15 @@ TASK_SETS = {
     "transfer": TRANSFER_TASKS,
     "answer-diagnostic": (118, 128, 221),
     "answer-transfer": (10, 13, 41, 42, 150, 163, 192, 209),
+    "evidence-diagnostic": (118, 221, 41, 42, 192, 209),
+    "evidence-transfer": (23, 40, 43, 110, 161, 173, 174, 199),
 }
 STUDY_MODES = {
     "visual": ("none", "feedback"),
     "format": ("none", "retry", "feedback"),
     "scroll": ("feedback", "scroll-feedback"),
     "answer": ("navigation", "answer-check"),
+    "evidence": ("answer-check", "evidence-check"),
 }
 
 
@@ -147,7 +151,7 @@ def main():
     if args.model is None or args.out is None or not 1 <= args.max_steps <= 12:
         parser.error("Provide local model, fresh output directory and a prediction budget of 1–12")
     if args.study != "visual" and args.actor != "qwen":
-        parser.error("The format, scroll, and answer studies use Qwen")
+        parser.error("This study uses Qwen")
     probe_instance()
     args.out.mkdir(parents=True, exist_ok=False)
     if args.actor == "showui":
@@ -160,7 +164,7 @@ def main():
     strategies = {mode: [] for mode in STUDY_MODES[args.study]}
     for task_id in task_ids:
         for mode in strategies:
-            if args.study == "answer":
+            if args.study in ("answer", "evidence"):
                 recovery, invalid_retry = "scroll-feedback", "feedback"
             elif args.study == "format":
                 recovery, invalid_retry = "none", mode
@@ -170,9 +174,11 @@ def main():
             env = VisualWebArenaEnvironment(task_id)
             try:
                 branch = args.out / f"{env.task}-{mode}"
-                row = run_episode(env, actor, env.task, 0, args.max_steps, branch,
+                policy = EvidenceAnswerPolicy(actor) if mode == "evidence-check" else actor
+                row = run_episode(env, policy, env.task, 0, args.max_steps, branch,
                                   recovery=recovery, invalid_action_retry=invalid_retry,
                                   answer_check=mode == "answer-check",
+                                  allow_observation_only=mode == "evidence-check",
                                   submit_answer=True, success_check=exact_vwa_success)
                 render_replay(branch)
                 strategies[mode].append(row)
@@ -181,9 +187,9 @@ def main():
                 env.close()
     counts = ("predictions", "model_calls", "steps", "invalid_predictions",
               "invalid_action_retries", "repaired_predictions")
-    if args.study in ("scroll", "answer"):
+    if args.study in ("scroll", "answer", "evidence"):
         counts += ("scroll_feedbacks", "scroll_detection_signals")
-    if args.study == "answer":
+    if args.study in ("answer", "evidence"):
         counts += ("answer_checks", "answers_submitted", "answers_from_checks")
     write_json(args.out / "summary.json", {"benchmark": "visualwebarena", "task_ids": task_ids,
         "task_set": args.task_set, "study": args.study, "budget_unit": "predictions",
