@@ -13,7 +13,7 @@ from PIL import Image
 from .actions import Action, parse_action
 from .recovery import INPUT_FAULTS
 from .verification import TransitionView
-from .verification_env import INPUT_REPAIR_PROFILES, TransitionExecution, task_request
+from .verification_env import DEFERRED_TAIL_REGIME, INPUT_REPAIR_PROFILES, TransitionExecution, task_request
 
 
 TASKS = ("click-button", "click-dialog", "click-tab", "enter-text")
@@ -74,7 +74,8 @@ class RecoveryDecisionEnv(gym.Env):
     def __init__(self, task, grounder, *, regime="none", max_decisions=None, input_repair="legacy",
                  enable_tail_probe=False):
         super().__init__()
-        if task not in TASKS or regime not in SUPPORTED_REGIMES or (regime != "none" and task != "enter-text"):
+        known_regime = regime in SUPPORTED_REGIMES or (enable_tail_probe and regime == DEFERRED_TAIL_REGIME)
+        if task not in TASKS or not known_regime or (regime != "none" and task != "enter-text"):
             raise ValueError("Unsupported task or fault for the recovery environment")
         if input_repair not in INPUT_REPAIR_PROFILES or (input_repair == "replace" and task != "enter-text"):
             raise ValueError("Unsupported input repair profile for the task")

@@ -39,8 +39,9 @@ def inspect_tail_selection(original, selected, region):
 class ActiveTextPolicy:
     """Ask for one reversible probe of a visually matched short input."""
 
-    def __init__(self, verifier):
+    def __init__(self, verifier, choose_when_matched=None):
         self.verifier = verifier
+        self.choose_when_matched = choose_when_matched
         self.evidence = []
 
     def __call__(self, observation):
@@ -57,6 +58,10 @@ class ActiveTextPolicy:
             action = (Decision.RETRY_FIXED_ZOOM if selection["status"] == "blank_tail" else Decision.CONTINUE)
         elif glyph["status"] == "matched" and observation["action_mask"][ProbeDecision.PROBE_LAST_CHAR]:
             action = ProbeDecision.PROBE_LAST_CHAR
+            if self.choose_when_matched is not None:
+                action = ProbeDecision(self.choose_when_matched(observation))
+                if action not in (ProbeDecision.CONTINUE, ProbeDecision.PROBE_LAST_CHAR):
+                    raise ValueError("A visually matched field allows continuation or probing")
         else:
             action = glyph_decision(observation, glyph["status"])
         self.evidence.append({"glyph": glyph, "selection": selection, "decision": action.name})
