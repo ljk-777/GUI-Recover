@@ -72,7 +72,7 @@ class RecoveryDecisionEnv(gym.Env):
     metadata = {"render_modes": []}
 
     def __init__(self, task, grounder, *, regime="none", max_decisions=None, input_repair="legacy",
-                 enable_tail_probe=False):
+                 enable_tail_probe=False, batched_probe=False):
         super().__init__()
         known_regime = regime in SUPPORTED_REGIMES or (enable_tail_probe and regime == DEFERRED_TAIL_REGIME)
         if task not in TASKS or not known_regime or (regime != "none" and task != "enter-text"):
@@ -81,6 +81,8 @@ class RecoveryDecisionEnv(gym.Env):
             raise ValueError("Unsupported input repair profile for the task")
         if enable_tail_probe and task != "enter-text":
             raise ValueError("Tail selection requires Enter Text")
+        if batched_probe and not enable_tail_probe:
+            raise ValueError("A batched probe requires the tail-selection action")
         max_budget = 4 if enable_tail_probe else 3
         if max_decisions is None:
             max_decisions = max_budget
@@ -90,6 +92,7 @@ class RecoveryDecisionEnv(gym.Env):
         self.regime, self.max_decisions = regime, max_decisions
         self.input_repair = input_repair
         self.enable_tail_probe = enable_tail_probe
+        self.batched_probe = batched_probe
         self.decision_type = ProbeDecision if enable_tail_probe else Decision
         self.action_space = spaces.Discrete(len(self.decision_type))
         image_shape = (FRAME_SIZE[1], FRAME_SIZE[0], 3)
@@ -114,7 +117,8 @@ class RecoveryDecisionEnv(gym.Env):
         super().reset(seed=seed)
         self.close()
         seed = int(self.np_random.integers(0, 2**31)) if seed is None else int(seed)
-        self.execution = TransitionExecution(self.task, seed, None, self.regime)
+        options = {"batched_probe": True} if self.batched_probe else {}
+        self.execution = TransitionExecution(self.task, seed, None, self.regime, **options)
         try:
             self.target, self.action_kind, self.value = task_request(self.task, self.execution.obs.goal)
             self.phase = Phase.SOURCE
@@ -223,7 +227,7 @@ class RecoveryDecisionEnv(gym.Env):
             reason = self._browser_outcome()
         elif decision == ProbeDecision.PROBE_LAST_CHAR:
             started = perf_counter()
-            self.selected, self.probe_restored = x.probe_text_tail()
+            self.selected, self.probe_restored = x.probe_text_tail(batched=self.batched_probe)
             self.probe_seconds = perf_counter() - started
             reason = self._browser_outcome()
         elif decision == Decision.CONTINUE:

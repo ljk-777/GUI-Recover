@@ -4,12 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gui-recover"
-version = "0.2.0rc2"
+version = "0.2.0rc3"
 description = "Visual GUI agent trajectories and recovery evaluation"
+keywords = ["GUI agents", "browsergym", "miniwob", "recovery", "benchmark"]
 requires-python = ">=3.11,<3.13"
 license = "Apache-2.0"
 readme = "README.md"
 dependencies = ["browsergym-core==0.14.3", "browsergym-miniwob==0.14.3", "pillow>=10.1", "numpy>=1.24"]
+
+[project.urls]
+Repository = "https://github.com/ljk-777/GUI-Recover"
+Issues = "https://github.com/ljk-777/GUI-Recover/issues"
 
 [project.optional-dependencies]
 showui = ["torch==2.6.0", "torchvision==0.21.0", "transformers==4.49.0"]

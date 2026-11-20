@@ -65,8 +65,8 @@ class TransitionExecution:
     latency. Pending delivery uses FIFO before the next physical operation.
     A retry planned from a stale empty screenshot can therefore append twice.
     """
-    def __init__(self, task, seed, proposed, regime="none"):
-        self.env = MiniwobEnvironment(task)
+    def __init__(self, task, seed, proposed, regime="none", *, batched_probe=False):
+        self.env = MiniwobEnvironment(task, batched_probe=True) if batched_probe else MiniwobEnvironment(task)
         self.seed, self.proposed, self.regime = seed, proposed, regime
         self.pending = None
         self.events = []
@@ -126,14 +126,26 @@ class TransitionExecution:
             actual,self.pending = self.pending,None
             self._step(actual,"pending_delivered_before_continuation")
 
-    def probe_text_tail(self):
+    def probe_text_tail(self, *, batched=False):
         """Capture a temporary selection and collapse it using fixed keyboard actions."""
         original = self.obs.screenshot
-        self._probe_key("Shift+ArrowLeft", "probe_select_tail")
-        selected = self.obs.screenshot
-        if self.done or self.truncated or self.obs.last_action_error:
-            return selected, False
-        self._probe_key("ArrowRight", "probe_collapse_selection")
+        if batched:
+            fields, selected = self.env.capture_tail_selection()
+            self.obs, self.reward, self.done, self.truncated, self.info, code = fields
+            self._capture()
+            self.events.append({"event": "probe_tail_batched", "executed_code": code,
+                "probe_keys": ["Shift+ArrowLeft", "ArrowRight"], "reward": self.reward,
+                "terminated": self.done, "truncated": self.truncated,
+                "task_info": deepcopy(self.info.get("task_info", {})), "execution_error": self.obs.last_action_error})
+            self.snapshots.append(self.obs)
+            if selected is None:
+                return original, False
+        else:
+            self._probe_key("Shift+ArrowLeft", "probe_select_tail")
+            selected = self.obs.screenshot
+            if self.done or self.truncated or self.obs.last_action_error:
+                return selected, False
+            self._probe_key("ArrowRight", "probe_collapse_selection")
         restored = self.obs.screenshot
         return selected, restored.size == original.size and restored.tobytes() == original.tobytes()
 

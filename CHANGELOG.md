@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0rc3 — release candidate
+
+- Added an installed CPU-only tail-selection demo covering single-line and multiline fields, light and dark themes, and negative controls.
+- Batched both probe keystrokes and the intermediate native screenshot in one BrowserGym step. Version 2 audits accept either execution path and still verify the original physical keys.
+
 ## 0.2.0rc2 — release candidate
 
 - Added a reversible Enter Text tail probe, native selection evidence and CPU-only version 2 trajectory audit. The installed active demo compares glyph checking, unconditional replacement and the probe on paired tasks.

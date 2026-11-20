@@ -49,20 +49,23 @@ def summarize(rows, regimes):
     return conditions
 
 
-def collect(out, plan, regimes, grounder, verifier, browser_version):
+def collect(out, plan, regimes, grounder, verifier, browser_version, *,
+            policies=POLICIES, batched_probe=False, alternate_order=False):
     rows = []
     with (out / "episodes.jsonl").open("x", encoding="utf-8") as index:
-        for layout in plan["selected"]:
+        for layout_index, layout in enumerate(plan["selected"]):
             scene = {**layout, "split": "test"}
-            for regime in regimes:
-                for policy in POLICIES:
+            for regime_index, regime in enumerate(regimes):
+                ordered = policies[::-1] if alternate_order and (layout_index + regime_index) % 2 else policies
+                for policy in ordered:
                     choose = None
                     if policy == "glyph_check":
                         choose = ContentRecoveryPolicy(verifier)
-                    elif policy == "active_tail":
+                    elif policy in ("active_tail", "batched_tail"):
                         choose = ActiveTextPolicy(verifier)
                     branch = out / "rollouts" / f"{TASK}-{layout['seed']}-{regime}-{policy}"
-                    env = RecoveryDecisionEnv(TASK, grounder, regime=regime, input_repair="replace", enable_tail_probe=True)
+                    env = RecoveryDecisionEnv(TASK, grounder, regime=regime, input_repair="replace", enable_tail_probe=True,
+                        batched_probe=policy == "batched_tail" or (policy == "active_tail" and batched_probe))
                     try:
                         row = record_rollout(env, scene, policy, branch, choose=choose)
                         if env.execution.env.metadata()["browser_version"] != browser_version:
@@ -83,7 +86,7 @@ def collect(out, plan, regimes, grounder, verifier, browser_version):
     return rows
 
 
-def evaluate_registered(out, plan, profile_name, regimes, actor, bank_sha):
+def evaluate_registered(out, plan, profile_name, regimes, actor, bank_sha, *, batched_probe=False):
     """Execute a sealed layout plan with a shared frozen grounding cache."""
     bank_path = out / "text-references.json"
     if file_sha256(bank_path) != bank_sha:
@@ -91,7 +94,7 @@ def evaluate_registered(out, plan, profile_name, regimes, actor, bank_sha):
     bank = json.loads(bank_path.read_text())
     verifier = VisualTextVerifier(bank)
     grounder = RepairGrounder(actor, out / "inference")
-    rows = collect(out, plan, regimes, grounder, verifier, bank["browser_version"])
+    rows = collect(out, plan, regimes, grounder, verifier, bank["browser_version"], batched_probe=batched_probe)
     if file_sha256(bank_path) != bank_sha:
         raise RuntimeError("Frozen text references changed")
     conditions = summarize(rows, regimes)
@@ -118,9 +121,10 @@ def run_active_quickstart(out, seeds, model, revision, runtime):
     out.mkdir(parents=True, exist_ok=False)
     profile = {"layouts": len(seeds), "seeds": seeds, "regimes": SUPPORTED_REGIMES}
     write_json(out / "protocol.json", {"profile": "quickstart", "config": {"quickstart": profile},
-                                      "model": {"identifier": model, "revision": revision}, "runtime": runtime})
+                                      "model": {"identifier": model, "revision": revision}, "runtime": runtime,
+                                      "probe_execution": "single_step"})
     write_json(out / "development-layouts.json", [])
     plan = preflight((), out, [{"task": TASK, "count": len(seeds), "candidate_seeds": seeds}], include_goal=True)
     bank_sha = prepare_references(out)
     actor = ShowUIPolicy(model, revision=revision, max_new_tokens=32)
-    evaluate_registered(out, plan, "quickstart", SUPPORTED_REGIMES, actor, bank_sha)
+    evaluate_registered(out, plan, "quickstart", SUPPORTED_REGIMES, actor, bank_sha, batched_probe=True)

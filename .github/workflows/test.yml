@@ -40,3 +40,4 @@ jobs:
           gui-recover audit-text-recovery --help
           gui-recover active-text-recovery --help
           gui-recover audit-active-text-recovery --help
+          gui-recover demo-tail-probe --help

@@ -70,6 +70,8 @@ def main(argv=None, backend=None):
     audit_text.add_argument("directory", type=Path)
     audit_active = sub.add_parser("audit-active-text-recovery", help="Audit the active tail probe without model or browser")
     audit_active.add_argument("directory", type=Path)
+    tail_demo = sub.add_parser("demo-tail-probe", help="Run the CPU tail-selection demo on four browser fixture styles")
+    tail_demo.add_argument("--out", type=Path, required=True)
     run = sub.add_parser("run")
     run.add_argument("--policy", choices=["oracle-smoke", "showui", "showui-scripted"], required=True)
     run.add_argument("--tasks", nargs="+", default=["click-test"])
@@ -100,6 +102,13 @@ def main(argv=None, backend=None):
         return
     if args.command == "replay":
         render_replay(args.directory)
+        return
+    if args.command == "demo-tail-probe":
+        from .tail_demo import run_tail_demo
+
+        if args.out.exists():
+            parser.error("Output directory already exists")
+        print(json.dumps(run_tail_demo(args.out), indent=2))
         return
     if args.command == "compare":
         result = compare_runs(args.clean, args.faulted, args.recovered, args.clean_recovered)

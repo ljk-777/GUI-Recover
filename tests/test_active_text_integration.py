@@ -14,7 +14,8 @@ from gui_recover.visual_text_study import prepare_references
 pytestmark = [pytest.mark.integration, pytest.mark.skipif(not os.getenv("MINIWOB_URL"), reason="Set MiniWoB URL")]
 
 
-def test_tail_selection_preserves_value_and_routes_only_confirmed_space(tmp_path):
+@pytest.mark.parametrize("batched_probe", [False, True])
+def test_tail_selection_preserves_value_and_routes_only_confirmed_space(tmp_path, batched_probe):
     seed = 74002
     sample = TransitionExecution("enter-text", seed, None)
     try:
@@ -43,7 +44,7 @@ def test_tail_selection_preserves_value_and_routes_only_confirmed_space(tmp_path
     for regime, status, continuation in cases:
         policy = ActiveTextPolicy(verifier)
         env = RecoveryDecisionEnv("enter-text", KnownPoints(), regime=regime,
-                                  input_repair="replace", enable_tail_probe=True)
+                                  input_repair="replace", enable_tail_probe=True, batched_probe=batched_probe)
         try:
             obs, _ = env.reset(seed=seed)
             assert obs["action_mask"].tolist() == [1, 0, 0, 0, 0]
@@ -59,7 +60,12 @@ def test_tail_selection_preserves_value_and_routes_only_confirmed_space(tmp_path
             assert (reward, done, truncated) == (0.0, False, False)
             assert after["probed"] and after["probe_restored"] and env.observation_space.contains(after)
             assert after["action_mask"].tolist() == [1, 0, 1, 1, 0]
-            assert [e["event"] for e in info["browser_events"]] == ["probe_select_tail", "probe_collapse_selection"]
+            events = info["browser_events"]
+            if batched_probe:
+                assert [e["event"] for e in events] == ["probe_tail_batched"]
+                assert events[0]["probe_keys"] == ["Shift+ArrowLeft", "ArrowRight"]
+            else:
+                assert [e["event"] for e in events] == ["probe_select_tail", "probe_collapse_selection"]
             assert teacher_evidence(env.execution)["observed"] == original
             assert policy(after) == continuation and policy.evidence[-1]["selection"]["status"] == status, policy.evidence
             _, reward, done, truncated, info = env.step(continuation)

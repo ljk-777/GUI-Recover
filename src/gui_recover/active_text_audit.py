@@ -46,8 +46,13 @@ def audit_branch(root, row, scene, choose, *, relative=None):
         events = step["evidence"]["browser_events"]
         require(not any(e["execution_error"] or e["task_info"].get("error") for e in events), f"Browser error: {name}")
         if decision == ProbeDecision.PROBE_LAST_CHAR:
-            require([e["executed_code"] for e in events] ==
-                    ["keyboard_press('Shift+ArrowLeft')", "keyboard_press('ArrowRight')"], f"Unexpected probe keys: {name}")
+            codes = [e["executed_code"] for e in events]
+            keys = ["Shift+ArrowLeft", "ArrowRight"]
+            if codes == ["capture_tail_selection()"]:
+                require(events[0]["event"] == "probe_tail_batched" and events[0]["probe_keys"] == keys,
+                        f"Unexpected batched probe keys: {name}")
+            else:
+                require(codes == [f"keyboard_press({key!r})" for key in keys], f"Unexpected probe keys: {name}")
             restored = before["current"]["sha256"] == after["current"]["sha256"]
             require(bool(after["probe_restored"]) == restored and after["probed"], f"Probe restore differs: {name}")
             require(not after["action_mask"][ProbeDecision.PROBE_LAST_CHAR]

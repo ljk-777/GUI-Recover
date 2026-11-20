@@ -17,7 +17,7 @@ class VisualObservation:
 class MiniwobEnvironment:
     """Only visual observations cross the model boundary; no DOM or reward."""
 
-    def __init__(self, task: str, visual_variant="default"):
+    def __init__(self, task: str, visual_variant="default", *, batched_probe=False):
         import browsergym.miniwob  # noqa: F401 -- registers environments
         import gymnasium as gym
         from browsergym.core.action.highlevel import HighLevelActionSet
@@ -30,7 +30,15 @@ class MiniwobEnvironment:
         if visual_variant != "default" and task != "enter-text":
             raise ValueError("Visual variants currently target enter-text only")
         self.visual_variant = visual_variant
-        actions = HighLevelActionSet(subsets=["coord"], strict=True, multiaction=True)
+        if batched_probe:
+            if task != "enter-text":
+                raise ValueError("The batched selection action requires Enter Text")
+            from .verification_capture import capture_tail_selection
+
+            actions = HighLevelActionSet(subsets=["coord", "custom"], custom_actions=[capture_tail_selection],
+                                         strict=True, multiaction=True)
+        else:
+            actions = HighLevelActionSet(subsets=["coord"], strict=True, multiaction=True)
         self.env = gym.make(f"browsergym/miniwob.{task}", headless=True,
                             action_mapping=actions.to_python_code)
         self.obs = None
@@ -67,6 +75,15 @@ class MiniwobEnvironment:
         click, typing = original.split("\n", 1)
         key = "Meta+A" if sys.platform == "darwin" else "Control+A"
         return self._step_code(click + f"\nkeyboard_press({key!r})\n" + typing)
+
+    def capture_tail_selection(self):
+        page = self.env.unwrapped.page
+        page._gui_recover_tail_selection = None
+        try:
+            result = self._step_code("capture_tail_selection()")
+            return result, page._gui_recover_tail_selection
+        finally:
+            del page._gui_recover_tail_selection
 
     def _step_code(self, code):
         obs, reward, terminated, truncated, info = self.env.step(code)

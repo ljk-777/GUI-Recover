@@ -2,7 +2,17 @@
 
 Fault injection, visual recovery experiments, and traceable evaluation for GUI agents.
 
-**0.2.0rc2 发布候选。** 基于 ShowUI + BrowserGym/MiniWoB，保存截图、预测、执行动作和奖励，并核查恢复实验的配对与成本。[发布候选验证](docs/RELEASE_CANDIDATE.md)
+**0.2.0rc3 发布候选。** 基于 ShowUI + BrowserGym/MiniWoB，保存截图、预测、执行动作和奖励，并核查恢复实验的配对与成本。[发布候选验证](docs/RELEASE_CANDIDATE.md)
+
+GUI-Recover tests how browser agents detect and recover from action errors. The CPU demo shows how a reversible text selection reveals an otherwise invisible trailing space, with native screenshots and an exact-submission check.
+
+```bash
+python -m pip install -e .
+python -m playwright install chromium
+gui-recover demo-tail-probe --out runs/cpu-tail-demo
+```
+
+The demo creates its own light and dark single-line and multiline controls. See [CPU demo and native latency comparison](docs/TAIL_PROBE_PORTABILITY.md) for the scope and artifacts.
 
 [下载源码与安装包](https://github.com/ljk-777/GUI-Recover/releases/tag/v0.2.0a1) · [发布版本测试](https://github.com/ljk-777/GUI-Recover/actions/runs/44449374272)
 

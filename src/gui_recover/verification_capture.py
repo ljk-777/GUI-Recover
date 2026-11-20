@@ -23,3 +23,24 @@ def capture_after_repaint(page):
         cdp.send("Emulation.setDeviceMetricsOverride",{**dimensions,"deviceScaleFactor":1.0})
         cdp.detach()
     return Image.open(io.BytesIO(base64.b64decode(result["data"]))).convert("RGB")
+
+
+def capture_selected_tail(page):
+    """Capture the final character selection, then collapse it to the right."""
+    page.keyboard.press("Shift+ArrowLeft")
+    try:
+        return capture_after_repaint(page)
+    finally:
+        page.keyboard.press("ArrowRight")
+
+
+def capture_tail_selection():
+    """Temporarily select the last character and save a native screenshot.
+
+    Examples:
+        capture_tail_selection()
+    """
+    from gui_recover.verification_capture import capture_selected_tail
+
+    # BrowserGym supplies its current Playwright page to custom actions.
+    page._gui_recover_tail_selection = capture_selected_tail(page)  # noqa: F821
