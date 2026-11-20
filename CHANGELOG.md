@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.2.0rc1 — release candidate
+
+- Added installed commands for paired visual text recovery and CPU-only evidence audit. Recovered 18/18 injected visible errors in six MiniWoB layouts and measured the invisible trailing-space failure.
+- Added bounded Gymnasium recovery rollouts and an audited CPU offline Q-learning pilot for wait and retry. Recorded the comparison with hand-coded wait-first and the exact reward boundary.
 
 - Added frozen-actor feedback/zoom repair controls, validation guardrails, fresh natural-error evaluation and an action/phase-only detector ablation, retaining native/derived input provenance and all failures.
 

@@ -57,6 +57,13 @@ def main(argv=None, backend=None):
     compare.add_argument("--recovered", required=True)
     compare.add_argument("--clean-recovered")
     compare.add_argument("--out", required=True)
+    text_recovery = sub.add_parser("text-recovery", help="Run a paired MiniWoB text-recovery demo")
+    text_recovery.add_argument("--model", default=MODEL_ID)
+    text_recovery.add_argument("--revision", default=MODEL_REVISION)
+    text_recovery.add_argument("--seeds", nargs="+", type=int, default=[70000])
+    text_recovery.add_argument("--out", type=Path, required=True)
+    audit_text = sub.add_parser("audit-text-recovery", help="Audit saved text-recovery traces using only CPU")
+    audit_text.add_argument("directory", type=Path)
     run = sub.add_parser("run")
     run.add_argument("--policy", choices=["oracle-smoke", "showui", "showui-scripted"], required=True)
     run.add_argument("--tasks", nargs="+", default=["click-test"])
@@ -93,6 +100,24 @@ def main(argv=None, backend=None):
         if Path(args.out).exists():
             parser.error("Comparison output already exists")
         write_json(args.out, result)
+        print(json.dumps(result, indent=2))
+        return
+    if args.command == "text-recovery":
+        from .visual_text_study import run_text_quickstart
+
+        if any(seed < 0 for seed in args.seeds) or len(set(args.seeds)) != len(args.seeds):
+            parser.error("Seeds must be distinct and nonnegative")
+        if args.out.exists():
+            parser.error("Output directory already exists")
+        run_text_quickstart(args.out, args.seeds, args.model, args.revision, fingerprint())
+        return
+    if args.command == "audit-text-recovery":
+        from .visual_text_audit import audit
+
+        try:
+            result = audit(args.directory)
+        except (OSError, ValueError, KeyError, TypeError, IndexError) as exc:
+            parser.exit(1, f"Audit failed: {exc}\n")
         print(json.dumps(result, indent=2))
         return
     if args.max_steps < 1 or any(seed < 0 for seed in args.seeds):

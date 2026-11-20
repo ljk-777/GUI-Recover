@@ -2,7 +2,7 @@
 
 Fault injection, visual recovery experiments, and traceable evaluation for GUI agents.
 
-**[V0.2.0a1 Alpha 已发布](https://github.com/ljk-777/GUI-Recover/releases/tag/v0.2.0a1)：实验工具，尚未发布到 PyPI。** 基于 ShowUI + BrowserGym/MiniWoB，保存截图、预测、执行动作和奖励，并核查恢复实验的配对与成本。
+**0.2.0rc1 发布候选。** 基于 ShowUI + BrowserGym/MiniWoB，保存截图、预测、执行动作和奖励，并核查恢复实验的配对与成本。[发布候选验证](docs/RELEASE_CANDIDATE.md)
 
 [下载源码与安装包](https://github.com/ljk-777/GUI-Recover/releases/tag/v0.2.0a1) · [发布版本测试](https://github.com/ljk-777/GUI-Recover/actions/runs/44449374272)
 
@@ -60,13 +60,22 @@ CPU 演示使用 DOM 特权 oracle，只验证执行与记录链路，预期 3/3
 
 ## GPU 最小恢复演示
 
-先选择已分配的一张 CUDA GPU，再执行：
+选择一张支持 BF16 的 CUDA GPU。在源码或源码包目录运行模型和 MiniWoB 准备脚本，再运行安装后的命令。
 
 ```bash
 python -m pip install -e '.[showui]'
 python scripts/download_showui.py --out models/ShowUI-2B
 export MINIWOB_URL="file://$PWD/vendor/miniwob-plusplus/miniwob/html/miniwob/"
 export CUDA_VISIBLE_DEVICES=0
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 gui-recover text-recovery --model models/ShowUI-2B --out runs/text-recovery-demo
+gui-recover audit-text-recovery runs/text-recovery-demo
+```
+
+默认用单个示范布局执行七种条件和两种恢复策略，共 14 条轨迹。示范可通过 `--seeds` 指定布局，使用自包含输出目录，无需历史实验数据。审计命令可在没有 GPU、模型和浏览器的机器上运行。报告保存在 `summary.json`，每条轨迹下有 PNG 和 JSONL。留出集复现命令和结果见 [视觉文本核验](docs/VISUAL_TEXT_CONTENT.md)。
+
+Alpha 的输入出现检查仍可复现。
+
+```bash
 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 gui-recover run --policy showui-scripted --model models/ShowUI-2B --tasks enter-text --seeds 40 --max-steps 4 --parser mixed --fault drop-input --recovery input-guard --input-guard-version v2 --out runs/recovery-demo
 ```
 

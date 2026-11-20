@@ -34,10 +34,10 @@ Use a fresh output directory for each run. The earlier interrupted run is preser
 
 ## CPU audit
 
-Run this from the source checkout with the project's Python dependencies installed.
+Run this with the project installed. The source checkout also provides `scripts/audit_visual_text_content.py` as an alias.
 
 ```bash
-python scripts/audit_visual_text_content.py runs/visual-text-content-002
+gui-recover audit-text-recovery runs/visual-text-content-002
 ```
 
 The audit reads the frozen preflight, reference bank and recorded rollout files. It checks file hashes, the layout and policy order, the screenshot sequence, the policy decision reconstructed from each screenshot and the success reconstructed from terminal browser evidence. It runs without model weights, a GPU or a browser. A complete run also has its paired condition totals and effect gate checked against the verified traces.
