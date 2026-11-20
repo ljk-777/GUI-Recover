@@ -182,4 +182,13 @@ The evidence transfer set was frozen before observing model outcomes. It contain
 
 Development used the six screenshots that previously led to wrong first-frame submissions. The final development replay withheld three answers through the clipping and range checks. One other reply reached the model's token limit and could not be parsed. Two wrong candidates remained. Both the crop localization and the reported facts come from the model, so these checks leave visual recognition errors possible.
 
+| Transfer strategy | Model calls | Wrong submissions | Native successes |
+| --- | ---: | ---: | ---: |
+| Answer check | 18 | 4 | 0/8 |
+| Evidence localization and crop read | 22 | 5 | 0/8 |
+
+All eight pairs started from pixel-identical resets. The crop-read arm submitted five incorrect answers from the initial viewport and executed zero navigation actions. The other three episodes ended after invalid navigation replies. The audit verified 16 live trajectories and 26 screenshots. The study missed the acceptance gate.
+
+[Frozen plan and per-task evidence study results](../examples/vwa-evidence-results.json)
+
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
