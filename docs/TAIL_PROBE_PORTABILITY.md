@@ -42,3 +42,13 @@ python scripts/audit_tail_probe_latency.py runs/tail-probe-latency-001
 ```
 
 Run the engineering profile in a fresh directory with `--profile smoke` and omit `--exclude-run`.
+
+## Transfer to native MiniWoB task variants
+
+The installed active demo can also compare the same controllers on case transformation and randomized alphanumeric goals. The goal grammar derives the requested value from the displayed instruction. ShowUI locates the input and Submit, and MiniWoB provides the exact reward. The randomized alphanumeric task omits the case-flip scenario, since a digit cannot be case-flipped.
+
+```bash
+gui-recover active-text-recovery --model models/ShowUI-2B \
+  --tasks enter-text-2 enter-text-dynamic --seeds 84000 84001 --out runs/native-text-transfer
+gui-recover audit-active-text-recovery runs/native-text-transfer
+```

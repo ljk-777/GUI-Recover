@@ -14,6 +14,7 @@ from .policies import MODEL_ID, MODEL_REVISION, OracleSmokePolicy, ShowUIPolicy
 from .runner import aggregate, render_replay, run_episode, write_json
 from .comparison import compare_runs
 from .grounding import ScriptedGroundingPolicy
+from .text_goals import NATIVE_TEXT_TASKS
 
 
 def fingerprint():
@@ -66,6 +67,8 @@ def main(argv=None, backend=None):
         text_recovery.add_argument("--revision", default=MODEL_REVISION)
         text_recovery.add_argument("--seeds", nargs="+", type=int, default=[seed])
         text_recovery.add_argument("--out", type=Path, required=True)
+        if command == "active-text-recovery":
+            text_recovery.add_argument("--tasks", nargs="+", choices=NATIVE_TEXT_TASKS, default=["enter-text"])
     audit_text = sub.add_parser("audit-text-recovery", help="Audit saved text-recovery traces using only CPU")
     audit_text.add_argument("directory", type=Path)
     audit_active = sub.add_parser("audit-active-text-recovery", help="Audit the active tail probe without model or browser")
@@ -123,10 +126,15 @@ def main(argv=None, backend=None):
         if args.out.exists():
             parser.error("Output directory already exists")
         if args.command == "active-text-recovery":
-            from .active_text_study import run_active_quickstart as run_quickstart
+            from .active_text_study import run_active_quickstart
+
+            if len(set(args.tasks)) != len(args.tasks):
+                parser.error("Tasks must be distinct")
+            run_active_quickstart(args.out, args.seeds, args.model, args.revision, fingerprint(), tasks=args.tasks)
         else:
-            from .visual_text_study import run_text_quickstart as run_quickstart
-        run_quickstart(args.out, args.seeds, args.model, args.revision, fingerprint())
+            from .visual_text_study import run_text_quickstart
+
+            run_text_quickstart(args.out, args.seeds, args.model, args.revision, fingerprint())
         return
     if args.command in ("audit-text-recovery", "audit-active-text-recovery"):
         if args.command == "audit-active-text-recovery":

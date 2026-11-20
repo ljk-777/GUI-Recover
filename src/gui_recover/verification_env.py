@@ -8,6 +8,7 @@ from .environment import MiniwobEnvironment,VisualObservation
 from .input_guard import inspect_input
 from .recovery import ActionFault
 from .runner import is_success
+from .text_goals import NATIVE_TEXT_TASKS, expected_text
 from .verification_capture import capture_after_repaint
 
 
@@ -16,8 +17,10 @@ DEFERRED_TAIL_REGIME = "deferred-trailing-space-input"
 
 
 def task_request(task, goal):
-    if task == "enter-text":
-        value = re.fullmatch(r'Enter "(.*)" into the text field and press Submit\.',goal).group(1)
+    if task in NATIVE_TEXT_TASKS:
+        value = expected_text(goal)
+        if value is None:
+            raise ValueError("Unsupported native text goal")
         return "text field", "INPUT", value
     if task == "click-button":
         value = re.fullmatch(r'Click on the "(.*)" button\.',goal).group(1)
@@ -42,7 +45,7 @@ def teacher_effect(execution):
 def teacher_evidence(execution):
     """Raw offline evidence retained for label auditing, never for a visual model."""
     env = execution.env
-    if env.task == "enter-text":
+    if env.task in NATIVE_TEXT_TASKS:
         _, _, expected = task_request(env.task, execution.obs.goal)
         observed=env.env.unwrapped.page.locator("#tt").input_value()
         return {"kind":"exact_input_value","expected":expected,"observed":observed,"effect_achieved":observed==expected}
@@ -161,8 +164,8 @@ class TransitionExecution:
     def repair(self, point, *, input_profile="legacy"):
         if input_profile not in INPUT_REPAIR_PROFILES:
             raise ValueError("Unknown input repair profile")
-        if input_profile == "replace" and (self.env.task != "enter-text" or self.proposed.action != "INPUT"):
-            raise ValueError("Replacement profile requires the fixed Enter Text input task")
+        if input_profile == "replace" and (self.env.task not in NATIVE_TEXT_TASKS or self.proposed.action != "INPUT"):
+            raise ValueError("Replacement profile requires a native text input task")
         if self.proposed.action == "INPUT":
             _,_,value = task_request(self.env.task,self.obs.goal)
             append = input_profile == "legacy" and (

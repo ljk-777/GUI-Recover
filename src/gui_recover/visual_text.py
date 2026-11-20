@@ -11,11 +11,12 @@ import numpy as np
 from .input_guard import inspect_input
 from .recovery_env import Decision, FRAME_SIZE, Phase, transition_view
 from .runner import write_json
+from .text_goals import expected_text
 from .verification_capture import capture_after_repaint
 from .verification_env import task_request
 
 
-_SUPPORTED_TEXT = re.compile(r"[A-Za-z]{1,16}")
+_SUPPORTED_TEXT = re.compile(r"[A-Za-z0-9]{1,16}")
 _CAPTURE = {"width":332,"height":214}
 _RENDER_SCALE = 1.5
 _MATCH = .995
@@ -79,7 +80,7 @@ def render_text_references(values):
 
     values = sorted(set(values))
     if not values or not all(_SUPPORTED_TEXT.fullmatch(v) for v in values):
-        raise ValueError("Expected supported ASCII letter strings")
+        raise ValueError("Expected supported ASCII alphanumeric strings")
     css = ("body{font-family:Arial;margin:0;background:white}"
            "input{position:absolute;width:120px;caret-color:transparent}")
     # These positions cover both native pixel phases at 1.5x, in each axis.
@@ -124,7 +125,7 @@ class VisualTextVerifier:
 
     def verify(self, view):
         if (view.proposed.action!="INPUT" or view.target!="text field" or view.after.size!=FRAME_SIZE
-                or view.goal!=f'Enter "{view.proposed.value}" into the text field and press Submit.'):
+                or expected_text(view.goal) != view.proposed.value):
             return {"status":"unknown","reason":"unsupported_input_profile"}
         templates = self.templates.get(view.proposed.value)
         if not templates:

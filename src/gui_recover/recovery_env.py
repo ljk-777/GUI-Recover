@@ -12,11 +12,12 @@ from PIL import Image
 
 from .actions import Action, parse_action
 from .recovery import INPUT_FAULTS
+from .text_goals import NATIVE_TEXT_TASKS
 from .verification import TransitionView
 from .verification_env import DEFERRED_TAIL_REGIME, INPUT_REPAIR_PROFILES, TransitionExecution, task_request
 
 
-TASKS = ("click-button", "click-dialog", "click-tab", "enter-text")
+TASKS = ("click-button", "click-dialog", "click-tab", *NATIVE_TEXT_TASKS)
 REGIMES = ("none", "drop-input", "deferred-input")
 SUPPORTED_REGIMES = ("none", "deferred-input", *INPUT_FAULTS)
 FRAME_SIZE = (498, 321)
@@ -75,12 +76,12 @@ class RecoveryDecisionEnv(gym.Env):
                  enable_tail_probe=False, batched_probe=False):
         super().__init__()
         known_regime = regime in SUPPORTED_REGIMES or (enable_tail_probe and regime == DEFERRED_TAIL_REGIME)
-        if task not in TASKS or not known_regime or (regime != "none" and task != "enter-text"):
+        if task not in TASKS or not known_regime or (regime != "none" and task not in NATIVE_TEXT_TASKS):
             raise ValueError("Unsupported task or fault for the recovery environment")
-        if input_repair not in INPUT_REPAIR_PROFILES or (input_repair == "replace" and task != "enter-text"):
+        if input_repair not in INPUT_REPAIR_PROFILES or (input_repair == "replace" and task not in NATIVE_TEXT_TASKS):
             raise ValueError("Unsupported input repair profile for the task")
-        if enable_tail_probe and task != "enter-text":
-            raise ValueError("Tail selection requires Enter Text")
+        if enable_tail_probe and task not in NATIVE_TEXT_TASKS:
+            raise ValueError("Tail selection requires a native text task")
         if batched_probe and not enable_tail_probe:
             raise ValueError("A batched probe requires the tail-selection action")
         max_budget = 4 if enable_tail_probe else 3
@@ -187,7 +188,7 @@ class RecoveryDecisionEnv(gym.Env):
         return self.grounder.ground(self.execution.obs.screenshot, target)
 
     def _continue_task(self, predictions):
-        if self.task == "enter-text":
+        if self.task in NATIVE_TEXT_TASKS:
             # Submitting before observing queued input runs against the
             # current field. Only a wait or the repair fixture delivers it.
             p = predictions["continuation"] = self._ground("Submit button")

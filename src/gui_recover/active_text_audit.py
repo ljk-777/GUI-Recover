@@ -118,9 +118,10 @@ def audit(root):
         totals, first = audit_branch(root, row, scene, choose)
         counts.update(totals)
         starting_point = (first["proposed_action"], first["current"]["sha256"])
-        key = row["seed"], regime
+        key = row["task"], row["seed"], regime
         require(firsts.setdefault(key, starting_point) == starting_point, "Paired source screenshot or prediction differs")
     require(summary["conditions"] == summarize(rows, regimes), "Paired aggregate differs")
     return {"status": "passed", "episodes": len(rows), "layouts": len(scenes), **counts,
-            "normal_trailing_alias_pairs": sum(firsts[s["seed"], "none"][1] == firsts[s["seed"], "trailing-space-input"][1]
+            "normal_trailing_alias_pairs": sum(firsts[s["task"], s["seed"], "none"][1] ==
+                                               firsts[s["task"], s["seed"], "trailing-space-input"][1]
                                                for s in scenes)}

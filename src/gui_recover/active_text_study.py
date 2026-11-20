@@ -12,6 +12,7 @@ from .recovery_rollouts import record_rollout
 from .repair_study_data import preflight
 from .runner import write_json
 from .sft import file_sha256
+from .text_goals import NATIVE_TEXT_TASKS
 from .visual_text import ContentRecoveryPolicy, VisualTextVerifier
 from .visual_text_study import prepare_references
 
@@ -26,7 +27,7 @@ def summarize(rows, regimes):
         by_seed = defaultdict(dict)
         for row in rows:
             if row["regime"] == regime:
-                pair = by_seed[row["seed"]]
+                pair = by_seed[row["task"], row["seed"]]
                 if row["policy"] in pair:
                     raise ValueError("Duplicate paired rollout")
                 pair[row["policy"]] = row
@@ -55,6 +56,7 @@ def collect(out, plan, regimes, grounder, verifier, browser_version, *,
     with (out / "episodes.jsonl").open("x", encoding="utf-8") as index:
         for layout_index, layout in enumerate(plan["selected"]):
             scene = {**layout, "split": "test"}
+            task = scene["task"]
             for regime_index, regime in enumerate(regimes):
                 ordered = policies[::-1] if alternate_order and (layout_index + regime_index) % 2 else policies
                 for policy in ordered:
@@ -63,8 +65,8 @@ def collect(out, plan, regimes, grounder, verifier, browser_version, *,
                         choose = ContentRecoveryPolicy(verifier)
                     elif policy in ("active_tail", "batched_tail"):
                         choose = ActiveTextPolicy(verifier)
-                    branch = out / "rollouts" / f"{TASK}-{layout['seed']}-{regime}-{policy}"
-                    env = RecoveryDecisionEnv(TASK, grounder, regime=regime, input_repair="replace", enable_tail_probe=True,
+                    branch = out / "rollouts" / f"{task}-{layout['seed']}-{regime}-{policy}"
+                    env = RecoveryDecisionEnv(task, grounder, regime=regime, input_repair="replace", enable_tail_probe=True,
                         batched_probe=policy == "batched_tail" or (policy == "active_tail" and batched_probe))
                     try:
                         row = record_rollout(env, scene, policy, branch, choose=choose)
@@ -116,15 +118,20 @@ def evaluate_registered(out, plan, profile_name, regimes, actor, bank_sha, *, ba
     print("completed", out.name, flush=True)
 
 
-def run_active_quickstart(out, seeds, model, revision, runtime):
+def run_active_quickstart(out, seeds, model, revision, runtime, *, tasks=(TASK,)):
     """Run the paired active-tail demo without historical experiment directories."""
+    if not tasks or len(set(tasks)) != len(tasks) or not set(tasks) <= set(NATIVE_TEXT_TASKS):
+        raise ValueError("Expected distinct supported native text tasks")
     out.mkdir(parents=True, exist_ok=False)
-    profile = {"layouts": len(seeds), "seeds": seeds, "regimes": SUPPORTED_REGIMES}
+    regimes = tuple(regime for regime in SUPPORTED_REGIMES
+                    if regime != "case-input" or "enter-text-dynamic" not in tasks)
+    profile = {"layouts": len(seeds) * len(tasks), "seeds": seeds, "tasks": tasks, "regimes": regimes}
     write_json(out / "protocol.json", {"profile": "quickstart", "config": {"quickstart": profile},
                                       "model": {"identifier": model, "revision": revision}, "runtime": runtime,
                                       "probe_execution": "single_step"})
     write_json(out / "development-layouts.json", [])
-    plan = preflight((), out, [{"task": TASK, "count": len(seeds), "candidate_seeds": seeds}], include_goal=True)
+    plan = preflight((), out, [{"task": task, "count": len(seeds), "candidate_seeds": seeds} for task in tasks],
+                     include_goal=True)
     bank_sha = prepare_references(out)
     actor = ShowUIPolicy(model, revision=revision, max_new_tokens=32)
-    evaluate_registered(out, plan, "quickstart", SUPPORTED_REGIMES, actor, bank_sha, batched_probe=True)
+    evaluate_registered(out, plan, "quickstart", regimes, actor, bank_sha, batched_probe=True)

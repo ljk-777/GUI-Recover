@@ -5,6 +5,7 @@ import sys
 from PIL import Image
 
 from .actions import Action, compile_action
+from .text_goals import NATIVE_TEXT_TASKS
 
 
 @dataclass(frozen=True)
@@ -31,8 +32,8 @@ class MiniwobEnvironment:
             raise ValueError("Visual variants currently target enter-text only")
         self.visual_variant = visual_variant
         if batched_probe:
-            if task != "enter-text":
-                raise ValueError("The batched selection action requires Enter Text")
+            if task not in NATIVE_TEXT_TASKS:
+                raise ValueError("The batched selection action requires a native text task")
             from .verification_capture import capture_tail_selection
 
             actions = HighLevelActionSet(subsets=["coord", "custom"], custom_actions=[capture_tail_selection],
