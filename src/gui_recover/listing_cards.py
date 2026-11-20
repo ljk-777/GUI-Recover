@@ -158,6 +158,9 @@ def card_panel(items):
 def read_card_checks(raw, count):
     """Accept a result only when every numbered crop received its own bounded cue."""
     data = read_reply(raw)
+    if count == 1 and isinstance(data, list) and len(data) == 1:
+        # With one pictured card, a single ordered verdict cannot be misassigned.
+        data = {"1": data[0]}
     if not isinstance(data, dict) or set(data) != {str(index) for index in range(1, count + 1)}:
         raise ActionError("Each image must have one indexed judgment")
     matches = []
@@ -166,9 +169,13 @@ def read_card_checks(raw, count):
         if value is None:
             matches.append(None)
             continue
-        if not isinstance(value, list) or len(value) != 2 or type(value[0]) is not bool:
+        if not isinstance(value, list) or len(value) != 2:
             raise ActionError("A card judgment needs a boolean and visual cue, or null")
         match, cue = value
+        if count == 1 and isinstance(match, str) and match in ("true", "false"):
+            match = match == "true"
+        if type(match) is not bool:
+            raise ActionError("A card judgment needs a boolean")
         if not (cue is None and not match) and (not isinstance(cue, str) or not 0 < len(cue.strip()) <= 96):
             raise ActionError("A matching card needs a bounded visual cue")
         matches.append(match)

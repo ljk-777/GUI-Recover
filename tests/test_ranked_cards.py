@@ -16,6 +16,9 @@ GOAL = 'Search for "poster" and return the links for the two most recent items t
 
 def test_card_replies_bind_cues_to_each_index():
     assert read_card_checks('{"2":[false,null],"1":[true,"eagle"],"3":null}', 3) == [True, False, None]
+    assert read_card_checks('[["true","eagle"]]', 1) == [True]
+    with pytest.raises(ActionError):
+        read_card_checks('[["true","eagle"],["true","owl"]]', 2)
     for raw in ('{"1":[true,null]}', '{"1":[true,"bird"],"1":[false,null]}', '{"2":[true,"eagle"]}'):
         with pytest.raises(ActionError):
             read_card_checks(raw, 1)
