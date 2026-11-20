@@ -240,6 +240,14 @@ The numeric fix was also checked using the recorded replies on diagnostic task 2
 
 The audit verified 16 trajectories, 65 screenshots, and identical reset pixels in all eight task pairs. The candidate opened two crops for reading. One read abstained and the other produced a candidate on the eighth call. No transfer episode reached the independent confirmation stage within the cap. The comparison missed the success gate. The task 221 diagnostic remains separate from this transfer result.
 
+The navigation adapter was then tested on three previously observed tasks. The existing strategy scored 0/3 and the candidate scored 1/3 at the same eight-call cap. On task 221, the frozen Qwen 7B checkpoint produced the verified numeric answer on call three and earned full reward in a fresh browser. On the two search-results tasks, the candidate executed six and five navigation actions. The earlier frozen candidate executed two and one actions on those tasks. All three pairs had identical reset pixels. One environment startup timed out before inference and was repeated once with its original attempt retained.
+
+```bash
+python scripts/run_visualwebarena_live.py --actor qwen --qwen-7b-4bit \
+  --model models/Qwen2.5-VL-7B-Instruct --study evidence-context \
+  --task-set evidence-navigation-diagnostic --max-steps 8 --out runs/visualwebarena-nav-diagnostic
+```
+
 [Frozen click-context results and native replay receipt](../examples/vwa-context-evidence-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)

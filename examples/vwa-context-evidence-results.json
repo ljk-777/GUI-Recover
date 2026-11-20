@@ -697,5 +697,225 @@
     "terminated": true,
     "truncated": false,
     "success": true
+  },
+  "navigation_diagnostic": {
+    "source_commit": "3f73122649585182cce3094cc235dc962319cad1",
+    "run": "visualwebarena-evidence-navigation-diagnostic-recovered-001",
+    "startup_retry": {
+      "original_run": "visualwebarena-evidence-navigation-diagnostic-001",
+      "retries": [
+        "visualwebarena.14-evidence-context"
+      ]
+    },
+    "study": "evidence-context",
+    "task_set": "evidence-navigation-diagnostic",
+    "prediction_budget": 8,
+    "screenshots": 27,
+    "strategies": {
+      "answer-check": {
+        "episodes": 3,
+        "successes": 0,
+        "success_rate": 0.0,
+        "mean_steps": 3.0,
+        "reasons": {
+          "step_limit": 2,
+          "task_failure": 1
+        },
+        "predictions": 17,
+        "model_calls": 17,
+        "steps": 9,
+        "invalid_predictions": 0,
+        "invalid_action_retries": 0,
+        "repaired_predictions": 0,
+        "scroll_feedbacks": 1,
+        "scroll_detection_signals": 1,
+        "answer_checks": 9,
+        "answers_submitted": 1,
+        "answers_from_checks": 1
+      },
+      "evidence-context": {
+        "episodes": 3,
+        "successes": 1,
+        "success_rate": 0.3333333333333333,
+        "mean_steps": 4.0,
+        "reasons": {
+          "step_limit": 2,
+          "success": 1
+        },
+        "predictions": 19,
+        "model_calls": 19,
+        "steps": 12,
+        "invalid_predictions": 1,
+        "invalid_action_retries": 1,
+        "repaired_predictions": 1,
+        "scroll_feedbacks": 1,
+        "scroll_detection_signals": 1,
+        "answer_checks": 11,
+        "answers_submitted": 1,
+        "answers_from_checks": 1
+      }
+    },
+    "provider_formats": {
+      "answer-check": {
+        "answer_abstained": 8,
+        "json": 8,
+        "answer_json": 1
+      },
+      "evidence-context": {
+        "evidence_navigation": 6,
+        "invalid": 1,
+        "json": 5,
+        "evidence_region": 2,
+        "evidence_abstained": 3,
+        "evidence_answer": 1,
+        "evidence_verify_agreed": 1
+      }
+    },
+    "peak_cuda_allocated_bytes": 7553459200,
+    "by_task": {
+      "14": {
+        "identical_reset_pixels": true,
+        "identical_first_invalid": false,
+        "strategies": {
+          "answer-check": {
+            "predictions": 8,
+            "model_calls": 8,
+            "steps": 4,
+            "invalid_predictions": 0,
+            "invalid_action_retries": 0,
+            "repaired_predictions": 0,
+            "answer_checks": 4,
+            "answers_submitted": 0,
+            "answers_from_checks": 0,
+            "scroll_detection_signals": 0,
+            "scroll_feedbacks": 0,
+            "success": false,
+            "reason": "step_limit"
+          },
+          "evidence-context": {
+            "predictions": 8,
+            "model_calls": 8,
+            "steps": 6,
+            "invalid_predictions": 1,
+            "invalid_action_retries": 1,
+            "repaired_predictions": 1,
+            "answer_checks": 6,
+            "answers_submitted": 0,
+            "answers_from_checks": 0,
+            "scroll_detection_signals": 1,
+            "scroll_feedbacks": 1,
+            "success": false,
+            "reason": "step_limit"
+          }
+        },
+        "answer_outcome": {
+          "answer-check": null,
+          "evidence-context": null
+        },
+        "evidence_calls": {
+          "locate": 6
+        }
+      },
+      "15": {
+        "identical_reset_pixels": true,
+        "identical_first_invalid": false,
+        "strategies": {
+          "answer-check": {
+            "predictions": 8,
+            "model_calls": 8,
+            "steps": 4,
+            "invalid_predictions": 0,
+            "invalid_action_retries": 0,
+            "repaired_predictions": 0,
+            "answer_checks": 4,
+            "answers_submitted": 0,
+            "answers_from_checks": 0,
+            "scroll_detection_signals": 1,
+            "scroll_feedbacks": 1,
+            "success": false,
+            "reason": "step_limit"
+          },
+          "evidence-context": {
+            "predictions": 8,
+            "model_calls": 8,
+            "steps": 5,
+            "invalid_predictions": 0,
+            "invalid_action_retries": 0,
+            "repaired_predictions": 0,
+            "answer_checks": 4,
+            "answers_submitted": 0,
+            "answers_from_checks": 0,
+            "scroll_detection_signals": 0,
+            "scroll_feedbacks": 0,
+            "success": false,
+            "reason": "step_limit"
+          }
+        },
+        "answer_outcome": {
+          "answer-check": null,
+          "evidence-context": null
+        },
+        "evidence_calls": {
+          "locate": 4
+        }
+      },
+      "221": {
+        "identical_reset_pixels": true,
+        "identical_first_invalid": false,
+        "strategies": {
+          "answer-check": {
+            "predictions": 1,
+            "model_calls": 1,
+            "steps": 1,
+            "invalid_predictions": 0,
+            "invalid_action_retries": 0,
+            "repaired_predictions": 0,
+            "answer_checks": 1,
+            "answers_submitted": 1,
+            "answers_from_checks": 1,
+            "scroll_detection_signals": 0,
+            "scroll_feedbacks": 0,
+            "success": false,
+            "reason": "task_failure"
+          },
+          "evidence-context": {
+            "predictions": 3,
+            "model_calls": 3,
+            "steps": 1,
+            "invalid_predictions": 0,
+            "invalid_action_retries": 0,
+            "repaired_predictions": 0,
+            "answer_checks": 1,
+            "answers_submitted": 1,
+            "answers_from_checks": 1,
+            "scroll_detection_signals": 0,
+            "scroll_feedbacks": 0,
+            "success": true,
+            "reason": "success"
+          }
+        },
+        "answer_outcome": {
+          "answer-check": {
+            "source": "answer-check",
+            "prediction": 1,
+            "native_reward": 0.0
+          },
+          "evidence-context": {
+            "source": "evidence-context",
+            "prediction": 3,
+            "native_reward": 1.0
+          }
+        },
+        "evidence_calls": {
+          "locate": 1,
+          "read": 1,
+          "confirm": 1
+        }
+      }
+    },
+    "wrong_submissions": {
+      "answer-check": 1,
+      "evidence-context": 0
+    }
   }
 }
