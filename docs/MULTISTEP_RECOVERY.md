@@ -58,6 +58,10 @@ python scripts/eval_multistep_sft.py --run runs/multistep-smoke \
 
 The held-out adapter check reuses frozen original proposals and replaces the re-grounding model only. It requires a stable committed worktree for recording training provenance.
 
+The online probe learner completed 64 training episodes. Independent CPU replay reproduced every seeded selection and both Q-value tables. Its frozen policy reached 48/48 on held-out form episodes, including 12/12 on delayed trailing spaces. The visual rule also reached 48/48. Both executed 48 probes, so the learned policy missed the cost-reduction gate.
+
+The ShowUI SFT pilot used 56 training and 28 validation examples, with 40 and 20 verified corrections in those splits. It completed 32 decoder LoRA updates. Validation loss went from 4.150 to 1.830, and the adapter reload matched the saved test loss exactly. On 18 matched browser rollouts the frozen retry model achieved 11 full-credit outcomes and the adapted retry model achieved 10. Both achieved 14 native binary successes. These results keep the visual rule and frozen weights as the evaluation reference.
+
 ## Transfer to a second model
 
 Download a separate local Qwen2.5-VL-3B-Instruct snapshot at revision `66285546d2b821cf421d4f5eb2576359d3770cd3`. See [third-party terms](../THIRD_PARTY.md). This backend returns integer pixels on its prepared image. The adapter validates the output and maps it into the normalized action interface used by the same evaluator and audit.
@@ -92,3 +96,11 @@ python scripts/run_visualwebarena_live.py --model models/ShowUI-2B --out runs/vi
 ```
 
 For CPU Qwen navigation, pass `--actor qwen --device cpu --model models/Qwen2.5-VL-3B-Instruct`.
+
+The offline answer check matched one of three reference answers. The model returned an answer in every case, so an uncertainty gate based on an explicit `UNKNOWN` requested zero additional checks. The recording comparison is independent of the live benchmark.
+
+The server ran the optimized Classifieds site with fixed web and database image digests. The optimized site uses re-encoded AVIF photos. A known-answer wiring check on the live site reached the native evaluator and earned full reward for all three tasks. [Classifieds image source](https://github.com/bgrins/vwa_classifieds_optimized)
+
+Qwen then ran the same three task IDs in each arm on the single GPU with a two-step budget. Each arm executed three actions in total and finished zero tasks. One task hit the step limit and two produced invalid model actions. The feedback arm issued zero recovery messages. This run validates the live connection and action loop and leaves the recovery effect on VisualWebArena unmeasured.
+
+[Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
