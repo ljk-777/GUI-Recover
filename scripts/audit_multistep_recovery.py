@@ -8,7 +8,7 @@ from urllib.parse import quote
 
 from PIL import Image
 
-from gui_recover.multistep_recovery import EXTRA_BUDGET, METHODS, regimes, summarize, validate_plan
+from gui_recover.multistep_recovery import EXTRA_BUDGET, METHODS, regimes, summarize, validate_plan, with_full_credit
 from gui_recover.probe_learning import ProbeLearner, adjusted_return
 from gui_recover.recovery_env import ProbeDecision
 from gui_recover.runner import is_success, write_json
@@ -86,8 +86,12 @@ def audit(out):
     saved = read(evaluation / "summary.json")
     if metrics != saved["metrics"] or len(rows) != saved["episodes"]:
         raise ValueError("Saved aggregate cannot be reconstructed")
+    full_credit = summarize(with_full_credit(rows))
+    totals = full_credit["all"]
     return {"episodes": len(rows), "layouts": len(scenes), "screenshots": frames,
-            "metrics": metrics, "gate": saved["gate"]}, rows
+            "metrics": metrics, "gate": saved["gate"], "full_credit_metrics": full_credit,
+            "full_credit_natural_gain": totals["visual"]["natural_recovered"] > max(
+                totals[method]["natural_recovered"] for method in METHODS[:2])}, rows
 
 
 def audit_probe_learning(out):
@@ -124,17 +128,21 @@ def audit_probe_learning(out):
 
 
 def html(summary, rows):
-    columns = ("Method", "Exact success", "Healthy rewrites", "Natural failures recovered", "Extra operations")
+    columns = ("Method", "Full credit", "Native binary success", "Healthy repairs",
+               "Natural failures recovered with full credit", "Extra operations")
     metrics = summary["metrics"]["all"]
+    full_credit = summary["full_credit_metrics"]["all"]
     header = "".join(f"<th>{label}</th>" for label in columns)
     results = "".join(
-        f"<tr><th>{escape(method)}</th><td>{m['exact_successes']}/{m['episodes']}</td>"
+        f"<tr><th>{escape(method)}</th><td>{full_credit[method]['exact_successes']}/{m['episodes']}</td>"
+        f"<td>{m['exact_successes']}/{m['episodes']}</td>"
         f"<td>{m['healthy_repairs']}/{m['healthy_live']}</td>"
-        f"<td>{m['natural_recovered']}/{m['natural_failures']}</td><td>{m['extra_operations']}</td></tr>"
+        f"<td>{full_credit[method]['natural_recovered']}/{m['natural_failures']}</td>"
+        f"<td>{m['extra_operations']}</td></tr>"
         for method, m in metrics.items()
     )
     details = []
-    for row in rows:
+    for row in with_full_credit(rows):
         directory = "evaluation/" + str(Path(row["trace"]).parent)
         images = " ".join(
             f'<a href="{quote(directory + "/" + frame["image"])}">{escape(label)}</a>'

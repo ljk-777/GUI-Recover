@@ -365,3 +365,15 @@ def summarize(rows, methods=METHODS):
                 **{name: sum(r[name] for r in subset) for name in (
                     "extra_operations", "waits", "probes", "repairs", "relocation_requests")}}
     return results
+
+
+def with_full_credit(rows):
+    """Require the highest raw MiniWoB reward as well as native binary success."""
+    scored = []
+    for row in rows:
+        events = row["events"]
+        raw_reward = events[-1]["task_info"].get("RAW_REWARD_GLOBAL") if events else None
+        full = row["success"] and raw_reward == 1.0
+        outcome = "partial_credit" if row["success"] and not full else row["outcome"]
+        scored.append({**row, "success": full, "outcome": outcome})
+    return scored

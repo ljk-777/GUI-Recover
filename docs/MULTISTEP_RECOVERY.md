@@ -1,6 +1,6 @@
 # Multistep recovery
 
-The benchmark measures recovery at the first live checkpoint of native MiniWoB button-sequence, checkbox and short form tasks. All controllers use the same scripted suffix after the checkpoint. Native task termination decides whether the full task succeeded. Natural first actions come from a frozen vision model. Controlled healthy, missed and wrong actions are paired by layout, and the report retains wrong order, invalid predictions and terminal failures.
+The benchmark measures recovery at the first live checkpoint of native MiniWoB button-sequence, checkbox and short form tasks. All controllers use the same scripted suffix after the checkpoint. Natural first actions come from a frozen vision model. Controlled healthy, missed and wrong actions are paired by layout, and the report retains wrong order, invalid predictions and terminal failures. The audit reports binary task reward and full credit separately. The checkbox task can award a positive binary result for selecting only part of the requested set. Full credit requires the recorded raw reward to equal one.
 
 ## Compare three controllers
 
@@ -21,9 +21,23 @@ python scripts/run_multistep_recovery.py \
 python scripts/audit_multistep_recovery.py runs/multistep-smoke --report
 ```
 
-Open `report.html` inside the audited run. It links every native frame and shows exact outcomes, false repairs, natural failure recovery and the operation cost. Use `--profile formal` for the frozen larger population. `--prior-evidence` accepts old rollout directories to exclude duplicate native observations. Use a fresh output directory for each run.
+Open `report.html` inside the audited run. It links every native frame and shows full credit, binary reward, false repairs, natural failure recovery and operation cost. Use `--profile formal` for the frozen larger population. `--prior-evidence` accepts old rollout directories to exclude duplicate native observations. Use a fresh output directory for each run.
+
+## Formal comparison
+
+The ShowUI evaluation ran 540 trajectories across 36 held-out layouts, including 12 layouts from the reserved checkbox family. All methods use the same extra-operation cap.
+
+| Controller | Full credit | Native binary success | Natural misses recovered with full credit | Healthy checkpoints repaired | Extra operations |
+|---|---:|---:|---:|---:|---:|
+| Continue | 71/180 | 96/180 | 0/13 | 0/59 | 0 |
+| Fixed retry | 104/180 | 138/180 | 1/13 | 59/59 | 204 |
+| Visual recovery | 167/180 | 167/180 | 12/13 | 0/59 | 255 |
+
+Full-credit outcomes were recomputed from the original terminal rewards after identifying partial credit in the checkbox task. The registered binary comparison also passed both gates. The visual controller spent 51 more operations than fixed retry. It maintained the same zero-repair rate as continuation on healthy checkpoints.
 
 Each arm has a shared cap of three additional operations. The no-recovery arm proceeds to the suffix. The fixed baseline performs one zoomed re-grounding and retry. The visual rule can wait once for text delivery, inspect a reversible tail selection or button focus marker, and take a bounded repair. The checkbox verifier reads pixels and may undo a specific wrong toggle before setting the intended box. The sequence probe briefly exposes button focus with a trusted browser style, checks that the unmarked frame was restored, and can retry when neither button acquired focus. An already recorded click on the wrong sequence button remains a failure under a zero-reset budget.
+
+On the first registered button layout, the correct click, omitted click and wrong click produced the same original PNG. The focus probe distinguished the omitted click and let the controller retry once. The correct click continued with no retry. The wrong click still failed. All three probes restored the original frame. [Original screenshot](../examples/multistep-focus-probe/without-probe.png) · [Correct focus](../examples/multistep-focus-probe/healthy-focus.png) · [Omitted click](../examples/multistep-focus-probe/miss-focus.png) · [Wrong focus](../examples/multistep-focus-probe/wrong-focus.png) · [Provenance](../examples/multistep-focus-probe/provenance.json).
 
 The protocol freezes screenshot hashes and layout splits before acting. Checkbox layouts form the entire transfer task family. DOM geometry builds the controlled actions and common suffix, and privileged state labels are collected for reporting. The recovery controller takes the visible goal and proposal, screenshots and the outputs of its bounded operations. The benchmark reports extra checks of healthy states separately from repairs of healthy states.
 
@@ -56,6 +70,8 @@ python scripts/run_multistep_recovery.py \
 python scripts/audit_multistep_recovery.py runs/multistep-qwen --report
 ```
 
+In the three-layout Qwen compatibility study, the three controllers ran 45 native trajectories and the CPU audit checked 199 screenshots. Full credit was 14/15 with visual recovery, 10/15 with fixed retry and 7/15 with continuation. The respective binary scores were 14/15, 13/15 and 9/15. The visual method repaired zero of six healthy intermediate states and used 20 extra operations. Fixed retry repaired four of those states and used 13 extra operations. All three natural Qwen first actions in this sample were successful, so the comparison measures controlled faults.
+
 ## Inspect VisualWebArena recordings
 
 The offline diagnostic checks six native viewport screenshots from VisualWebArena Classifieds tasks 118, 120 and 149. It compares a last-frame answer with a bounded second look when Qwen explicitly reports uncertainty. It reports exact short-answer matches separately from the historical environment reward. The upstream assets stay local. See [AgentRewardBench dataset terms](https://huggingface.co/datasets/McGill-NLP/agent-reward-bench#terms-of-use).
@@ -67,10 +83,12 @@ python scripts/replay_visualwebarena.py --recordings runs/vwa-recordings \
   --qwen models/Qwen2.5-VL-3B-Instruct --device cpu --out runs/vwa-qwen-check.json
 ```
 
-A native run requires an instance you control with the original benchmark site assets. The opt-in live adapter sends answers to the BrowserGym task evaluator and uses its terminal reward. The first command shows the missing setup without loading a model or starting a browser. Configure the `VWA_*` variables from [BrowserGym's setup](https://github.com/ServiceNow/BrowserGym/tree/main/browsergym/visualwebarena) before the second command.
+A native run requires a Classifieds instance you control. The opt-in adapter sends answers to the BrowserGym task evaluator and uses its terminal reward. The registered tasks use the native string judge, so the runner skips the unused BLIP captioner and external judging clients. The first command reports the setup status without loading a model or starting a browser. Configure `VWA_*` and a private NLTK data directory with `punkt_tab` before the live command. [BrowserGym setup](https://github.com/ServiceNow/BrowserGym/tree/main/browsergym/visualwebarena)
 
 ```bash
 python -m pip install 'browsergym-visualwebarena==0.14.3'
 python scripts/run_visualwebarena_live.py --preflight
 python scripts/run_visualwebarena_live.py --model models/ShowUI-2B --out runs/visualwebarena-live
 ```
+
+For CPU Qwen navigation, pass `--actor qwen --device cpu --model models/Qwen2.5-VL-3B-Instruct`.

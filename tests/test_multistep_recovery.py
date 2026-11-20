@@ -1,7 +1,7 @@
 import pytest
 
 from gui_recover.actions import Action, ActionError
-from gui_recover.multistep_recovery import BUTTONS, focus_probe, layout_fixture, validate_plan
+from gui_recover.multistep_recovery import BUTTONS, focus_probe, layout_fixture, validate_plan, with_full_credit
 from gui_recover.qwen_grounding import parse_pixel_point
 from gui_recover.verification import pixel_hash
 from gui_recover.verification_env import TransitionExecution
@@ -14,6 +14,13 @@ def test_transfer_task_must_be_entirely_held_out():
     ]}
     with pytest.raises(ValueError, match="Transfer task families"):
         validate_plan(plan)
+
+
+def test_checkbox_partial_credit_is_preserved_but_excluded_from_full_credit():
+    row = {"success": True, "outcome": "success", "events": [{"task_info": {"RAW_REWARD_GLOBAL": 0.5}}]}
+    scored, = with_full_credit([row])
+    assert scored["success"] is False and scored["outcome"] == "partial_credit"
+    assert row["success"] is True
 
 
 @pytest.mark.parametrize("raw", ['[2,3]', '{"point_2d":[true,3]}', '{"point_2d":[10,5]}',
