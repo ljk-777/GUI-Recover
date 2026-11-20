@@ -6,7 +6,9 @@ from collections import Counter
 from pathlib import Path
 
 from .actions import Action, ActionError, parse_action
+from .environment import frame_key
 from .recovery import ActionFault, FeedbackRecovery, detect
+from .verification import pixel_hash
 
 
 INVALID_ACTION_FEEDBACK = (
@@ -76,8 +78,11 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
     def screenshot(obs, index):
         path = directory / f"{index:04d}.png"
         obs.screenshot.save(path)
-        return {"screenshot": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-                "size": obs.screenshot.size}
+        record = {"screenshot": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                  "size": obs.screenshot.size}
+        if obs.tabs:
+            record["browser_tabs"] = {"tabs": obs.tabs, "active_tab": obs.active_tab}
+        return record
 
     try:
         if hasattr(policy, "reset"):
@@ -86,15 +91,24 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
         task_info = info.get("task_info", {})
         metadata = env.metadata()
         frame = screenshot(obs, 0)
+        references = []
+        for index, image in enumerate(obs.reference_images, start=1):
+            path = directory / f"reference-{index:02d}.png"
+            image.save(path)
+            references.append({"filename": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                               "pixels": pixel_hash(image), "size": image.size})
+        if references:
+            frame["reference_images"] = references
         emit({"event": "reset", "task": task, "seed": seed, "goal": obs.goal,
               "task_info": task_info, **frame})
         reason = "step_limit"
         for index in range(max_steps):
             before = time.perf_counter()
             frame_digest = frame["sha256"]
-            checking_answer = answer_check and frame_digest not in checked_frames
+            key = frame_key(frame_digest, obs.tabs, obs.active_tab)
+            checking_answer = answer_check and key not in checked_frames
             if checking_answer:
-                checked_frames.add(frame_digest)
+                checked_frames.add(key)
                 answer = policy.check_answer(obs)
                 raw = None if answer is None else json.dumps(Action("ANSWER", answer).to_dict(), ensure_ascii=False)
             else:
@@ -240,6 +254,11 @@ def render_replay(directory):
             if Path(name).name != name:
                 raise ValueError("Screenshot must be an episode-local filename")
             picture = f'<img src="{html.escape(name, quote=True)}" alt="environment screenshot">'
+        for reference in event.get("reference_images", []):
+            name = reference["filename"]
+            if Path(name).name != name:
+                raise ValueError("Reference must be an episode-local filename")
+            picture += f'<img src="{html.escape(name, quote=True)}" alt="task reference image">'
         cards.append(f'<section>{picture}<pre>{html.escape(json.dumps(event, indent=2, ensure_ascii=False))}</pre></section>')
     (directory / "replay.html").write_text('<!doctype html><meta charset="utf-8"><title>GUI-Recover trajectory</title>'
         '<style>body{font:15px system-ui;max-width:1000px;margin:30px auto}section{border-top:1px solid #ccc;padding:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere}img{max-width:100%}</style>'
