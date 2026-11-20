@@ -154,7 +154,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
             steps += 1
             if executed.action == "ANSWER":
                 answers_submitted += 1
-                answers_from_checks += checking_answer or evidence_stage in ("read", "confirm")
+                answers_from_checks += checking_answer or evidence_stage in ("read", "confirm", "link_confirm")
             signal = detect(before_obs, obs, action)
             detection_signals += signal.unchanged_after_click or bool(signal.execution_error)
             scroll_detection_signals += signal.unchanged_after_scroll

@@ -13,14 +13,19 @@ from gui_recover.actions import Action, compile_action, parse_action
 from gui_recover.answer_evidence import EvidenceAnswerPolicy
 from gui_recover.environment import MiniwobEnvironment
 from gui_recover.policies import MODEL_REVISION, ShowUIPolicy
-from gui_recover.qwen_grounding import QwenGroundingPolicy
+from gui_recover.qwen_grounding import QWEN_7B_MIRROR_REVISION, QWEN_7B_MODEL, QwenGroundingPolicy
 from gui_recover.runner import aggregate, render_replay, run_episode, write_json
+from gui_recover.screen_text import RapidScreenReader
+from gui_recover.verification import pixel_hash
+from gui_recover.visible_links import visible_listing_links
 
 
 BACKEND_VARIABLES = ("VWA_CLASSIFIEDS", "VWA_SHOPPING", "VWA_REDDIT", "VWA_WIKIPEDIA",
                      "VWA_HOMEPAGE", "VWA_CLASSIFIEDS_RESET_TOKEN")
 READ_ONLY_TASKS = (118, 120, 149)
 TRANSFER_TASKS = (11, 12, 22, 49, 119, 128, 148, 186, 221, 222)
+HOLDOUT_TASK_SET = "evidence-links-holdout"
+HOLDOUT_PROTOCOL_SHA256 = "df60ebc2e7cb257d63b22a1d6eac4322e5ea53eed75f695850efcc8d51407629"
 TASK_SETS = {
     "diagnostic": READ_ONLY_TASKS,
     "transfer": TRANSFER_TASKS,
@@ -31,6 +36,10 @@ TASK_SETS = {
     "evidence-confirm-transfer": (25, 27, 98, 100, 107, 109, 111, 178),
     "evidence-context-transfer": (14, 15, 16, 26, 50, 80, 83, 129),
     "evidence-navigation-diagnostic": (14, 15, 221),
+    "evidence-ocr-diagnostic": (14, 15, 40, 83, 98, 221),
+    "evidence-search-diagnostic": (14, 40, 98, 221),
+    "evidence-direct-search-diagnostic": (40, 98, 221),
+    HOLDOUT_TASK_SET: (6, 7, 34, 35, 38, 39, 106, 108),
 }
 STUDY_MODES = {
     "visual": ("none", "feedback"),
@@ -40,8 +49,13 @@ STUDY_MODES = {
     "evidence": ("answer-check", "evidence-check"),
     "evidence-confirm": ("answer-check", "evidence-confirm"),
     "evidence-context": ("answer-check", "evidence-context"),
+    "evidence-ocr": ("answer-check", "evidence-ocr"),
+    "evidence-links": ("answer-check", "evidence-links"),
 }
-EVIDENCE_STUDIES = ("evidence", "evidence-confirm", "evidence-context")
+OCR_MODES = ("evidence-ocr", "evidence-links")
+NAVIGATION_CONTEXT_MODES = ("evidence-context", *OCR_MODES)
+CONFIRM_MODES = ("evidence-confirm", *NAVIGATION_CONTEXT_MODES)
+EVIDENCE_STUDIES = ("evidence", *CONFIRM_MODES)
 ANSWER_STUDIES = ("answer", *EVIDENCE_STUDIES)
 
 
@@ -74,6 +88,14 @@ def probe_instance():
 
 def exact_vwa_success(reward, terminated, truncated, _task_info):
     return bool(terminated and not truncated and reward == 1.0)
+
+
+def holdout_profile(study, budget, model):
+    return (study == "evidence-links" and budget == 8 and model.get("model") == QWEN_7B_MODEL
+            and model.get("revision") == QWEN_7B_MIRROR_REVISION and model.get("device") == "cuda"
+            and model.get("quantization") == "bitsandbytes NF4 double quantization"
+            and model.get("max_new_tokens") == 128 and model.get("max_pixels") == 784 * 784
+            and model.get("do_sample") is False and model.get("native_navigation") is True)
 
 
 class VisualWebArenaEnvironment(MiniwobEnvironment):
@@ -137,9 +159,21 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
             code = compile_action(checked, *self.obs.screenshot.size)
         return self._step_code(code)
 
+    def preview_listing_links(self, positions):
+        """Read selected visible destinations without opening the listings."""
+        if self.obs is None:
+            raise RuntimeError("Reset the browser before previewing links")
+        page = self.env.unwrapped.page
+        return {"source_pixels": pixel_hash(self.obs.screenshot),
+                "links": visible_listing_links(page, os.environ["VWA_CLASSIFIEDS"], positions)}
+
 
 def run_study(actor, *, out, study, task_set, max_steps):
+    if task_set == HOLDOUT_TASK_SET and not holdout_profile(study, max_steps, actor.config):
+        raise ValueError("The locked cohort requires the registered 8-decision Qwen 7B NF4 comparison")
     out.mkdir(parents=True, exist_ok=False)
+    screen_reader = RapidScreenReader() if study in OCR_MODES else None
+    listing_site = os.environ["VWA_CLASSIFIEDS"] if study == "evidence-links" else None
     task_ids = TASK_SETS[task_set]
     strategies = {mode: [] for mode in STUDY_MODES[study]}
     for task_id in task_ids:
@@ -157,8 +191,11 @@ def run_study(actor, *, out, study, task_set, max_steps):
                 using_evidence = study in EVIDENCE_STUDIES and mode != "answer-check"
                 policy = actor
                 if using_evidence:
-                    policy = EvidenceAnswerPolicy(actor, confirm=mode != "evidence-check",
-                                                  use_navigation_context=mode == "evidence-context")
+                    policy = EvidenceAnswerPolicy(
+                        actor, confirm=mode in CONFIRM_MODES, use_navigation_context=mode in NAVIGATION_CONTEXT_MODES,
+                        screen_reader=screen_reader, listing_site=listing_site,
+                        listing_preview=env.preview_listing_links if listing_site is not None else None,
+                    )
                 row = run_episode(env, policy, env.task, 0, max_steps, branch,
                                   recovery=recovery, invalid_action_retry=invalid_retry,
                                   answer_check=mode == "answer-check",
@@ -175,11 +212,19 @@ def run_study(actor, *, out, study, task_set, max_steps):
         counts += ("scroll_feedbacks", "scroll_detection_signals")
     if study in ANSWER_STUDIES:
         counts += ("answer_checks", "answers_submitted", "answers_from_checks")
-    write_json(out / "summary.json", {"benchmark": "visualwebarena", "task_ids": task_ids,
+    summary = {"benchmark": "visualwebarena", "task_ids": task_ids,
         "task_set": task_set, "study": study, "budget_unit": "predictions",
         "max_steps": max_steps, "model": actor.config, "strategies": {
             mode: {**aggregate(rows), **{key: sum(row[key] for row in rows) for key in counts}}
-            for mode, rows in strategies.items()}})
+            for mode, rows in strategies.items()}}
+    if screen_reader is not None:
+        summary["screen_reader"] = {**screen_reader.config, "guarded_ocr": True, "direct_navigation": True}
+    if listing_site is not None:
+        site = urlsplit(listing_site)
+        summary["listing_origin"] = f"{site.scheme}://{site.netloc}"
+    if task_set == HOLDOUT_TASK_SET:
+        summary["protocol_sha256"] = HOLDOUT_PROTOCOL_SHA256
+    write_json(out / "summary.json", summary)
 
 
 def main():
@@ -204,6 +249,9 @@ def main():
         parser.error("Provide local model, fresh output directory and a prediction budget of 1–12")
     if args.study != "visual" and args.actor != "qwen":
         parser.error("This study uses Qwen")
+    if args.task_set == HOLDOUT_TASK_SET and (args.study != "evidence-links" or args.max_steps != 8
+                                               or not args.qwen_7b_4bit):
+        parser.error("The locked cohort needs --study evidence-links --max-steps 8 --qwen-7b-4bit")
     if args.qwen_7b_4bit and (args.actor != "qwen" or args.device != "cuda"):
         parser.error("The Qwen 7B 4-bit profile requires --actor qwen --device cuda")
     probe_instance()
@@ -217,7 +265,7 @@ def main():
         actor = QwenGroundingPolicy(args.model, device=args.device,
                                     max_new_tokens=128 if args.qwen_7b_4bit else 96, max_pixels=784 * 784,
                                     load_in_4bit=args.qwen_7b_4bit,
-                                    native_navigation=args.study in ("evidence-confirm", "evidence-context"))
+                                    native_navigation=args.study in CONFIRM_MODES)
     run_study(actor, out=args.out, study=args.study, task_set=args.task_set, max_steps=args.max_steps)
     return 0
 

@@ -250,4 +250,58 @@ python scripts/run_visualwebarena_live.py --actor qwen --qwen-7b-4bit \
 
 [Frozen click-context results and native replay receipt](../examples/vwa-context-evidence-results.json)
 
+### Navigate from rendered text
+
+The optional OCR profile supplies indexed text boxes from the current screenshot during navigation. Clicking a text box uses its validated center in the prepared canvas. A task that begins with an exact quoted search query can submit the OCR-identified empty keyword box without calling Qwen. The action clicks the field, enters the query, and presses Enter. It consumes one decision from the eight-decision limit, so every trajectory still makes at most eight model calls.
+
+The profile preserves image-based crop reading on listing detail pages. A fast response from a navigation page can propose a crop and a candidate together when the candidate is literally present in OCR text within the proposed region. The candidate still requires a separate matching visual read. The logs record OCR coordinates and the decision type. The audit reconstructs indexed actions from those records and distinguishes the deterministic search from a model invocation. [RapidOCR usage](https://rapidai.github.io/RapidOCRDocs/main/en/install_usage/rapidocr/usage/)
+
+```bash
+python -m pip install -e '.[ocr]'
+python scripts/run_visualwebarena_live.py --actor qwen --qwen-7b-4bit \
+  --model models/Qwen2.5-VL-7B-Instruct --study evidence-ocr \
+  --task-set evidence-direct-search-diagnostic --max-steps 8 --out runs/visualwebarena-ocr
+python scripts/audit_visualwebarena_live.py runs/visualwebarena-ocr \
+  --out runs/visualwebarena-ocr-audit.json
+```
+
+The Classifieds adapter also exposes a bounded browser link preview at specific viewport positions. A live test read two same-origin listing destinations without changing the page. A subsequent click reached the first previewed destination. This probe used a known gallery and zero model calls. It verifies the browser observation needed for link-returning tasks.
+
+| Diagnostic profile | Existing answer check | OCR candidate | Wrong submissions, existing and candidate |
+| --- | ---: | ---: | ---: |
+| Indexed OCR with fast candidates | 0/6 | 0/6 | 1 and 0 |
+| Literal text guard and submitted search action | 0/4 | 0/4 | 1 and 0 |
+| Exact query routing and detail-page reading | 0/3 | 1/3 | 1 and 0 |
+
+All three comparisons reused previously observed tasks and the same 7B checkpoint within each pair. The final variant submitted the exact dishwasher search without a Qwen call, reached genuine results, and ran out of decisions before finding a verified answer. It earned full native reward on task 221 with three model calls. The diagnostics cover 26 trajectories and 103 screenshots. The held-out success gate remains open.
+
+[OCR diagnostic metrics and browser action receipts](../examples/vwa-ocr-navigation-results.json)
+
+### Verify links from visible listing titles
+
+For a link question, the evidence policy selects up to three visible listing titles by OCR index or by a unique literal match to rendered text. A visible price directly below a single aligned title can resolve to that title. The browser reads the same-origin link under each selected title and records the title position, exact destination, and source pixel digest. A separate model call identifies the requested listing set from the same screenshot and indexed text. The second call receives the task and screenshot evidence without the first selection or the destinations. The policy submits the captured destinations only if both selections cover the same distinct listings. The auditor checks pointer coordinates, frame provenance, both selections, the submitted URLs, and the native reward.
+
+The locked comparison uses eight previously unrun official Classifieds tasks with `answer-check` as the control and the same pinned Qwen 7B NF4 model in both arms. It uses an eight-decision cap with at most eight model calls per episode. Acceptance needs at least two native full-credit tasks, more successes than the control, and fewer submitted answers without full credit. Screenshots and raw trajectories stay in the run folder. The audit reports each paired start, model call count, submission outcome, and native success.
+
+```bash
+python scripts/run_visualwebarena_live.py --actor qwen --qwen-7b-4bit \
+  --model models/Qwen2.5-VL-7B-Instruct --study evidence-links \
+  --task-set evidence-links-holdout --max-steps 8 --out runs/visualwebarena-links-holdout
+python scripts/audit_visualwebarena_live.py runs/visualwebarena-links-holdout \
+  --out runs/visualwebarena-links-holdout-audit.json
+```
+
+[Locked task IDs, upstream provenance, and scoring criteria](../examples/vwa-classifieds-heldout-protocol.json)
+
+Two synthetic prompts on the previously observed task 14 gallery requested three listings by title and two listings by visible price. Each took two model calls. All five returned destinations matched the actual clicks. The eight-task official comparison then ran from frozen commit `827e42c515fca9ab82d16cc1df6f2ca523ca07a4`.
+
+| Strategy | Native full credit | Wrong submissions | Model calls across eight tasks |
+| --- | ---: | ---: | ---: |
+| Existing answer check | 1/8 | 0 | 50 |
+| Listing-link evidence | 0/8 | 1 | 61 |
+
+The audit reconstructed 16 trajectories and 76 screenshots, verified identical starting pixels for all eight pairs, and verified the eight-call cap. The comparison missed all three acceptance thresholds. On task 34, both model calls chose the same three paintings, but only one satisfied the native reference. On task 106, the control opened a matching card directly from the homepage and received full credit. The evidence policy opened a category menu and spent its remaining calls without reaching the target. These diagnosed tasks now belong to development. Subsequent acceptance needs a new isolated cohort.
+
+[Paired results, native rewards, and evidence archive digest](../examples/vwa-classifieds-link-results.json)
+
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)

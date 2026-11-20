@@ -8,10 +8,13 @@ from PIL import Image, ImageDraw
 
 from .actions import Action, ActionError
 from .qwen_grounding import native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
+from .screen_text import exact_initial_search, from_readable_control, listing_detail
 from .verification import pixel_hash
+from .visible_links import agreed_listing_answer, link_answer_count, listing_selection, preview_destinations, priced_titles
 
 
 _AMOUNT = re.compile(r"(?<![\w.])(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]+)?(?![\w.])")
+_PRICE_QUESTION = re.compile(r"\b(?:cheapest|costliest|expensive|prices?|priced|budget|costs?)\b|\$", re.IGNORECASE)
 
 
 def evidence_box(raw, size):
@@ -92,6 +95,61 @@ def evidence_answer(raw, goal, *, allow_string_abstention=False):
     return answer.strip(), "evidence_answer"
 
 
+def localized_candidate(raw, goal, size):
+    try:
+        data = read_reply(raw)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(data, dict) or set(data) != {"bbox_2d", "evidence", "answer"}:
+        return None
+    box = evidence_box(json.dumps({"bbox_2d": data["bbox_2d"]}), size)
+    if box is None:
+        raise ActionError("A candidate needs a selectable region")
+    reply = json.dumps({"answer": data["answer"], "evidence": data["evidence"]})
+    answer, _ = evidence_answer(reply, goal, allow_string_abstention=True)
+    return box, answer
+
+
+def has_transcribed_answer(answer, box, rows):
+    text = " ".join(answer.casefold().split())
+    pattern = re.compile(r"(?<![\w.])" + re.escape(text) + r"(?![\w.])")
+    left, top, right, bottom = box
+    for row in rows:
+        x0, y0, x1, y1 = row["bounds"]
+        if left <= (x0 + x1) / 2 < right and top <= (y0 + y1) / 2 < bottom:
+            if pattern.search(row["text"].casefold()):
+                return True
+    return False
+
+
+def parse_evidence_location(raw, goal, size, *, confirm, compact_navigation=True, rows=None, guarded_ocr=False,
+                            navigation_only=False):
+    """Return a browser action or a validated evidence region and optional candidate."""
+    candidate = None
+    localized = None
+    if rows is not None:
+        control = from_readable_control(raw, rows, size, guarded=guarded_ocr)
+        if control is not None:
+            return control, None, None, "evidence_ocr_navigation"
+        localized = localized_candidate(raw, goal, size)
+    if localized is not None:
+        box, candidate = localized
+        if guarded_ocr and candidate is not None and not has_transcribed_answer(candidate, box, rows):
+            candidate = None
+    else:
+        navigation = evidence_navigation(raw, size, compact_navigation=compact_navigation) if confirm else None
+        if navigation is not None:
+            return navigation, None, None, "evidence_navigation"
+        box = evidence_box(raw, size)
+    if box is None:
+        return None, None, None, "evidence_abstained"
+    if navigation_only:
+        raise ActionError("A listing link must come from a verified title preview")
+    if evidence_clipped(goal, box, size):
+        return None, None, None, "evidence_clipped"
+    return None, box, candidate, "evidence_locate_read" if candidate is not None else "evidence_region"
+
+
 def confirmation_image(screen, crop, bounds, navigation_context=None):
     overview = screen.convert("RGB")
     overview.thumbnail((448, 336), Image.Resampling.LANCZOS)
@@ -126,16 +184,40 @@ def answer_signature(answer):
     return value
 
 
+def indexed_text(rows):
+    return "\n".join(f"{index}: {json.dumps(row['text'], ensure_ascii=False)} at {row['bounds']}"
+                     for index, row in enumerate(rows))
+
+
+def listing_screen_text(rows, size):
+    cards = priced_titles(rows, size)
+    prices = "\n".join(f"Title {title} {json.dumps(rows[title]['text'], ensure_ascii=False)} costs {rows[price]['text']}"
+                       for price, title in cards.items())
+    text = f"Visible text:\n{indexed_text(rows)}"
+    if prices:
+        text += f"\nVisible prices directly below aligned text:\n{prices}"
+    return text
+
+
 class EvidenceAnswerPolicy:
     """Use one model invocation per prediction, including crop localization."""
 
-    def __init__(self, actor, *, confirm=False, use_navigation_context=False):
+    def __init__(self, actor, *, confirm=False, use_navigation_context=False, screen_reader=None,
+                 listing_preview=None, listing_site=None):
+        if screen_reader is not None and not confirm:
+            raise ValueError("The OCR policy needs independent confirmation")
+        if listing_preview is not None and (screen_reader is None or listing_site is None):
+            raise ValueError("A listing preview needs visible text and a registered origin")
         self.actor = actor
         self.confirm = confirm
         self.use_navigation_context = use_navigation_context
+        self.screen_reader = screen_reader
+        self.listing_preview = listing_preview
+        self.listing_site = listing_site
         self.checked_frames = set()
         self.pending_crop = None
         self.pending_answer = None
+        self.pending_links = None
         self.navigation_context = None
 
     @property
@@ -147,6 +229,7 @@ class EvidenceAnswerPolicy:
         self.checked_frames.clear()
         self.pending_crop = None
         self.pending_answer = None
+        self.pending_links = None
         self.navigation_context = None
 
     def set_feedback(self, message):
@@ -157,7 +240,7 @@ class EvidenceAnswerPolicy:
                 and pixel_hash(before.screenshot) != pixel_hash(after.screenshot)):
             self.navigation_context = before.screenshot.copy(), action.position
 
-    def locate(self, observation, frame):
+    def locate(self, observation, frame, history):
         canvas = self.actor.prepare_image(observation.screenshot)
         width, height = canvas.size
         prompt = (
@@ -183,24 +266,102 @@ class EvidenceAnswerPolicy:
                 'Coordinates are integer pixels. Return {"bbox_2d":null} if neither option is clear. '
                 "Return one JSON response and never answer the task directly."
             )
+        rows = None
+        navigation_rows = None
+        link_count = link_answer_count(observation.goal) if self.listing_preview is not None else None
+        if self.screen_reader is not None:
+            rows = self.screen_reader(observation.screenshot, canvas.size)
+            if not history:
+                try:
+                    shortcut = exact_initial_search(observation.goal, rows, canvas.size)
+                except ActionError:
+                    shortcut = None
+                if shortcut is not None:
+                    self.actor.last_metrics = {
+                        "model_invocations": 0, "provider_output": None, "provider_image_size": list(canvas.size),
+                        "evidence_stage": "locate", "evidence_frame": frame, "screen_text": rows,
+                        "provider_format": "evidence_exact_search", "peak_cuda_allocated_bytes": 0,
+                    }
+                    return json.dumps(shortcut.to_dict(), ensure_ascii=False)
+            navigation_rows = None if link_count is None and listing_detail(rows) else rows
+        if navigation_rows is not None:
+            controls = indexed_text(navigation_rows)
+            recent = [{"action": item["action"]["action"],
+                       "value": (item["action"]["value"] or "")[:80]}
+                      for item in history[-4:]]
+            prompt += (
+                "\nUse the indexed visible text as screenshot evidence. "
+                'For a button or field with an identified line, use {"action":"CLICK","value":null,"control":index} '
+                'or {"action":"INPUT","value":"query","control":index}. Only use INPUT on a visible field or placeholder. '
+                'On a page with an empty Keyword input showing an e.g. placeholder, '
+                'use {"action":"SEARCH","value":"query","control":placeholder_index} to type and submit in one action. '
+                "If the current page shows a search form and the target is elsewhere, search by the requested keyword "
+                "or category instead of scrolling unrelated items. If the field already contains the query, submit it. "
+                "After a SEARCH, inspect its results instead of typing the same query again. "
+                "Use the visible row order and item photos to identify a requested listing. If publisher or item "
+                "details are absent from the gallery, open a matching item. Do not scroll just to find details in a gallery. "
+                'When the answer is already legible, you may return {"bbox_2d":[x0,y0,x1,y1],"evidence":["visible fact"],'
+                '"answer":"candidate"}. Use a candidate only for literal text visible inside the region. For counts, colors '
+                "and other visual details, return the box only. A separate read will confirm the answer. Do not guess. "
+                f"Previous browser actions: {json.dumps(recent, ensure_ascii=False)}.\nVisible text:\n{controls}"
+            )
+        if link_count is not None:
+            price_question = bool(_PRICE_QUESTION.search(observation.goal))
+            selection_format = ('as an array in a JSON object keyed "listings". ' if price_question else
+                                'such as {"listings":[10,12]}. ')
+            row_scope = ("If the question limits the answer to a visible row, compare that row's cards in place. "
+                         if price_question else "")
+            seen = listing_screen_text(rows, canvas.size) if price_question else f"Visible text:\n{controls}"
+            prompt = (
+                f"Task: {observation.goal}\n"
+                "Find all requested listings using the screenshot, their positions, and the indexed text. "
+                f"The answer needs {link_count[0]} to {link_count[1]} distinct listing links. "
+                "When the full requested group is visible, select the text index for each matching listing TITLE, "
+                f"{selection_format}Exclude navigation, prices, labels, and unrelated cards. "
+                "Check any required ordering, category, price, and result scope before selecting. "
+                f"{row_scope}"
+                "If the right results are not shown, issue one navigation command. "
+                'Use {"action":"CLICK","value":null,"control":index} for a visible button or filter, '
+                '{"action":"SEARCH","value":"short query","control":index} on the empty Keyword placeholder to search, '
+                '{"action":"ENTER","value":null,"position":null} to submit a filled search field, or '
+                '{"action":"SCROLL","value":"down","position":null} to see lower listings. '
+                'Return {"listings":null} only if you cannot select or navigate. Never type or invent a URL. '
+                f"Return one JSON object.\nPrevious actions: {json.dumps(recent, ensure_ascii=False)}.\n"
+                f"{seen}"
+            )
         raw = self.actor.ask(canvas, prompt)
         self.last_metrics.update(evidence_stage="locate", evidence_frame=frame, provider_format="evidence_invalid")
+        if rows is not None:
+            self.last_metrics["screen_text"] = rows
         try:
-            navigation = evidence_navigation(raw, canvas.size) if self.confirm else None
-            if navigation is not None:
-                self.last_metrics["provider_format"] = "evidence_navigation"
-                return json.dumps(navigation.to_dict(), ensure_ascii=False)
-            box = evidence_box(raw, canvas.size)
+            selection = listing_selection(raw, rows, canvas.size, link_count) if link_count is not None else None
+            if selection is None:
+                navigation, box, candidate, status = parse_evidence_location(
+                    raw, observation.goal, canvas.size, confirm=self.confirm, rows=navigation_rows, guarded_ocr=True,
+                    navigation_only=link_count is not None)
         except (ValueError, RecursionError):
             return None
-        self.last_metrics["provider_format"] = "evidence_region" if box else "evidence_abstained"
+        if selection is not None:
+            indices, points = selection
+            self.last_metrics["provider_format"] = "evidence_link_abstained"
+            if indices:
+                receipt = self.listing_preview(points)
+                destinations = preview_destinations(receipt, frame, points, self.listing_site)
+                self.last_metrics["listing_preview"] = receipt
+                self.last_metrics["provider_format"] = "evidence_link_preview"
+                if destinations is not None:
+                    self.pending_links = frame, rows, indices, destinations, link_count
+            return None
+        self.last_metrics["provider_format"] = status
+        if navigation is not None:
+            return json.dumps(navigation.to_dict(), ensure_ascii=False)
         if box:
-            if evidence_clipped(observation.goal, box, canvas.size):
-                self.last_metrics["provider_format"] = "evidence_clipped"
-                return None
             crop, bounds = native_crop(observation.screenshot, canvas.size, box)
-            self.pending_crop = frame, crop, bounds
             self.last_metrics["evidence_bounds"] = list(bounds)
+            if candidate is not None:
+                self.pending_answer = frame, crop, bounds, candidate
+            else:
+                self.pending_crop = frame, crop, bounds
         return None
 
     def read(self, observation, frame, crop, bounds):
@@ -270,8 +431,38 @@ class EvidenceAnswerPolicy:
         self.last_metrics["provider_format"] = "evidence_verify_agreed"
         return json.dumps(Action("ANSWER", candidate).to_dict(), ensure_ascii=False)
 
+    def verify_links(self, observation, frame, rows, selected, destinations, count):
+        canvas = self.actor.prepare_image(observation.screenshot)
+        seen = (listing_screen_text(rows, canvas.size) if _PRICE_QUESTION.search(observation.goal)
+                else f"Visible text from the screenshot:\n{indexed_text(rows)}")
+        raw = self.actor.ask(canvas, (
+            f"{seen}\n\n"
+            f"Question: {observation.goal}\n"
+            "Identify the complete set of matching listing titles using the screenshot. "
+            "Check the scope, ordering, and visible card details. Exclude headings and controls. "
+            'Return one JSON object keyed "listings". Its value must be an array of the actual text indices '
+            f"from the listing titles, with {count[0]} to {count[1]} distinct entries. "
+            "Use null if any required listing or condition is unverifiable."
+        ))
+        self.last_metrics.update(evidence_stage="link_confirm", evidence_frame=frame,
+                                 provider_format="evidence_link_disagreed")
+        try:
+            selection = listing_selection(raw, rows, canvas.size, count)
+            answer = agreed_listing_answer(selected, destinations, selection[0] if selection is not None else None)
+        except (ValueError, RecursionError):
+            answer = None
+        if answer is None:
+            return None
+        self.last_metrics["provider_format"] = "evidence_link_agreed"
+        return json.dumps(answer.to_dict(), ensure_ascii=False)
+
     def predict(self, observation, history):
         frame = pixel_hash(observation.screenshot)
+        if self.pending_links is not None:
+            pending_frame, rows, indices, destinations, count = self.pending_links
+            self.pending_links = None
+            if frame == pending_frame:
+                return self.verify_links(observation, frame, rows, indices, destinations, count)
         if self.pending_answer is not None:
             pending_frame, crop, bounds, candidate = self.pending_answer
             self.pending_answer = None
@@ -284,5 +475,5 @@ class EvidenceAnswerPolicy:
                 return self.read(observation, frame, crop, bounds)
         if frame not in self.checked_frames:
             self.checked_frames.add(frame)
-            return self.locate(observation, frame)
+            return self.locate(observation, frame, history)
         return self.actor.predict(observation, history, allow_answer=False)
