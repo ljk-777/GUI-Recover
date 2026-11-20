@@ -1,0 +1,981 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-19",
+  "source_code": "537dddb98434d776c9d38c710af352d68b4e58aa",
+  "training_code": "537dddb98434d776c9d38c710af352d68b4e58aa",
+  "data_audit": {
+    "records": {
+      "train": 108,
+      "validation": 38,
+      "test": 79
+    },
+    "scenes": {
+      "train": 72,
+      "validation": 24,
+      "test": 54
+    },
+    "tasks": {
+      "train": [
+        "click-button",
+        "click-test",
+        "enter-text",
+        "focus-text"
+      ],
+      "validation": [
+        "click-button",
+        "click-test",
+        "enter-text",
+        "focus-text"
+      ],
+      "test": [
+        "click-button",
+        "click-dialog",
+        "click-tab",
+        "click-test",
+        "enter-text",
+        "focus-text"
+      ]
+    },
+    "unseen_test_tasks": [
+      "click-dialog",
+      "click-tab"
+    ],
+    "cross_split_scene_and_image_overlap": 0
+  },
+  "correction_modes": {
+    "train": {
+      "retry_in_place": 22,
+      "restart_after_terminal": 6
+    },
+    "validation": {
+      "retry_in_place": 9,
+      "restart_after_terminal": 1
+    },
+    "test": {
+      "retry_in_place": 17,
+      "restart_after_terminal": 2
+    }
+  },
+  "source_cohort_scenes": 150,
+  "source_outcomes": {
+    "executed_grounding_miss": 57,
+    "completed": 93
+  },
+  "filtered_before_prediction": [],
+  "verified_recorded_source_images": 309,
+  "verified_point_predictions": 474,
+  "verified_online_screenshots": 189,
+  "online_case_ids_frozen_before_training": [
+    "click-button-6006-correction",
+    "click-button-6000-correction",
+    "click-dialog-6003-correction",
+    "click-button-6023-correction",
+    "click-button-6002-correction",
+    "click-dialog-6005-correction",
+    "click-button-6004-correction",
+    "click-button-6005-correction",
+    "click-button-6007-correction",
+    "click-button-6008-correction",
+    "click-button-6009-correction",
+    "click-button-6010-correction"
+  ],
+  "training": {
+    "visual": {
+      "context_mode": "none",
+      "completed_updates": 128,
+      "trainable_parameters": 1089536,
+      "validation_loss_before": 4.433810328182421,
+      "validation_loss_after": 0.7139890648816761,
+      "adapter_delta_l2": 3.4401332249438097,
+      "reload_probe_loss_abs_difference": 0.0,
+      "adapter_sha256": "0ed31903e2e8779c7c5aed404100313ce738aebadb651e7861d754529144da2d",
+      "elapsed_training_seconds": 102.53591472096741,
+      "peak_cuda_allocated_bytes": 3189798912,
+      "peak_cuda_reserved_bytes": 3605004288
+    },
+    "history": {
+      "context_mode": "previous-action",
+      "completed_updates": 128,
+      "trainable_parameters": 1089536,
+      "validation_loss_before": 3.808384048311334,
+      "validation_loss_after": 0.7188229513795752,
+      "adapter_delta_l2": 3.5522977734768606,
+      "reload_probe_loss_abs_difference": 0.0,
+      "adapter_sha256": "5f4b578ed4e6e7bfd5e1bc4a5f6da20f6153e3d414f3c6996d2603cbc6c93e44",
+      "elapsed_training_seconds": 103.7103087566793,
+      "peak_cuda_allocated_bytes": 3265841152,
+      "peak_cuda_reserved_bytes": 3858759680
+    }
+  },
+  "results": {
+    "offline": {
+      "all": {
+        "queries": 79,
+        "heads": {
+          "base_plain": {
+            "hits": 37,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "base_history": {
+            "hits": 30,
+            "invalid": 1,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 7
+          },
+          "visual_plain": {
+            "hits": 34,
+            "invalid": 7,
+            "newly_hit_vs_base_plain": 4,
+            "degraded_vs_base_plain": 7
+          },
+          "visual_history": {
+            "hits": 29,
+            "invalid": 12,
+            "newly_hit_vs_base_plain": 5,
+            "degraded_vs_base_plain": 13
+          },
+          "history_plain": {
+            "hits": 42,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 9,
+            "degraded_vs_base_plain": 4
+          },
+          "history_history": {
+            "hits": 38,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 11,
+            "degraded_vs_base_plain": 10
+          }
+        },
+        "paired_effects": [
+          {
+            "from": "base_plain",
+            "to": "base_history",
+            "newly_hit": 0,
+            "degraded": 7
+          },
+          {
+            "from": "base_plain",
+            "to": "visual_plain",
+            "newly_hit": 4,
+            "degraded": 7
+          },
+          {
+            "from": "visual_history",
+            "to": "history_history",
+            "newly_hit": 10,
+            "degraded": 1
+          },
+          {
+            "from": "history_plain",
+            "to": "history_history",
+            "newly_hit": 5,
+            "degraded": 9
+          }
+        ],
+        "copy_previous_point_hits": 0
+      },
+      "normal": {
+        "queries": 60,
+        "heads": {
+          "base_plain": {
+            "hits": 36,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "base_history": {
+            "hits": 30,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 6
+          },
+          "visual_plain": {
+            "hits": 33,
+            "invalid": 2,
+            "newly_hit_vs_base_plain": 3,
+            "degraded_vs_base_plain": 6
+          },
+          "visual_history": {
+            "hits": 27,
+            "invalid": 3,
+            "newly_hit_vs_base_plain": 3,
+            "degraded_vs_base_plain": 12
+          },
+          "history_plain": {
+            "hits": 38,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 6,
+            "degraded_vs_base_plain": 4
+          },
+          "history_history": {
+            "hits": 32,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 6,
+            "degraded_vs_base_plain": 10
+          }
+        },
+        "paired_effects": [
+          {
+            "from": "base_plain",
+            "to": "base_history",
+            "newly_hit": 0,
+            "degraded": 6
+          },
+          {
+            "from": "base_plain",
+            "to": "visual_plain",
+            "newly_hit": 3,
+            "degraded": 6
+          },
+          {
+            "from": "visual_history",
+            "to": "history_history",
+            "newly_hit": 5,
+            "degraded": 0
+          },
+          {
+            "from": "history_plain",
+            "to": "history_history",
+            "newly_hit": 0,
+            "degraded": 6
+          }
+        ],
+        "copy_previous_point_hits": 0
+      },
+      "correction": {
+        "queries": 19,
+        "heads": {
+          "base_plain": {
+            "hits": 1,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "base_history": {
+            "hits": 0,
+            "invalid": 1,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 1
+          },
+          "visual_plain": {
+            "hits": 1,
+            "invalid": 5,
+            "newly_hit_vs_base_plain": 1,
+            "degraded_vs_base_plain": 1
+          },
+          "visual_history": {
+            "hits": 2,
+            "invalid": 9,
+            "newly_hit_vs_base_plain": 2,
+            "degraded_vs_base_plain": 1
+          },
+          "history_plain": {
+            "hits": 4,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 3,
+            "degraded_vs_base_plain": 0
+          },
+          "history_history": {
+            "hits": 6,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 5,
+            "degraded_vs_base_plain": 0
+          }
+        },
+        "paired_effects": [
+          {
+            "from": "base_plain",
+            "to": "base_history",
+            "newly_hit": 0,
+            "degraded": 1
+          },
+          {
+            "from": "base_plain",
+            "to": "visual_plain",
+            "newly_hit": 1,
+            "degraded": 1
+          },
+          {
+            "from": "visual_history",
+            "to": "history_history",
+            "newly_hit": 5,
+            "degraded": 1
+          },
+          {
+            "from": "history_plain",
+            "to": "history_history",
+            "newly_hit": 5,
+            "degraded": 3
+          }
+        ],
+        "copy_previous_point_hits": 0
+      },
+      "by_task": {
+        "click-button": {
+          "queries": 41,
+          "heads": {
+            "base_plain": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "base_history": {
+              "hits": 3,
+              "invalid": 1,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 1
+            },
+            "visual_plain": {
+              "hits": 5,
+              "invalid": 7,
+              "newly_hit_vs_base_plain": 4,
+              "degraded_vs_base_plain": 3
+            },
+            "visual_history": {
+              "hits": 5,
+              "invalid": 11,
+              "newly_hit_vs_base_plain": 4,
+              "degraded_vs_base_plain": 3
+            },
+            "history_plain": {
+              "hits": 9,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 6,
+              "degraded_vs_base_plain": 1
+            },
+            "history_history": {
+              "hits": 12,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 9,
+              "degraded_vs_base_plain": 1
+            }
+          },
+          "paired_effects": [
+            {
+              "from": "base_plain",
+              "to": "base_history",
+              "newly_hit": 0,
+              "degraded": 1
+            },
+            {
+              "from": "base_plain",
+              "to": "visual_plain",
+              "newly_hit": 4,
+              "degraded": 3
+            },
+            {
+              "from": "visual_history",
+              "to": "history_history",
+              "newly_hit": 7,
+              "degraded": 0
+            },
+            {
+              "from": "history_plain",
+              "to": "history_history",
+              "newly_hit": 5,
+              "degraded": 2
+            }
+          ],
+          "copy_previous_point_hits": 0
+        },
+        "click-dialog": {
+          "queries": 8,
+          "heads": {
+            "base_plain": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "base_history": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "visual_plain": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "visual_history": {
+              "hits": 5,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 1,
+              "degraded_vs_base_plain": 0
+            },
+            "history_plain": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 2,
+              "degraded_vs_base_plain": 0
+            },
+            "history_history": {
+              "hits": 5,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 1,
+              "degraded_vs_base_plain": 0
+            }
+          },
+          "paired_effects": [
+            {
+              "from": "base_plain",
+              "to": "base_history",
+              "newly_hit": 0,
+              "degraded": 0
+            },
+            {
+              "from": "base_plain",
+              "to": "visual_plain",
+              "newly_hit": 0,
+              "degraded": 0
+            },
+            {
+              "from": "visual_history",
+              "to": "history_history",
+              "newly_hit": 1,
+              "degraded": 1
+            },
+            {
+              "from": "history_plain",
+              "to": "history_history",
+              "newly_hit": 0,
+              "degraded": 1
+            }
+          ],
+          "copy_previous_point_hits": 0
+        },
+        "click-tab": {
+          "queries": 6,
+          "heads": {
+            "base_plain": {
+              "hits": 5,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "base_history": {
+              "hits": 5,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "visual_plain": {
+              "hits": 1,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 4
+            },
+            "visual_history": {
+              "hits": 1,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 4
+            },
+            "history_plain": {
+              "hits": 3,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 1,
+              "degraded_vs_base_plain": 3
+            },
+            "history_history": {
+              "hits": 3,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 1,
+              "degraded_vs_base_plain": 3
+            }
+          },
+          "paired_effects": [
+            {
+              "from": "base_plain",
+              "to": "base_history",
+              "newly_hit": 0,
+              "degraded": 0
+            },
+            {
+              "from": "base_plain",
+              "to": "visual_plain",
+              "newly_hit": 0,
+              "degraded": 4
+            },
+            {
+              "from": "visual_history",
+              "to": "history_history",
+              "newly_hit": 2,
+              "degraded": 0
+            },
+            {
+              "from": "history_plain",
+              "to": "history_history",
+              "newly_hit": 0,
+              "degraded": 0
+            }
+          ],
+          "copy_previous_point_hits": 0
+        },
+        "click-test": {
+          "queries": 6,
+          "heads": {
+            "base_plain": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "base_history": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "visual_plain": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "visual_history": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_plain": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_history": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            }
+          },
+          "paired_effects": [
+            {
+              "from": "base_plain",
+              "to": "base_history",
+              "newly_hit": 0,
+              "degraded": 0
+            },
+            {
+              "from": "base_plain",
+              "to": "visual_plain",
+              "newly_hit": 0,
+              "degraded": 0
+            },
+            {
+              "from": "visual_history",
+              "to": "history_history",
+              "newly_hit": 0,
+              "degraded": 0
+            },
+            {
+              "from": "history_plain",
+              "to": "history_history",
+              "newly_hit": 0,
+              "degraded": 0
+            }
+          ],
+          "copy_previous_point_hits": 0
+        },
+        "enter-text": {
+          "queries": 12,
+          "heads": {
+            "base_plain": {
+              "hits": 12,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "base_history": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 6
+            },
+            "visual_plain": {
+              "hits": 12,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "visual_history": {
+              "hits": 6,
+              "invalid": 1,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 6
+            },
+            "history_plain": {
+              "hits": 12,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_history": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 6
+            }
+          },
+          "paired_effects": [
+            {
+              "from": "base_plain",
+              "to": "base_history",
+              "newly_hit": 0,
+              "degraded": 6
+            },
+            {
+              "from": "base_plain",
+              "to": "visual_plain",
+              "newly_hit": 0,
+              "degraded": 0
+            },
+            {
+              "from": "visual_history",
+              "to": "history_history",
+              "newly_hit": 0,
+              "degraded": 0
+            },
+            {
+              "from": "history_plain",
+              "to": "history_history",
+              "newly_hit": 0,
+              "degraded": 6
+            }
+          ],
+          "copy_previous_point_hits": 0
+        },
+        "focus-text": {
+          "queries": 6,
+          "heads": {
+            "base_plain": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "base_history": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "visual_plain": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "visual_history": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_plain": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_history": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            }
+          },
+          "paired_effects": [
+            {
+              "from": "base_plain",
+              "to": "base_history",
+              "newly_hit": 0,
+              "degraded": 0
+            },
+            {
+              "from": "base_plain",
+              "to": "visual_plain",
+              "newly_hit": 0,
+              "degraded": 0
+            },
+            {
+              "from": "visual_history",
+              "to": "history_history",
+              "newly_hit": 0,
+              "degraded": 0
+            },
+            {
+              "from": "history_plain",
+              "to": "history_history",
+              "newly_hit": 0,
+              "degraded": 0
+            }
+          ],
+          "copy_previous_point_hits": 0
+        }
+      }
+    },
+    "online_normal": {
+      "base_plain": {
+        "episodes": 12,
+        "successes": 11,
+        "prefix_mismatches": 0,
+        "resets": 0
+      },
+      "visual_plain": {
+        "episodes": 12,
+        "successes": 8,
+        "prefix_mismatches": 0,
+        "resets": 0
+      },
+      "history_history": {
+        "episodes": 12,
+        "successes": 6,
+        "prefix_mismatches": 0,
+        "resets": 0
+      }
+    },
+    "online_conditional": {
+      "base_plain": {
+        "episodes": 12,
+        "successes": 1,
+        "prefix_mismatches": 0,
+        "resets": 2
+      },
+      "visual_plain": {
+        "episodes": 12,
+        "successes": 2,
+        "prefix_mismatches": 0,
+        "resets": 2
+      },
+      "history_history": {
+        "episodes": 12,
+        "successes": 3,
+        "prefix_mismatches": 0,
+        "resets": 2
+      }
+    },
+    "actual_generation_calls_including_submit": 318,
+    "peak_cuda_allocated_bytes": 4646364672,
+    "peak_cuda_reserved_bytes": 5307891712
+  },
+  "runtime_errors": [],
+  "limitations": [
+    "Conditional failures were selected by the offline evaluator, not autonomously detected.",
+    "Restarts after terminal failure are counted separately from in-place recovery.",
+    "Online controls reuse offline test scenes and cached proposals; not extra independent samples.",
+    "Held-out tasks are excluded from this SFT dataset, not necessarily from base pretraining.",
+    "Action-history training can change prompt processing; not a proof of causal use of every history field.",
+    "One training seed and small correlated test subsets; counts are descriptive, not statistically established gains.",
+    "Online action traces preserve reward/termination and screenshot hashes but not full raw task_info; live success uses the core MiniWoB success rule.",
+    "history_plain was evaluated offline only; any selective history policy is an unvalidated follow-up hypothesis."
+  ],
+  "model": {
+    "repository": "showlab/ShowUI-2B",
+    "revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+    "base_weights_sha256": "68080df785764e98976eb9cc93a07c6c69cf8a6933738496e02aef55b53d2aa3",
+    "evaluation_precision": "bfloat16"
+  },
+  "dataset_manifest_sha256": "ec54c55228d49fb745fd87b3c0fc1a52beeb8b959ab4f9a778f32362f9457a76",
+  "environment": {
+    "python": "3.11.18",
+    "platform": "Linux-5.15.0-156-generic-x86_64-with-glibc2.39",
+    "packages": {
+      "gui-recover": "0.2.0a1",
+      "browsergym-core": "0.14.3",
+      "browsergym-miniwob": "0.14.3",
+      "gymnasium": "1.4.0",
+      "playwright": "1.44.0",
+      "torch": "2.6.0",
+      "transformers": "4.49.0",
+      "pillow": "13.0.0",
+      "numpy": "2.4.6"
+    },
+    "miniwob_commit": "7fd85d71a4b60325c6585396ec4f48377d049838"
+  },
+  "training_packages": {
+    "peft": "0.14.0",
+    "accelerate": "1.4.0",
+    "bitsandbytes": "0.45.3",
+    "psutil": "6.1.1"
+  },
+  "training_config": {
+    "steps": 128,
+    "gradient_accumulation": 2,
+    "learning_rate": 0.0001,
+    "lora_rank": 8,
+    "lora_alpha": 16,
+    "min_pixels": 200704,
+    "max_pixels": 614656
+  },
+  "supplementary_panels": {
+    "normal_distractor_buttons": {
+      "queries": 24,
+      "heads": {
+        "base_plain": {
+          "hits": 3,
+          "invalid": 0
+        },
+        "base_history": {
+          "hits": 3,
+          "invalid": 0
+        },
+        "visual_plain": {
+          "hits": 4,
+          "invalid": 2
+        },
+        "visual_history": {
+          "hits": 4,
+          "invalid": 2
+        },
+        "history_plain": {
+          "hits": 6,
+          "invalid": 0
+        },
+        "history_history": {
+          "hits": 6,
+          "invalid": 0
+        }
+      }
+    },
+    "normal_entry": {
+      "queries": 54,
+      "heads": {
+        "base_plain": {
+          "hits": 30,
+          "invalid": 0
+        },
+        "base_history": {
+          "hits": 30,
+          "invalid": 0
+        },
+        "visual_plain": {
+          "hits": 27,
+          "invalid": 2
+        },
+        "visual_history": {
+          "hits": 27,
+          "invalid": 2
+        },
+        "history_plain": {
+          "hits": 32,
+          "invalid": 0
+        },
+        "history_history": {
+          "hits": 32,
+          "invalid": 0
+        }
+      }
+    },
+    "normal_submit": {
+      "queries": 6,
+      "heads": {
+        "base_plain": {
+          "hits": 6,
+          "invalid": 0
+        },
+        "base_history": {
+          "hits": 0,
+          "invalid": 0
+        },
+        "visual_plain": {
+          "hits": 6,
+          "invalid": 0
+        },
+        "visual_history": {
+          "hits": 0,
+          "invalid": 1
+        },
+        "history_plain": {
+          "hits": 6,
+          "invalid": 0
+        },
+        "history_history": {
+          "hits": 0,
+          "invalid": 0
+        }
+      }
+    }
+  },
+  "online_by_recovery_mode": {
+    "retry_in_place": {
+      "base_plain": {
+        "episodes": 10,
+        "successes": 1
+      },
+      "visual_plain": {
+        "episodes": 10,
+        "successes": 1
+      },
+      "history_history": {
+        "episodes": 10,
+        "successes": 3
+      }
+    },
+    "restart_after_terminal": {
+      "base_plain": {
+        "episodes": 2,
+        "successes": 0
+      },
+      "visual_plain": {
+        "episodes": 2,
+        "successes": 1
+      },
+      "history_history": {
+        "episodes": 2,
+        "successes": 0
+      }
+    }
+  },
+  "online_paired_vs_base_plain": {
+    "normal": {
+      "visual_plain": {
+        "newly_successful": 0,
+        "degraded": 3
+      },
+      "history_history": {
+        "newly_successful": 0,
+        "degraded": 5
+      }
+    },
+    "conditional": {
+      "visual_plain": {
+        "newly_successful": 2,
+        "degraded": 1
+      },
+      "history_history": {
+        "newly_successful": 2,
+        "degraded": 0
+      }
+    }
+  },
+  "sampled_gpu": {
+    "gpu_index": 0,
+    "visible_quota_mib": 12032,
+    "peak_memory_used_mib": 5419,
+    "samples": 492,
+    "interval_seconds_approx": 2,
+    "scope": "full collection/train/evaluation pipeline; sampled device memory, not an exact instantaneous peak"
+  },
+  "validation": {
+    "linux_tests_passed": 85,
+    "local_unit_tests_passed": 74,
+    "local_chromium_integration_tests_passed": 11,
+    "ci": "https://github.com/ljk-777/GUI-Recover/actions/runs/44469773939",
+    "ci_jobs": [
+      "Ubuntu 22.04",
+      "Ubuntu 24.04",
+      "package"
+    ]
+  },
+  "decision": "Experimental adapters are not promoted to defaults: small conditional gains coexist with normal-task regressions; no RL started."
+}

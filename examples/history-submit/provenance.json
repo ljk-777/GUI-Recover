@@ -1,0 +1,42 @@
+{
+  "case_id": "enter-text-8000-normal_entry",
+  "purpose": "Fixed seed 8000 normal INPUT-to-Submit case across old and repaired prompts/weights; preserve each actual outcome.",
+  "selection": "Post-evaluation illustration only, excluded as a selection criterion; full denominators are in the two history results JSON files.",
+  "autonomous_detection": false,
+  "scripted_controller": true,
+  "screenshots": "Native unmodified MiniWoB rendering; MIT notice in ../MINIWOB_LICENSE.txt.",
+  "trials": {
+    "base": {
+      "head": "base_plain",
+      "source_code": "e668e06babce47c84311d79085673d794d73b981",
+      "adapter_sha256": null,
+      "success": true,
+      "conditional": false,
+      "recovery_mode": null
+    },
+    "legacy": {
+      "head": "history_legacy",
+      "source_code": "ec8b086d64b4c40c3d1fbe4e17a4b0037fd27ecc",
+      "adapter_sha256": "5f4b578ed4e6e7bfd5e1bc4a5f6da20f6153e3d414f3c6996d2603cbc6c93e44",
+      "success": false,
+      "conditional": false,
+      "recovery_mode": null
+    },
+    "target-last": {
+      "head": "history_target_last",
+      "source_code": "e668e06babce47c84311d79085673d794d73b981",
+      "adapter_sha256": "5f4b578ed4e6e7bfd5e1bc4a5f6da20f6153e3d414f3c6996d2603cbc6c93e44",
+      "success": true,
+      "conditional": false,
+      "recovery_mode": null
+    },
+    "balanced": {
+      "head": "balanced_20261119_target_last",
+      "source_code": "e668e06babce47c84311d79085673d794d73b981",
+      "adapter_sha256": "4ae35782be305e8f0ab3d26057f31e8742405a807c8a0316f6718432bd782fdb",
+      "success": true,
+      "conditional": false,
+      "recovery_mode": null
+    }
+  }
+}

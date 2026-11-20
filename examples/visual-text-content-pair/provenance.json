@@ -1,0 +1,18 @@
+{
+  "task": "enter-text",
+  "regime": "case-input",
+  "seed": 69000,
+  "selection": "First audited positive pair, prioritizing case change, appended mark, then partial input",
+  "policies": {
+    "presence_wait": {
+      "trace_sha256": "3919d0a249ffaa8dd3c24434fb712ea8bf495de258e5dc66d932d7d33514b856",
+      "visual_verification_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "success": false
+    },
+    "glyph_check": {
+      "trace_sha256": "17a1b7cea3395ab9b17c6ae759eeba0469baa40bd0849fe157272267046aee45",
+      "visual_verification_sha256": "ea90f0049f7ef26914e533a68d9e518d785b0998463c8a8624a9f8057769b629",
+      "success": true
+    }
+  }
+}

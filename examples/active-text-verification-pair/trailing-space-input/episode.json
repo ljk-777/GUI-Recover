@@ -1,0 +1,20 @@
+{
+  "task": "enter-text",
+  "seed": 75000,
+  "split": "test",
+  "regime": "trailing-space-input",
+  "policy": "active_tail",
+  "success": true,
+  "return": 1.0,
+  "terminated": true,
+  "truncated": false,
+  "outcome": "success",
+  "decisions": 3,
+  "actor_requests": 3,
+  "waits": 0,
+  "repairs": 1,
+  "initial_sha256": "3bdf641d1e44a9834c73f37d7bad15a7c43d1f7b2d758c41fbb73671b76bc464",
+  "trace_sha256": "17e2c0bebaa135e19b0c2f77c5fec28b6afe4f071d8957b7587da17aaf718c04",
+  "probes": 1,
+  "probe_seconds": 1.8856965750455856
+}

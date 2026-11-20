@@ -1,0 +1,18 @@
+{
+  "id": "click-button-6004-correction",
+  "task": "click-button",
+  "seed": 6004,
+  "head": "history_history",
+  "conditional": true,
+  "success": true,
+  "reason": "success",
+  "source_steps": 1,
+  "repair_steps": 1,
+  "resets_after_failure": 0,
+  "source_model_calls_reused": 1,
+  "candidate_model_calls_reused": 1,
+  "additional_submit_calls": 0,
+  "prefix_matched": true,
+  "total_logical_model_calls": 2,
+  "recovery_mode": "retry_in_place"
+}

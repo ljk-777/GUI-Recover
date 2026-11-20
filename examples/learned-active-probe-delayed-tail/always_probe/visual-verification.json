@@ -1,0 +1,64 @@
+[
+  {
+    "glyph": {
+      "status": "empty",
+      "reason": "no_visible_ink",
+      "region": [
+        23,
+        102,
+        212,
+        131
+      ]
+    },
+    "selection": null,
+    "decision": "WAIT"
+  },
+  {
+    "glyph": {
+      "status": "matched",
+      "reason": "rendered_text_comparison",
+      "region": [
+        23,
+        102,
+        212,
+        131
+      ],
+      "score": 1.0,
+      "ink_shape": [
+        14,
+        67
+      ]
+    },
+    "selection": null,
+    "decision": "PROBE_LAST_CHAR"
+  },
+  {
+    "glyph": {
+      "status": "matched",
+      "reason": "rendered_text_comparison",
+      "region": [
+        23,
+        102,
+        212,
+        131
+      ],
+      "score": 1.0,
+      "ink_shape": [
+        14,
+        67
+      ]
+    },
+    "selection": {
+      "status": "blank_tail",
+      "reason": "ink_in_selection_bounds",
+      "ink_pixels": 0,
+      "selection_region": [
+        94,
+        105,
+        101,
+        128
+      ]
+    },
+    "decision": "RETRY_FIXED_ZOOM"
+  }
+]

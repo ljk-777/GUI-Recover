@@ -1,0 +1,13 @@
+{
+  "study": "portable-checkbox-labels-v2",
+  "font_sha256": "4659bc0c58c5028dd488ec928d41d9265db43d9b669fc14ca8b0832daca7b144",
+  "miniwob_commit": "7fd85d71a4b60325c6585396ec4f48377d049838",
+  "previous_plan_sha256": "1ed890a63c429282c8e7cd10264508d3774f3ef522a8a00aef0e89549e87ae5a",
+  "earlier_plan_sha256": "88ea785e786a4de96ccd8e2ea431a97ef0c76cb7c76dda79d8eda7ffe4687a44",
+  "minimum_score": 0.87,
+  "minimum_margin": 0.18,
+  "minimum_agreement_margin": 0.12,
+  "known_natural_regressions": [43009, 43013],
+  "smoke": {"first_seed": 55000, "reserve": 20, "count": 2},
+  "test": {"first_seed": 44000, "reserve": 100, "count": 20}
+}

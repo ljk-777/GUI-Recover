@@ -2,7 +2,17 @@
 
 Fault injection, visual recovery experiments, and traceable evaluation for GUI agents.
 
-**[V0.2.0a1 Alpha 已发布](https://github.com/ljk-777/GUI-Recover/releases/tag/v0.2.0a1)：实验工具，尚未发布到 PyPI。** 基于 ShowUI + BrowserGym/MiniWoB，保存截图、预测、执行动作和奖励，并核查恢复实验的配对与成本。
+**0.2.0rc3 发布候选。** 基于 ShowUI + BrowserGym/MiniWoB，保存截图、预测、执行动作和奖励，并核查恢复实验的配对与成本。[发布候选验证](docs/RELEASE_CANDIDATE.md)
+
+GUI-Recover tests how browser agents detect and recover from action errors. The CPU demo shows how a reversible text selection reveals an otherwise invisible trailing space, with native screenshots and an exact-submission check.
+
+```bash
+python -m pip install -e .
+python -m playwright install chromium
+gui-recover demo-tail-probe --out runs/cpu-tail-demo
+```
+
+The demo creates its own light and dark single-line and multiline controls. See [CPU demo and native latency comparison](docs/TAIL_PROBE_PORTABILITY.md) for the scope and artifacts.
 
 [下载源码与安装包](https://github.com/ljk-777/GUI-Recover/releases/tag/v0.2.0a1) · [发布版本测试](https://github.com/ljk-777/GUI-Recover/actions/runs/44449374272)
 
@@ -11,8 +21,10 @@ Fault injection, visual recovery experiments, and traceable evaluation for GUI a
 - **有限恢复**：弱视觉反馈，以及脚本规划基线上的输入出现检查与最多一次补输入。
 - **审计证据**：PNG/JSONL/HTML、截图哈希、固定版本、成功率和真实模型调用统计。
 
-输入检查只验证白底、初始为空的输入框里出现了文字笔画；不核对内容正确性。脚本规划只覆盖三种 MiniWoB 指令语法，必须与自主导航成绩分开。
+Alpha 的输入检查只验证白底、初始为空的输入框里是否出现文字笔画。Alpha 的脚本规划覆盖三种 MiniWoB 指令语法，使用独立的评测口径。
 详见 [发布验证与已知限制](docs/RELEASE_VALIDATION.md)。历史实验及负面结果也保留在 docs/ 中。
+
+MiniWoB Enter Text 的配对实验中，截图字形核验修复了 18/18 个注入的可见文本错误，正常输入 6/6 成功且没有触发重输。普通 CPU 可复核保存的轨迹。见 [正式结果与适用范围](docs/VISUAL_TEXT_CONTENT.md#正式结果)。
 
 ```text
 MiniWoB reset → 任务文本 + 截图 → Policy.predict → 严格动作解析
@@ -58,13 +70,31 @@ CPU 演示使用 DOM 特权 oracle，只验证执行与记录链路，预期 3/3
 
 ## GPU 最小恢复演示
 
-先选择已分配的一张 CUDA GPU，再执行：
+选择一张支持 BF16 的 CUDA GPU。在源码或源码包目录运行模型和 MiniWoB 准备脚本，再运行安装后的命令。
 
 ```bash
 python -m pip install -e '.[showui]'
 python scripts/download_showui.py --out models/ShowUI-2B
 export MINIWOB_URL="file://$PWD/vendor/miniwob-plusplus/miniwob/html/miniwob/"
 export CUDA_VISIBLE_DEVICES=0
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 gui-recover text-recovery --model models/ShowUI-2B --out runs/text-recovery-demo
+gui-recover audit-text-recovery runs/text-recovery-demo
+```
+
+默认用单个示范布局执行七种条件和两种恢复策略，共 14 条轨迹。示范可通过 `--seeds` 指定布局，使用自包含输出目录，无需历史实验数据。审计命令可在没有 GPU、模型和浏览器的机器上运行。报告保存在 `summary.json`，每条轨迹下有 PNG 和 JSONL。留出集复现命令和结果见 [视觉文本核验](docs/VISUAL_TEXT_CONTENT.md)。
+
+主动核验演示加入可逆的末尾选区操作。默认同一布局执行七种条件和三条策略，共 21 条轨迹。
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 gui-recover active-text-recovery --model models/ShowUI-2B --out runs/active-tail-demo
+gui-recover audit-active-text-recovery runs/active-tail-demo
+```
+
+选区截图及两次按键都保存在轨迹中。见 [主动核验实验](docs/ACTIVE_TEXT_VERIFICATION.md)。
+
+Alpha 的输入出现检查仍可复现。
+
+```bash
 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 gui-recover run --policy showui-scripted --model models/ShowUI-2B --tasks enter-text --seeds 40 --max-steps 4 --parser mixed --fault drop-input --recovery input-guard --input-guard-version v2 --out runs/recovery-demo
 ```
 
@@ -94,6 +124,17 @@ manifest 记录模型版本、提示词、依赖、seed、步数预算、Git 版
 
 ## 开源与后续
 
+- [延迟输入的替换恢复](docs/IDEMPOTENT_INPUT_REPAIR.md)：在相同触发和坐标下，替换执行器使延迟输入从 0/6 提升到 6/6；正常与漏输入保持 6/6。
+- [小规模离线强化学习](docs/RECOVERY_OFFLINE_RL.md)：CPU 拟合恢复决策，延迟输入的测试从旧视觉规则 0/4 提高到 4/4，与人工先等规则持平。
+- [强化学习前的恢复底座](docs/PRE_RL_RECOVERY.md)：Gymnasium 接口、精确终局奖励和分区轨迹；视觉方案在未注入故障组 15/16 对继续 10/16，漏输入组 4/4 对 0/4。
+- [双尺度复选框标签匹配](docs/PORTABLE_CHECKBOX_LABELS.md)：修复两例历史漏判，Linux 和 macOS 的离线判断一致；新布局正常点击 0/20 误触发，相似缺失标签仍有误触发。
+- [目标状态检测与可控恢复](docs/TARGET_STATE_RECOVERY.md)：新方案在 22 次正常中间点击上误触发 0 次，实际恢复 12/14 个自然复选框错误；按钮顺序保持未知。
+- [固定裁剪与正常中间点击对照](docs/CROP_CONTROL_MULTISTEP.md)：固定与自适应 60% 裁剪均恢复 19/24；冻结视觉头在正常中间点击上误触发 39/48。另导出 18 条旧训练分区的验证过的纠错样本。
+- [失败反馈与局部放大的修复对照](docs/CONTEXTUAL_REPAIR.md)：200个新来源产生55个自然错误，组合输入的条件恢复为46/55对plain 2/55；固定混合视觉闭环28/30对27/30。动作模型未训练，检测消融揭示任务终止结构偏差。
+- [视觉动作结果验证与选择性恢复](docs/VISUAL_VERIFICATION.md)：300场景、630变体和300次实际执行；视觉触发36/50，不恢复21/50，先等待重试38/50。健康误触发1/15未过经验门槛，预定子集自然错误恢复0/6，保持原默认模型。
+- [首轮 SFT 训练与重载](docs/SFT_SMOKE.md)：64 对监督、32 次 QLoRA 更新，adapter 已可加载执行；独立定位对照为 23/28 对 23/28，尚无收益，暂不包含自主规划或 RL。
+- [干扰按钮与真实错误前缀的补充实验](docs/SFT_RECOVERY.md)：两组各 128 次 SFT 更新；条件纠错执行为 base 1/12、无历史 SFT 2/12、历史 SFT 3/12，但正常任务为 11/12、8/12、6/12，暂不替换默认模型。
+- [历史提示修复与三种子重训](docs/HISTORY_PROMPT_REPAIR.md)：旧权重调整顺序使新场景 Submit 从 2/12 恢复至 12/12；预设无历史回退的条件纠错为 7/16 对 base 2/16，正常任务均 17/24。平衡重训未通过验证，默认保持原模型。
 - [仓库、许可证和数据核查](docs/UPSTREAM_AUDIT.md)
 - [本地实测验收记录](docs/LOCAL_VALIDATION.md)
 - [单卡服务器实测](docs/SERVER_VALIDATION.md)

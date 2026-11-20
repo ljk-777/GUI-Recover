@@ -1,0 +1,18 @@
+{
+  "study": "input-recovery-offline-q-v1",
+  "model_revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+  "weights_sha256": "68080df785764e98976eb9cc93a07c6c69cf8a6933738496e02aef55b53d2aa3",
+  "miniwob_commit": "7fd85d71a4b60325c6585396ec4f48377d049838",
+  "previous_splits_sha256": "5a13ba7759bcc5088a400465f71266ec7c063a64b9ac18c5a23cd24eeb9c43f7",
+  "costs": [0.0, 0.02, 0.05, 0.05],
+  "test": {
+    "train": {"start": 61000, "count": 3, "reserve": 80},
+    "validation": {"start": 62000, "count": 1, "reserve": 80},
+    "test": {"start": 63000, "count": 4, "reserve": 80}
+  },
+  "smoke": {
+    "train": {"start": 64000, "count": 1, "reserve": 30},
+    "validation": {"start": 65000, "count": 1, "reserve": 30},
+    "test": {"start": 66000, "count": 1, "reserve": 30}
+  }
+}

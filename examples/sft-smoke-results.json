@@ -1,0 +1,401 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-19",
+  "scope": "First SFT engineering smoke; no measured grounding or navigation improvement.",
+  "base_model": "showlab/ShowUI-2B",
+  "base_revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+  "base_weights_sha256": "68080df785764e98976eb9cc93a07c6c69cf8a6933738496e02aef55b53d2aa3",
+  "training_code": "e6b78e61da18d86b65cb65d16a9ef67cc288f8a7",
+  "online_code": "0ef60f3be49e93b0f3530bad0aac0af368faf9e6",
+  "data": {
+    "records": {
+      "train": 64,
+      "validation": 16,
+      "test": 28
+    },
+    "scenes": {
+      "train": 32,
+      "validation": 8,
+      "test": 20
+    },
+    "tasks": {
+      "train": [
+        "click-test",
+        "enter-text"
+      ],
+      "validation": [
+        "click-test",
+        "enter-text"
+      ],
+      "test": [
+        "click-button",
+        "click-test",
+        "enter-text",
+        "focus-text"
+      ]
+    },
+    "unseen_test_tasks": [
+      "click-button",
+      "focus-text"
+    ],
+    "cross_split_scene_and_image_overlap": 0
+  },
+  "data_manifest_sha256": "8209dd38f4c05889a09e0c4c2cd503a3adc5f1a60ef8f37efc291af86a519231",
+  "unique_dataset_images": 60,
+  "training": {
+    "completed_updates": 32,
+    "trainable_parameters": 1089536,
+    "validation_loss_before": 4.287089794874191,
+    "validation_loss_after": 1.0871293544769287,
+    "adapter_delta_l2": 2.3084209705459817,
+    "reload_probe_loss_abs_difference": 0.0,
+    "elapsed_training_seconds": 24.362947400659323,
+    "peak_cuda_allocated_bytes": 3205018112,
+    "peak_cuda_reserved_bytes": 3816816640,
+    "packages": {
+      "peft": "0.14.0",
+      "accelerate": "1.4.0",
+      "bitsandbytes": "0.45.3",
+      "psutil": "6.1.1"
+    }
+  },
+  "profile": {
+    "steps": 32,
+    "gradient_accumulation": 2,
+    "learning_rate": 0.0001,
+    "lora_rank": 8,
+    "lora_alpha": 16,
+    "min_pixels": 200704,
+    "max_pixels": 614656
+  },
+  "adapter_sha256": "d9f52472a7d806affefa98ce6418efdbb38a1ad173f5e1529a0abd0b297f279a",
+  "adapter_file_bytes": 4372840,
+  "test": {
+    "all": {
+      "queries": 28,
+      "baseline": {
+        "hits": 23,
+        "invalid": 0
+      },
+      "sft": {
+        "hits": 23,
+        "invalid": 0
+      },
+      "newly_hit": 0,
+      "degraded": 0
+    },
+    "by_task": {
+      "click-button": {
+        "queries": 8,
+        "baseline": {
+          "hits": 3,
+          "invalid": 0
+        },
+        "sft": {
+          "hits": 3,
+          "invalid": 0
+        },
+        "newly_hit": 0,
+        "degraded": 0
+      },
+      "click-test": {
+        "queries": 4,
+        "baseline": {
+          "hits": 4,
+          "invalid": 0
+        },
+        "sft": {
+          "hits": 4,
+          "invalid": 0
+        },
+        "newly_hit": 0,
+        "degraded": 0
+      },
+      "enter-text": {
+        "queries": 12,
+        "baseline": {
+          "hits": 12,
+          "invalid": 0
+        },
+        "sft": {
+          "hits": 12,
+          "invalid": 0
+        },
+        "newly_hit": 0,
+        "degraded": 0
+      },
+      "focus-text": {
+        "queries": 4,
+        "baseline": {
+          "hits": 4,
+          "invalid": 0
+        },
+        "sft": {
+          "hits": 4,
+          "invalid": 0
+        },
+        "newly_hit": 0,
+        "degraded": 0
+      }
+    },
+    "peak_cuda_allocated_bytes": 4641724928,
+    "peak_cuda_reserved_bytes": 5182062592
+  },
+  "test_prediction_text_changes": 12,
+  "online": {
+    "baseline": {
+      "episodes": 4,
+      "successes": 4,
+      "success_rate": 1.0,
+      "by_task": {
+        "click-test": {
+          "episodes": 2,
+          "successes": 2,
+          "success_rate": 1.0,
+          "mean_steps": 1.0,
+          "reasons": {
+            "success": 2
+          }
+        },
+        "enter-text": {
+          "episodes": 2,
+          "successes": 2,
+          "success_rate": 1.0,
+          "mean_steps": 2.0,
+          "reasons": {
+            "success": 2
+          }
+        }
+      }
+    },
+    "adapter": {
+      "episodes": 4,
+      "successes": 4,
+      "success_rate": 1.0,
+      "by_task": {
+        "click-test": {
+          "episodes": 2,
+          "successes": 2,
+          "success_rate": 1.0,
+          "mean_steps": 1.0,
+          "reasons": {
+            "success": 2
+          }
+        },
+        "enter-text": {
+          "episodes": 2,
+          "successes": 2,
+          "success_rate": 1.0,
+          "mean_steps": 2.0,
+          "reasons": {
+            "success": 2
+          }
+        }
+      }
+    }
+  },
+  "matched_online_initial_states": 4,
+  "verified_online_screenshots": 20,
+  "gpu_sampled_peak_mib_train_reload_and_bf16_eval": 5299,
+  "learning_curve": [
+    {
+      "step": 1,
+      "loss": 4.5729615688323975,
+      "gradient_norm": 5.205235481262207,
+      "elapsed_seconds": 0.9910816140472889
+    },
+    {
+      "step": 2,
+      "loss": 4.311709046363831,
+      "gradient_norm": 5.23317813873291,
+      "elapsed_seconds": 1.766520394012332
+    },
+    {
+      "step": 3,
+      "loss": 4.2844462394714355,
+      "gradient_norm": 4.849147796630859,
+      "elapsed_seconds": 2.5484666023403406
+    },
+    {
+      "step": 4,
+      "loss": 4.2272255420684814,
+      "gradient_norm": 5.640282154083252,
+      "elapsed_seconds": 3.3110495656728745
+    },
+    {
+      "step": 5,
+      "loss": 4.31234884262085,
+      "gradient_norm": 5.6879425048828125,
+      "elapsed_seconds": 4.086560025811195
+    },
+    {
+      "step": 6,
+      "loss": 4.199102163314819,
+      "gradient_norm": 5.4058613777160645,
+      "elapsed_seconds": 4.877148490399122
+    },
+    {
+      "step": 7,
+      "loss": 3.630200982093811,
+      "gradient_norm": 5.708696365356445,
+      "elapsed_seconds": 5.662618154659867
+    },
+    {
+      "step": 8,
+      "loss": 3.99969482421875,
+      "gradient_norm": 6.671496391296387,
+      "elapsed_seconds": 6.426263689994812
+    },
+    {
+      "step": 9,
+      "loss": 3.340083360671997,
+      "gradient_norm": 5.554169178009033,
+      "elapsed_seconds": 7.203938577324152
+    },
+    {
+      "step": 10,
+      "loss": 3.6611478328704834,
+      "gradient_norm": 6.850526809692383,
+      "elapsed_seconds": 7.9649562407284975
+    },
+    {
+      "step": 11,
+      "loss": 3.451824426651001,
+      "gradient_norm": 6.537755966186523,
+      "elapsed_seconds": 8.764989340677857
+    },
+    {
+      "step": 12,
+      "loss": 2.9879688024520874,
+      "gradient_norm": 6.744274139404297,
+      "elapsed_seconds": 9.668454334139824
+    },
+    {
+      "step": 13,
+      "loss": 3.0295404195785522,
+      "gradient_norm": 6.891039848327637,
+      "elapsed_seconds": 10.42433474957943
+    },
+    {
+      "step": 14,
+      "loss": 2.9984617233276367,
+      "gradient_norm": 7.316729545593262,
+      "elapsed_seconds": 11.187846342101693
+    },
+    {
+      "step": 15,
+      "loss": 2.724144220352173,
+      "gradient_norm": 7.44873571395874,
+      "elapsed_seconds": 11.956974109634757
+    },
+    {
+      "step": 16,
+      "loss": 2.488599419593811,
+      "gradient_norm": 5.682058334350586,
+      "elapsed_seconds": 12.74187321960926
+    },
+    {
+      "step": 17,
+      "loss": 2.235978662967682,
+      "gradient_norm": 7.244399070739746,
+      "elapsed_seconds": 13.514500314369798
+    },
+    {
+      "step": 18,
+      "loss": 1.9027507901191711,
+      "gradient_norm": 6.5355634689331055,
+      "elapsed_seconds": 14.286058841273189
+    },
+    {
+      "step": 19,
+      "loss": 1.6305693984031677,
+      "gradient_norm": 6.442671775817871,
+      "elapsed_seconds": 15.052070464938879
+    },
+    {
+      "step": 20,
+      "loss": 1.6594223976135254,
+      "gradient_norm": 4.783409118652344,
+      "elapsed_seconds": 15.812521094456315
+    },
+    {
+      "step": 21,
+      "loss": 1.3736801743507385,
+      "gradient_norm": 4.312556266784668,
+      "elapsed_seconds": 16.51419341377914
+    },
+    {
+      "step": 22,
+      "loss": 1.516161561012268,
+      "gradient_norm": 4.841947555541992,
+      "elapsed_seconds": 17.21283957362175
+    },
+    {
+      "step": 23,
+      "loss": 1.1974425911903381,
+      "gradient_norm": 2.3252642154693604,
+      "elapsed_seconds": 17.925128936767578
+    },
+    {
+      "step": 24,
+      "loss": 1.2274603247642517,
+      "gradient_norm": 2.928919553756714,
+      "elapsed_seconds": 18.631868552416563
+    },
+    {
+      "step": 25,
+      "loss": 1.3705809712409973,
+      "gradient_norm": 2.7002100944519043,
+      "elapsed_seconds": 19.331836741417646
+    },
+    {
+      "step": 26,
+      "loss": 1.1113320589065552,
+      "gradient_norm": 1.4047315120697021,
+      "elapsed_seconds": 20.147733634337783
+    },
+    {
+      "step": 27,
+      "loss": 1.3460302948951721,
+      "gradient_norm": 1.9304455518722534,
+      "elapsed_seconds": 20.839639889076352
+    },
+    {
+      "step": 28,
+      "loss": 1.1212384104728699,
+      "gradient_norm": 1.5529061555862427,
+      "elapsed_seconds": 21.545591201633215
+    },
+    {
+      "step": 29,
+      "loss": 1.1854214072227478,
+      "gradient_norm": 1.3360674381256104,
+      "elapsed_seconds": 22.25614125095308
+    },
+    {
+      "step": 30,
+      "loss": 1.1505784392356873,
+      "gradient_norm": 1.2874157428741455,
+      "elapsed_seconds": 22.951801424846053
+    },
+    {
+      "step": 31,
+      "loss": 1.1648728847503662,
+      "gradient_norm": 1.4151521921157837,
+      "elapsed_seconds": 23.665589889511466
+    },
+    {
+      "step": 32,
+      "loss": 1.1238560676574707,
+      "gradient_norm": 1.5808262825012207,
+      "elapsed_seconds": 24.362947400659323
+    }
+  ],
+  "limitations": [
+    "64 pairs from only 32 train scenes; query reformulation is not a recorded recovery trajectory.",
+    "28 test queries include repeated screenshots; online tests reuse part of those scenes.",
+    "Base and adapter hit the same 23/28 targets; no efficacy or generalization gain claimed.",
+    "Adapter remains a local experimental artifact; no public weight release or RL training.",
+    "Unseen tasks are excluded from this SFT dataset; no claim about exclusion from base-model pretraining."
+  ]
+}

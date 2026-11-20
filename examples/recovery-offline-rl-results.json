@@ -1,0 +1,337 @@
+{
+  "runtime": {
+    "python": "3.11.18",
+    "platform": "Linux-5.15.0-156-generic-x86_64-with-glibc2.39",
+    "packages": {
+      "gui-recover": "0.2.0a1",
+      "browsergym-core": "0.14.3",
+      "browsergym-miniwob": "0.14.3",
+      "gymnasium": "1.4.0",
+      "playwright": "1.44.0",
+      "torch": "2.6.0",
+      "transformers": "4.49.0",
+      "pillow": "13.0.0",
+      "numpy": "2.4.6"
+    },
+    "git_commit": "5120cfa8d1c15996107a7b0effed4fd3c1667ab0",
+    "git_dirty": false,
+    "miniwob_commit": "7fd85d71a4b60325c6585396ec4f48377d049838",
+    "cuda_visible_devices": "0"
+  },
+  "config_sha256": "ed3662592f557854157cd8acf2277faed333dcb76483c38bc2399647c25f8241",
+  "summary": {
+    "profile": "test",
+    "index_sha256": {
+      "train": "db4f78eadd3b9d7068f6b61c91147934de35f67f31434d56cc18a8089c5835a0",
+      "validation": "475820be268e2224ef8d92b151e70bc603d851f194d81c8c5ad863fb9f4e12d7",
+      "test": "97dae4ed1982c6dc278e851e3a6d4ae9150ebc6c3f71dfc67af1de0e2ed3f9bf"
+    },
+    "q_sha256": "54d883540bdd7ad1ceea9e90e0181fa1ea75bbbdbccc408c49cb9d764b9cc6f1",
+    "splits_sha256": "77be47d4a3a2dee36b384b5918fc97fd1980240cccaabe9596d344d0f8db0a34",
+    "fit": {
+      "review_rows": 81,
+      "independent_state_action_outcomes": 63,
+      "duplicate_branch_rows_removed": 18,
+      "fitted_entries": 14
+    },
+    "rollouts_by_split": {
+      "train": 54,
+      "validation": 6,
+      "test": 48
+    },
+    "validation": {
+      "none": {
+        "wait_visual_fixed": {
+          "episodes": 1,
+          "successes": 1,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 2,
+          "actions": {
+            "CONTINUE": 2
+          },
+          "cost_adjusted_return": 1.0
+        },
+        "learned": {
+          "episodes": 1,
+          "successes": 1,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 2,
+          "actions": {
+            "CONTINUE": 2
+          },
+          "cost_adjusted_return": 1.0
+        }
+      },
+      "drop-input": {
+        "wait_visual_fixed": {
+          "episodes": 1,
+          "successes": 1,
+          "waits": 1,
+          "repairs": 1,
+          "actor_requests": 3,
+          "actions": {
+            "CONTINUE": 1,
+            "WAIT": 1,
+            "RETRY_FIXED_ZOOM": 1
+          },
+          "cost_adjusted_return": 0.9299999999999999
+        },
+        "learned": {
+          "episodes": 1,
+          "successes": 1,
+          "waits": 1,
+          "repairs": 1,
+          "actor_requests": 3,
+          "actions": {
+            "CONTINUE": 1,
+            "WAIT": 1,
+            "RETRY_PLAIN": 1
+          },
+          "cost_adjusted_return": 0.9299999999999999
+        }
+      },
+      "deferred-input": {
+        "wait_visual_fixed": {
+          "episodes": 1,
+          "successes": 1,
+          "waits": 1,
+          "repairs": 0,
+          "actor_requests": 2,
+          "actions": {
+            "CONTINUE": 2,
+            "WAIT": 1
+          },
+          "cost_adjusted_return": 0.98
+        },
+        "learned": {
+          "episodes": 1,
+          "successes": 1,
+          "waits": 1,
+          "repairs": 0,
+          "actor_requests": 2,
+          "actions": {
+            "CONTINUE": 2,
+            "WAIT": 1
+          },
+          "cost_adjusted_return": 0.98
+        }
+      }
+    },
+    "test": {
+      "none": {
+        "continue": {
+          "episodes": 4,
+          "successes": 4,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 8,
+          "actions": {
+            "CONTINUE": 8
+          },
+          "cost_adjusted_return": 1.0,
+          "gains_vs_visual_fixed": 0,
+          "losses_vs_visual_fixed": 0
+        },
+        "visual_fixed": {
+          "episodes": 4,
+          "successes": 4,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 8,
+          "actions": {
+            "CONTINUE": 8
+          },
+          "cost_adjusted_return": 1.0,
+          "gains_vs_visual_fixed": 0,
+          "losses_vs_visual_fixed": 0
+        },
+        "wait_visual_fixed": {
+          "episodes": 4,
+          "successes": 4,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 8,
+          "actions": {
+            "CONTINUE": 8
+          },
+          "cost_adjusted_return": 1.0,
+          "gains_vs_visual_fixed": 0,
+          "losses_vs_visual_fixed": 0
+        },
+        "learned": {
+          "episodes": 4,
+          "successes": 4,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 8,
+          "actions": {
+            "CONTINUE": 8
+          },
+          "cost_adjusted_return": 1.0,
+          "gains_vs_visual_fixed": 0,
+          "losses_vs_visual_fixed": 0
+        }
+      },
+      "drop-input": {
+        "continue": {
+          "episodes": 4,
+          "successes": 0,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 8,
+          "actions": {
+            "CONTINUE": 8
+          },
+          "cost_adjusted_return": 0.0,
+          "gains_vs_visual_fixed": 0,
+          "losses_vs_visual_fixed": 4
+        },
+        "visual_fixed": {
+          "episodes": 4,
+          "successes": 4,
+          "waits": 0,
+          "repairs": 4,
+          "actor_requests": 12,
+          "actions": {
+            "CONTINUE": 4,
+            "RETRY_FIXED_ZOOM": 4
+          },
+          "cost_adjusted_return": 0.95,
+          "gains_vs_visual_fixed": 0,
+          "losses_vs_visual_fixed": 0
+        },
+        "wait_visual_fixed": {
+          "episodes": 4,
+          "successes": 4,
+          "waits": 4,
+          "repairs": 4,
+          "actor_requests": 12,
+          "actions": {
+            "CONTINUE": 4,
+            "WAIT": 4,
+            "RETRY_FIXED_ZOOM": 4
+          },
+          "cost_adjusted_return": 0.9299999999999999,
+          "gains_vs_visual_fixed": 0,
+          "losses_vs_visual_fixed": 0
+        },
+        "learned": {
+          "episodes": 4,
+          "successes": 4,
+          "waits": 4,
+          "repairs": 4,
+          "actor_requests": 12,
+          "actions": {
+            "CONTINUE": 4,
+            "WAIT": 4,
+            "RETRY_PLAIN": 4
+          },
+          "cost_adjusted_return": 0.9299999999999999,
+          "gains_vs_visual_fixed": 0,
+          "losses_vs_visual_fixed": 0
+        }
+      },
+      "deferred-input": {
+        "continue": {
+          "episodes": 4,
+          "successes": 0,
+          "waits": 0,
+          "repairs": 0,
+          "actor_requests": 8,
+          "actions": {
+            "CONTINUE": 8
+          },
+          "cost_adjusted_return": 0.0,
+          "gains_vs_visual_fixed": 0,
+          "losses_vs_visual_fixed": 0
+        },
+        "visual_fixed": {
+          "episodes": 4,
+          "successes": 0,
+          "waits": 0,
+          "repairs": 4,
+          "actor_requests": 12,
+          "actions": {
+            "CONTINUE": 4,
+            "RETRY_FIXED_ZOOM": 4
+          },
+          "cost_adjusted_return": -0.05,
+          "gains_vs_visual_fixed": 0,
+          "losses_vs_visual_fixed": 0
+        },
+        "wait_visual_fixed": {
+          "episodes": 4,
+          "successes": 4,
+          "waits": 4,
+          "repairs": 0,
+          "actor_requests": 8,
+          "actions": {
+            "CONTINUE": 8,
+            "WAIT": 4
+          },
+          "cost_adjusted_return": 0.98,
+          "gains_vs_visual_fixed": 4,
+          "losses_vs_visual_fixed": 0
+        },
+        "learned": {
+          "episodes": 4,
+          "successes": 4,
+          "waits": 4,
+          "repairs": 0,
+          "actor_requests": 8,
+          "actions": {
+            "CONTINUE": 8,
+            "WAIT": 4
+          },
+          "cost_adjusted_return": 0.98,
+          "gains_vs_visual_fixed": 4,
+          "losses_vs_visual_fixed": 0
+        }
+      }
+    },
+    "learned_test_routing": {
+      "learned_review": 20
+    },
+    "inference": {
+      "logical_requests": 270,
+      "actual_generations": 52,
+      "actual_input_tokens": 17488,
+      "actual_generated_tokens": 668,
+      "scope": "Actual token totals exclude cached/reused original predictions with unavailable token counts"
+    },
+    "gate": {
+      "clean_preserved": true,
+      "drop_preserved": true,
+      "deferred_gain": true,
+      "deferred_preserved": true
+    },
+    "peak_cuda_reserved_bytes": 5192548352
+  },
+  "independent_audit": {
+    "status": "passed",
+    "layouts": 8,
+    "recorded_decisions": 263,
+    "frame_references_verified": 1052,
+    "browser_operations": 327,
+    "end_outcomes": {
+      "success": 81,
+      "browser_failure": 27
+    },
+    "same_initial_post_action_frames_drop_deferred": {
+      "train": 3,
+      "validation": 1,
+      "test": 4
+    },
+    "train_test_current_overlap": 0,
+    "duplicate_input_failures": {
+      "visual_fixed": 4
+    },
+    "checkpoint_reproduced_from_train": true,
+    "peak_sampled_gpu_mib": 5309,
+    "gpu_samples": 283
+  },
+  "ci": "https://github.com/ljk-777/GUI-Recover/actions/runs/44551846076",
+  "effect_gate_passed": true
+}

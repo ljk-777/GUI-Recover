@@ -1,0 +1,18 @@
+{
+  "id": "click-button-8022-correction",
+  "task": "click-button",
+  "seed": 8022,
+  "head": "base_plain",
+  "conditional": true,
+  "success": false,
+  "reason": "task_not_completed",
+  "source_steps": 1,
+  "repair_steps": 1,
+  "resets_after_failure": 1,
+  "source_model_calls_reused": 1,
+  "candidate_model_calls_reused": 1,
+  "additional_submit_calls": 0,
+  "prefix_matched": true,
+  "total_logical_model_calls": 2,
+  "recovery_mode": "restart_after_terminal"
+}

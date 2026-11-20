@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 import os
+import sys
 
 from PIL import Image
 
 from .actions import Action, compile_action
+from .text_goals import NATIVE_TEXT_TASKS
 
 
 @dataclass(frozen=True)
@@ -16,7 +18,7 @@ class VisualObservation:
 class MiniwobEnvironment:
     """Only visual observations cross the model boundary; no DOM or reward."""
 
-    def __init__(self, task: str, visual_variant="default"):
+    def __init__(self, task: str, visual_variant="default", *, batched_probe=False):
         import browsergym.miniwob  # noqa: F401 -- registers environments
         import gymnasium as gym
         from browsergym.core.action.highlevel import HighLevelActionSet
@@ -29,7 +31,15 @@ class MiniwobEnvironment:
         if visual_variant != "default" and task != "enter-text":
             raise ValueError("Visual variants currently target enter-text only")
         self.visual_variant = visual_variant
-        actions = HighLevelActionSet(subsets=["coord"], strict=True, multiaction=True)
+        if batched_probe:
+            if task not in NATIVE_TEXT_TASKS:
+                raise ValueError("The batched selection action requires a native text task")
+            from .verification_capture import capture_tail_selection
+
+            actions = HighLevelActionSet(subsets=["coord", "custom"], custom_actions=[capture_tail_selection],
+                                         strict=True, multiaction=True)
+        else:
+            actions = HighLevelActionSet(subsets=["coord"], strict=True, multiaction=True)
         self.env = gym.make(f"browsergym/miniwob.{task}", headless=True,
                             action_mapping=actions.to_python_code)
         self.obs = None
@@ -56,6 +66,27 @@ class MiniwobEnvironment:
 
     def step(self, action: Action):
         code = compile_action(action, *self.obs.screenshot.size)
+        return self._step_code(code)
+
+    def replace_input(self, position, value):
+        # Trusted bounded controller operation; model outputs still cannot emit code.
+        # compile_action validates both the coordinates and original value.
+        action = Action("INPUT", value, tuple(position))
+        original = compile_action(action, *self.obs.screenshot.size)
+        click, typing = original.split("\n", 1)
+        key = "Meta+A" if sys.platform == "darwin" else "Control+A"
+        return self._step_code(click + f"\nkeyboard_press({key!r})\n" + typing)
+
+    def capture_tail_selection(self):
+        page = self.env.unwrapped.page
+        page._gui_recover_tail_selection = None
+        try:
+            result = self._step_code("capture_tail_selection()")
+            return result, page._gui_recover_tail_selection
+        finally:
+            del page._gui_recover_tail_selection
+
+    def _step_code(self, code):
         obs, reward, terminated, truncated, info = self.env.step(code)
         self.obs = self._visual(obs)
         return self.obs, float(reward), bool(terminated), bool(truncated), info, code

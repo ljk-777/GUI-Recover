@@ -1,0 +1,33 @@
+{
+  "id": "click-button-12002-drop-click",
+  "scene_id": "click-button-12002",
+  "task": "click-button",
+  "seed": 12002,
+  "regime": "drop-click",
+  "strategy": "oracle",
+  "success": true,
+  "reason": "success",
+  "prefix_matched": true,
+  "waits": 0,
+  "repairs": 1,
+  "logical_actor_calls": 2,
+  "invalid_predictions": 0,
+  "source_prediction_reused": true,
+  "verifier_calls": 1,
+  "verifier_seconds": 1.6635283827781677e-05,
+  "triggered_recovery": true,
+  "reward": 1.0,
+  "terminated": true,
+  "truncated": false,
+  "task_info": {
+    "REWARD_GLOBAL": 0.998286,
+    "RAW_REWARD_GLOBAL": 1,
+    "REWARD_REASON": null,
+    "DONE_GLOBAL": true,
+    "EPISODE_ID": 1,
+    "TASK_READY": true
+  },
+  "environment_steps": 2,
+  "new_actor_generations": 0,
+  "elapsed_seconds": 3.470266403630376
+}

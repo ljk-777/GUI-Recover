@@ -1,0 +1,33 @@
+{
+  "id": "enter-text-12000-deferred-input",
+  "scene_id": "enter-text-12000",
+  "task": "enter-text",
+  "seed": 12000,
+  "regime": "deferred-input",
+  "strategy": "none",
+  "success": true,
+  "reason": "success",
+  "prefix_matched": true,
+  "waits": 0,
+  "repairs": 0,
+  "logical_actor_calls": 2,
+  "invalid_predictions": 0,
+  "source_prediction_reused": true,
+  "verifier_calls": 0,
+  "verifier_seconds": 0.0,
+  "triggered_recovery": false,
+  "reward": 1.0,
+  "terminated": true,
+  "truncated": false,
+  "task_info": {
+    "REWARD_GLOBAL": 0.99711,
+    "RAW_REWARD_GLOBAL": 1,
+    "REWARD_REASON": null,
+    "DONE_GLOBAL": true,
+    "EPISODE_ID": 1,
+    "TASK_READY": true
+  },
+  "environment_steps": 3,
+  "new_actor_generations": 0,
+  "elapsed_seconds": 4.616629868745804
+}

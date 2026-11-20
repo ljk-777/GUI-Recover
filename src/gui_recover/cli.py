@@ -14,6 +14,7 @@ from .policies import MODEL_ID, MODEL_REVISION, OracleSmokePolicy, ShowUIPolicy
 from .runner import aggregate, render_replay, run_episode, write_json
 from .comparison import compare_runs
 from .grounding import ScriptedGroundingPolicy
+from .text_goals import NATIVE_TEXT_TASKS
 
 
 def fingerprint():
@@ -57,6 +58,24 @@ def main(argv=None, backend=None):
     compare.add_argument("--recovered", required=True)
     compare.add_argument("--clean-recovered")
     compare.add_argument("--out", required=True)
+    for command, seed, description in (
+        ("text-recovery", 70000, "Run a paired MiniWoB text-recovery demo"),
+        ("active-text-recovery", 76000, "Compare a reversible tail probe with two text-recovery rules"),
+    ):
+        text_recovery = sub.add_parser(command, help=description)
+        text_recovery.add_argument("--model", default=MODEL_ID)
+        text_recovery.add_argument("--revision", default=MODEL_REVISION)
+        text_recovery.add_argument("--seeds", nargs="+", type=int, default=[seed])
+        text_recovery.add_argument("--out", type=Path, required=True)
+        if command == "active-text-recovery":
+            text_recovery.add_argument("--tasks", nargs="+", choices=NATIVE_TEXT_TASKS, default=["enter-text"])
+            text_recovery.add_argument("--layouts-per-task", type=int, help="Take this many distinct layouts per task from --seeds")
+    audit_text = sub.add_parser("audit-text-recovery", help="Audit saved text-recovery traces using only CPU")
+    audit_text.add_argument("directory", type=Path)
+    audit_active = sub.add_parser("audit-active-text-recovery", help="Audit the active tail probe without model or browser")
+    audit_active.add_argument("directory", type=Path)
+    tail_demo = sub.add_parser("demo-tail-probe", help="Run the CPU tail-selection demo on four browser fixture styles")
+    tail_demo.add_argument("--out", type=Path, required=True)
     run = sub.add_parser("run")
     run.add_argument("--policy", choices=["oracle-smoke", "showui", "showui-scripted"], required=True)
     run.add_argument("--tasks", nargs="+", default=["click-test"])
@@ -64,6 +83,7 @@ def main(argv=None, backend=None):
     run.add_argument("--max-steps", type=int, default=10)
     run.add_argument("--out", required=True)
     run.add_argument("--model", default=MODEL_ID)
+    run.add_argument("--adapter", help="Local SFT adapter that passed training and reload acceptance")
     run.add_argument("--revision", default=MODEL_REVISION)
     run.add_argument("--prompt-profile", choices=["baseline", "official-web", "official-miniwob"], default="baseline")
     run.add_argument("--parser", choices=["strict", "mixed"], default="strict")
@@ -87,11 +107,48 @@ def main(argv=None, backend=None):
     if args.command == "replay":
         render_replay(args.directory)
         return
+    if args.command == "demo-tail-probe":
+        from .tail_demo import run_tail_demo
+
+        if args.out.exists():
+            parser.error("Output directory already exists")
+        print(json.dumps(run_tail_demo(args.out), indent=2))
+        return
     if args.command == "compare":
         result = compare_runs(args.clean, args.faulted, args.recovered, args.clean_recovered)
         if Path(args.out).exists():
             parser.error("Comparison output already exists")
         write_json(args.out, result)
+        print(json.dumps(result, indent=2))
+        return
+    if args.command in ("text-recovery", "active-text-recovery"):
+        if any(seed < 0 for seed in args.seeds) or len(set(args.seeds)) != len(args.seeds):
+            parser.error("Seeds must be distinct and nonnegative")
+        if args.out.exists():
+            parser.error("Output directory already exists")
+        if args.command == "active-text-recovery":
+            from .active_text_study import run_active_quickstart
+
+            if len(set(args.tasks)) != len(args.tasks):
+                parser.error("Tasks must be distinct")
+            if args.layouts_per_task is not None and not 1 <= args.layouts_per_task <= len(args.seeds):
+                parser.error("Layouts per task must be positive and fit within the seed reserve")
+            run_active_quickstart(args.out, args.seeds, args.model, args.revision, fingerprint(),
+                                  tasks=args.tasks, layouts_per_task=args.layouts_per_task)
+        else:
+            from .visual_text_study import run_text_quickstart
+
+            run_text_quickstart(args.out, args.seeds, args.model, args.revision, fingerprint())
+        return
+    if args.command in ("audit-text-recovery", "audit-active-text-recovery"):
+        if args.command == "audit-active-text-recovery":
+            from .active_text_audit import audit
+        else:
+            from .visual_text_audit import audit
+        try:
+            result = audit(args.directory)
+        except (OSError, ValueError, KeyError, TypeError, IndexError) as exc:
+            parser.exit(1, f"Audit failed: {exc}\n")
         print(json.dumps(result, indent=2))
         return
     if args.max_steps < 1 or any(seed < 0 for seed in args.seeds):
@@ -102,6 +159,8 @@ def main(argv=None, backend=None):
         parser.error("Invalid MiniWoB task name")
     if args.policy == "oracle-smoke" and args.tasks != ["click-test"]:
         parser.error("oracle-smoke supports only click-test")
+    if args.policy == "oracle-smoke" and args.adapter:
+        parser.error("oracle-smoke does not use model adapters")
     if args.policy != "showui" and args.recovery == "feedback":
         parser.error("Feedback recovery requires a model policy")
     if args.recovery in ("input-guard", "input-retry") and args.policy != "showui-scripted":
@@ -124,10 +183,15 @@ def main(argv=None, backend=None):
             for key, value in (("model", args.model), ("revision", args.revision), ("prompt_profile", args.prompt_profile)):
                 if backend.config.get(key) != value:
                     raise ValueError(f"Reused backend has different {key}")
+            actual_adapter = (backend.config.get("adapter") or {}).get("path")
+            expected_path = str(Path(args.adapter).resolve()) if args.adapter else None
+            actual_path = str(Path(actual_adapter).resolve()) if actual_adapter else None
+            if actual_path != expected_path:
+                raise ValueError("Reused backend has different adapter")
             model = backend
         else:
             model = ShowUIPolicy(model=args.model, revision=args.revision,
-                                 prompt_profile=args.prompt_profile) if args.policy != "oracle-smoke" else None
+                                 prompt_profile=args.prompt_profile, adapter=args.adapter) if args.policy != "oracle-smoke" else None
         manifest["reused_model_backend"] = backend is not None
         if args.policy == "showui-scripted":
             model = ScriptedGroundingPolicy(model, input_guard=args.recovery == "input-guard",

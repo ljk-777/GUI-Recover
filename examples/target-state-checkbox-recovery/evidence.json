@@ -1,0 +1,203 @@
+{
+  "task": "click-checkboxes",
+  "seed": 43002,
+  "role": "natural",
+  "goal": "Select VARf, CQJY1Tv, kf and click Submit.",
+  "target": "The checkbox labeled \"VARf\"",
+  "proposed": {
+    "action": "CLICK",
+    "value": null,
+    "position": [
+      0.1,
+      0.32
+    ]
+  },
+  "immediate_state": [
+    "GFgh3Wh"
+  ],
+  "state_after_recovery": [
+    "VARf"
+  ],
+  "completed_with_oracle_continuation": true,
+  "decisions": {
+    "frozen": {
+      "trigger": true,
+      "wait": true,
+      "premature": false,
+      "immediate": {
+        "status": "unknown",
+        "probabilities": {
+          "achieved": 0.03998493245011011,
+          "not_achieved": 0.1582115041996209,
+          "unknown": 0.801803563350269
+        },
+        "threshold": 0.6
+      },
+      "after_wait": {
+        "status": "not_achieved",
+        "probabilities": {
+          "achieved": 0.0700631255654957,
+          "not_achieved": 0.7081314479140186,
+          "unknown": 0.2218054265204858
+        },
+        "threshold": 0.6
+      }
+    },
+    "appearance": {
+      "trigger": true,
+      "wait": false,
+      "premature": false,
+      "immediate": {
+        "status": "not_achieved",
+        "reason": "pixel_change_is_not_semantic_success",
+        "difference": 0.00099316901920389
+      },
+      "after_wait": {
+        "status": "not_achieved",
+        "reason": "pixel_change_is_not_semantic_success",
+        "difference": 0.00099316901920389
+      }
+    },
+    "target_state": {
+      "trigger": true,
+      "wait": false,
+      "premature": false,
+      "immediate": {
+        "status": "not_achieved",
+        "reason": "different_checkbox_checked",
+        "repair": {
+          "kind": "undo_wrong_check",
+          "point": [
+            0.04819277108433735,
+            0.2881619937694704
+          ]
+        },
+        "target_score": 0.7707750968375537,
+        "target_margin": 0.48782550989955853,
+        "target_row": 1,
+        "checked_before": false,
+        "checked_after": false,
+        "other_changed_rows": [
+          0
+        ]
+      },
+      "after_wait": {
+        "status": "not_achieved",
+        "reason": "different_checkbox_checked",
+        "repair": {
+          "kind": "undo_wrong_check",
+          "point": [
+            0.04819277108433735,
+            0.2881619937694704
+          ]
+        },
+        "target_score": 0.7707750968375537,
+        "target_margin": 0.48782550989955853,
+        "target_row": 1,
+        "checked_before": false,
+        "checked_after": false,
+        "other_changed_rows": [
+          0
+        ]
+      }
+    }
+  },
+  "recovery": {
+    "actions": [
+      {
+        "kind": "undo_wrong_check",
+        "action": {
+          "action": "CLICK",
+          "value": null,
+          "position": [
+            0.04819277108433735,
+            0.2881619937694704
+          ]
+        },
+        "evidence": {
+          "status": "not_achieved",
+          "reason": "different_checkbox_checked",
+          "repair": {
+            "kind": "undo_wrong_check",
+            "point": [
+              0.04819277108433735,
+              0.2881619937694704
+            ]
+          },
+          "target_score": 0.7707750968375537,
+          "target_margin": 0.48782550989955853,
+          "target_row": 1,
+          "checked_before": false,
+          "checked_after": false,
+          "other_changed_rows": [
+            0
+          ]
+        }
+      },
+      {
+        "kind": "check_target",
+        "action": {
+          "action": "CLICK",
+          "value": null,
+          "position": [
+            0.04819277108433735,
+            0.37694704049844235
+          ]
+        },
+        "evidence": {
+          "status": "not_achieved",
+          "reason": "target_unchecked",
+          "repair": {
+            "kind": "check_target",
+            "point": [
+              0.04819277108433735,
+              0.37694704049844235
+            ]
+          },
+          "target_score": 0.7707750968375537,
+          "target_margin": 0.48782550989955853,
+          "target_row": 1,
+          "checked_before": false,
+          "checked_after": false,
+          "other_changed_rows": []
+        }
+      }
+    ],
+    "final": {
+      "status": "achieved",
+      "reason": "target_checked",
+      "target_score": 0.7707750968375537,
+      "target_margin": 0.48782550989955853,
+      "target_row": 1,
+      "checked_before": false,
+      "checked_after": true,
+      "other_changed_rows": []
+    }
+  },
+  "before": {
+    "image": "before.png",
+    "sha256": "531619e785ea0c9fa2420b3d84f68cc9d89882fc52863d9953c8161723e0bed3",
+    "pixel_hash": "c05cd85acc6a6539be1bc1d73076aaf0a6788a2a55688ff19bc8ce28db14b30f"
+  },
+  "immediate": {
+    "image": "immediate.png",
+    "sha256": "5f322ff4959896267ffe331b4e4a082d4bc8768728dd7c239adc7f8fcd04f046",
+    "pixel_hash": "e5d8a19517e7d1983f226de578ae547f08b6f21f14e57ab3d5dfeadcd3568952"
+  },
+  "after_wait": {
+    "image": "after-wait.png",
+    "sha256": "5f322ff4959896267ffe331b4e4a082d4bc8768728dd7c239adc7f8fcd04f046",
+    "pixel_hash": "e5d8a19517e7d1983f226de578ae547f08b6f21f14e57ab3d5dfeadcd3568952"
+  },
+  "repair_1": {
+    "image": "repair-1.png",
+    "sha256": "ceeeaf3e3a714daaf7e85db09a634093de08f70846c91d10e20d959d5adedc26",
+    "pixel_hash": "0485a6442f8d71a6d94009509f3a9cdb5a7a6e33e22f9229e5e0c7a7e38bee91"
+  },
+  "repair_2": {
+    "image": "repair-2.png",
+    "sha256": "c0f0d8820ea7272f6390c7213d3e2f29ee185bf611980119fb19778f1578fe78",
+    "pixel_hash": "48fca8dfe91b74aadff31404713c27a256d9f67fcb9a2874aa3b9f7c93caa75d"
+  },
+  "scope": "First successful two-action natural example if available, otherwise first controlled example. Selected after scoring."
+}

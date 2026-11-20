@@ -1,0 +1,18 @@
+{
+  "task": "enter-text",
+  "seed": 69000,
+  "split": "test",
+  "regime": "case-input",
+  "policy": "glyph_check",
+  "success": true,
+  "return": 1.0,
+  "terminated": true,
+  "truncated": false,
+  "outcome": "success",
+  "decisions": 2,
+  "actor_requests": 3,
+  "waits": 0,
+  "repairs": 1,
+  "initial_sha256": "3f9228c29359cc115dc8ef522ed3f4dc46cd51d8787cd9311654351e4c74bfcb",
+  "trace_sha256": "17a1b7cea3395ab9b17c6ae759eeba0469baa40bd0849fe157272267046aee45"
+}

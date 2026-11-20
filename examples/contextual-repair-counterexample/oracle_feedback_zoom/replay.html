@@ -1,0 +1,147 @@
+<!doctype html><meta charset="utf-8"><title>GUI-Recover trajectory</title><style>body{font:15px system-ui;max-width:1000px;margin:30px auto}section{border-top:1px solid #ccc;padding:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere}img{max-width:100%}</style><h1>GUI-Recover trajectory</h1><section><img src="0000.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;reset&quot;,
+  &quot;goal&quot;: &quot;Click on the \&quot;No\&quot; button.&quot;,
+  &quot;target&quot;: &quot;The \&quot;No\&quot; button&quot;,
+  &quot;screenshot&quot;: &quot;0000.png&quot;,
+  &quot;sha256&quot;: &quot;8ec3cd360a79afe3e02852f6fd9f982618ba299af2cf3ce66519a26d12d82178&quot;
+}</pre></section><section><img src="0001.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;first&quot;,
+  &quot;executed_action&quot;: {
+    &quot;action&quot;: &quot;CLICK&quot;,
+    &quot;value&quot;: null,
+    &quot;position&quot;: [
+      0.06,
+      0.36
+    ]
+  },
+  &quot;executed_code&quot;: &quot;mouse_click(29.88, 115.56)&quot;,
+  &quot;reward&quot;: 0.0,
+  &quot;terminated&quot;: false,
+  &quot;truncated&quot;: false,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: 0,
+    &quot;RAW_REWARD_GLOBAL&quot;: 0,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: false,
+    &quot;EPISODE_ID&quot;: 0,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;execution_error&quot;: &quot;&quot;,
+  &quot;screenshot&quot;: &quot;0001.png&quot;,
+  &quot;sha256&quot;: &quot;8ec3cd360a79afe3e02852f6fd9f982618ba299af2cf3ce66519a26d12d82178&quot;
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;verification&quot;,
+  &quot;phase&quot;: &quot;immediate&quot;,
+  &quot;verdict&quot;: {
+    &quot;status&quot;: &quot;not_achieved&quot;,
+    &quot;privileged_oracle&quot;: true
+  }
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;repair_prediction&quot;,
+  &quot;prediction&quot;: {
+    &quot;raw&quot;: &quot;[0.11, 0.51]&quot;,
+    &quot;point&quot;: [
+      0.06604417670682732,
+      0.3658255451713396
+    ],
+    &quot;metrics&quot;: {
+      &quot;input_tokens&quot;: 383,
+      &quot;model_invocations&quot;: 1,
+      &quot;generated_tokens&quot;: 13,
+      &quot;peak_cuda_allocated_bytes&quot;: 4637648384,
+      &quot;peak_cuda_reserved_bytes&quot;: 5194645504
+    },
+    &quot;generation_seconds&quot;: 0.43837397173047066,
+    &quot;cache_key&quot;: &quot;878e2aff475114a274f4cfce8197141830bc781a5fd2ae18b6c110555f2117ee&quot;,
+    &quot;cache_hit&quot;: true,
+    &quot;input_pixel_hash&quot;: &quot;455fa886cece4037ac7cc71ea39757b36ef3b3e1f0deece24e9dc4223cc0ce5c&quot;,
+    &quot;input_size&quot;: [
+      498,
+      321
+    ],
+    &quot;query&quot;: &quot;A recovery check was requested after the previous proposed interaction: {\&quot;action\&quot;:\&quot;CLICK\&quot;,\&quot;value\&quot;:null}.\nThe target may not have been reached. Reinspect the current image. Repeating the previous location is appropriate only if it still locates the target.\nLocate the CURRENT target: The \&quot;No\&quot; button&quot;,
+    &quot;local_point&quot;: [
+      0.11,
+      0.51
+    ],
+    &quot;crop&quot;: [
+      0,
+      19,
+      299,
+      212
+    ],
+    &quot;original_size&quot;: [
+      498,
+      321
+    ],
+    &quot;repair_mode&quot;: &quot;feedback_zoom&quot;,
+    &quot;input_image&quot;: &quot;repair-input.png&quot;,
+    &quot;input_image_sha256&quot;: &quot;cc8a12c2e86e8c329cd1694a8f8b35a64ebc74bd404d4abc5e1a5d7211bb927d&quot;
+  }
+}</pre></section><section><img src="0002.png" alt="environment screenshot"><pre>{
+  &quot;event&quot;: &quot;retry_click&quot;,
+  &quot;executed_action&quot;: {
+    &quot;action&quot;: &quot;CLICK&quot;,
+    &quot;value&quot;: null,
+    &quot;position&quot;: [
+      0.06604417670682732,
+      0.3658255451713396
+    ]
+  },
+  &quot;executed_code&quot;: &quot;mouse_click(32.89, 117.43)&quot;,
+  &quot;reward&quot;: 0.0,
+  &quot;terminated&quot;: false,
+  &quot;truncated&quot;: false,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: 0,
+    &quot;RAW_REWARD_GLOBAL&quot;: 0,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: false,
+    &quot;EPISODE_ID&quot;: 0,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;execution_error&quot;: &quot;&quot;,
+  &quot;screenshot&quot;: &quot;0002.png&quot;,
+  &quot;sha256&quot;: &quot;8ec3cd360a79afe3e02852f6fd9f982618ba299af2cf3ce66519a26d12d82178&quot;
+}</pre></section><section><pre>{
+  &quot;event&quot;: &quot;episode_end&quot;,
+  &quot;id&quot;: &quot;click-button-20018-none&quot;,
+  &quot;scene_id&quot;: &quot;click-button-20018&quot;,
+  &quot;task&quot;: &quot;click-button&quot;,
+  &quot;seed&quot;: 20018,
+  &quot;regime&quot;: &quot;none&quot;,
+  &quot;strategy&quot;: &quot;oracle_feedback_zoom&quot;,
+  &quot;success&quot;: false,
+  &quot;reason&quot;: &quot;task_not_completed&quot;,
+  &quot;prefix_matched&quot;: true,
+  &quot;waits&quot;: 0,
+  &quot;repairs&quot;: 1,
+  &quot;logical_actor_calls&quot;: 2,
+  &quot;invalid_predictions&quot;: 0,
+  &quot;source_prediction_reused&quot;: true,
+  &quot;verifier_calls&quot;: 1,
+  &quot;verifier_seconds&quot;: 6.606802344322205e-06,
+  &quot;trigger_strategy&quot;: &quot;oracle&quot;,
+  &quot;repair_policy&quot;: {
+    &quot;mode&quot;: &quot;feedback_zoom&quot;,
+    &quot;crop_fraction&quot;: 0.6,
+    &quot;feedback_sha256&quot;: &quot;cbf940774ae19e0344e50f9a7c1b9171d631c54ed506739b921be35510b12cc7&quot;,
+    &quot;uses_teacher&quot;: false,
+    &quot;coordinates_in_feedback&quot;: false
+  },
+  &quot;triggered_recovery&quot;: true,
+  &quot;reward&quot;: 0.0,
+  &quot;terminated&quot;: false,
+  &quot;truncated&quot;: false,
+  &quot;task_info&quot;: {
+    &quot;REWARD_GLOBAL&quot;: 0,
+    &quot;RAW_REWARD_GLOBAL&quot;: 0,
+    &quot;REWARD_REASON&quot;: null,
+    &quot;DONE_GLOBAL&quot;: false,
+    &quot;EPISODE_ID&quot;: 0,
+    &quot;TASK_READY&quot;: true
+  },
+  &quot;environment_steps&quot;: 2,
+  &quot;new_actor_generations&quot;: 0,
+  &quot;elapsed_seconds&quot;: 3.2642642445862293
+}</pre></section>

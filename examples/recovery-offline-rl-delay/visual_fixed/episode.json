@@ -1,0 +1,18 @@
+{
+  "task": "enter-text",
+  "seed": 63000,
+  "split": "test",
+  "regime": "deferred-input",
+  "policy": "visual_fixed",
+  "success": false,
+  "return": 0.0,
+  "terminated": true,
+  "truncated": false,
+  "outcome": "browser_failure",
+  "decisions": 2,
+  "actor_requests": 3,
+  "waits": 0,
+  "repairs": 1,
+  "initial_sha256": "780376bb79115f84b0e795fa8ab86d2d3b49903ff0805fc25eddec121181b193",
+  "trace_sha256": "fc8cc6621522a51ee3a3376d0f39d75e3b0181e1315a2ee0a110fad6eee3dc19"
+}

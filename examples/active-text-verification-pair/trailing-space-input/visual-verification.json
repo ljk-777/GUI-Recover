@@ -1,0 +1,50 @@
+[
+  {
+    "glyph": {
+      "status": "matched",
+      "reason": "rendered_text_comparison",
+      "region": [
+        5,
+        96,
+        194,
+        125
+      ],
+      "score": 1.0,
+      "ink_shape": [
+        15,
+        56
+      ]
+    },
+    "selection": null,
+    "decision": "PROBE_LAST_CHAR"
+  },
+  {
+    "glyph": {
+      "status": "matched",
+      "reason": "rendered_text_comparison",
+      "region": [
+        5,
+        96,
+        194,
+        125
+      ],
+      "score": 1.0,
+      "ink_shape": [
+        15,
+        56
+      ]
+    },
+    "selection": {
+      "status": "blank_tail",
+      "reason": "ink_in_selection_bounds",
+      "ink_pixels": 0,
+      "selection_region": [
+        67,
+        99,
+        72,
+        122
+      ]
+    },
+    "decision": "RETRY_FIXED_ZOOM"
+  }
+]

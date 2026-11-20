@@ -1,0 +1,1243 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-19",
+  "source_code": "ec8b086d64b4c40c3d1fbe4e17a4b0037fd27ecc",
+  "scope": "Inference prompt repair only; original base and existing adapters unchanged; no additional training or RL.",
+  "model_revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+  "history_adapter_sha256": "5f4b578ed4e6e7bfd5e1bc4a5f6da20f6153e3d414f3c6996d2603cbc6c93e44",
+  "configuration_sha256": "272def3570d67049ec766fd626f547252d48d942340be929c226315edb341f4b",
+  "data_manifest_sha256": "02c33bb6196c446dbe515d8b51db6a6fa83b828072f84b74d0a31aae966248bd",
+  "selection": {
+    "selected_head": "history_plain",
+    "eligible_candidates": [],
+    "normal_floors": {
+      "normal": 17,
+      "normal_submit": 4
+    },
+    "prompt_restoration_passed_validation": false,
+    "rule": "normal/Submit >= both plain controls; maximize correction, normal, fewer invalids, fixed candidate order; otherwise history_plain fallback",
+    "predictions_sha256": "ed0c1ed4e0ed86586918f94db4dd810d6ba7cfdac0ad9f8d350976cbe22b2c50",
+    "config_sha256": "272def3570d67049ec766fd626f547252d48d942340be929c226315edb341f4b",
+    "runtime_code": "ec8b086d64b4c40c3d1fbe4e17a4b0037fd27ecc",
+    "validation_split_sha256": "00587f8766c9f2f41f2b1383b379096c324aee548b194d10f1844a4ba858b168",
+    "history_adapter_sha256": "5f4b578ed4e6e7bfd5e1bc4a5f6da20f6153e3d414f3c6996d2603cbc6c93e44"
+  },
+  "data_audit": {
+    "records": {
+      "train": 108,
+      "validation": 38,
+      "test": 110
+    },
+    "scenes": {
+      "train": 72,
+      "validation": 24,
+      "test": 68
+    },
+    "tasks": {
+      "train": [
+        "click-button",
+        "click-test",
+        "enter-text",
+        "focus-text"
+      ],
+      "validation": [
+        "click-button",
+        "click-test",
+        "enter-text",
+        "focus-text"
+      ],
+      "test": [
+        "click-button",
+        "click-dialog",
+        "click-tab",
+        "click-test",
+        "enter-text",
+        "focus-text"
+      ]
+    },
+    "unseen_test_tasks": [
+      "click-dialog",
+      "click-tab"
+    ],
+    "cross_split_scene_and_image_overlap": 0
+  },
+  "correction_modes": {
+    "train": {
+      "retry_in_place": 22,
+      "restart_after_terminal": 6
+    },
+    "validation": {
+      "retry_in_place": 9,
+      "restart_after_terminal": 1
+    },
+    "test": {
+      "retry_in_place": 28,
+      "restart_after_terminal": 2
+    }
+  },
+  "new_test_source_scenes": 68,
+  "new_test_filtered_before_prediction": [],
+  "new_test_source_outcomes": {
+    "executed_grounding_miss": 30,
+    "completed": 38
+  },
+  "cross_previous_cohort_scene_and_recorded_image_overlap": 0,
+  "verified_source_screenshots": 337,
+  "verified_point_predictions": 710,
+  "verified_online_screenshots": 306,
+  "online_episodes": 120,
+  "validation": {
+    "offline": {
+      "all": {
+        "queries": 38,
+        "heads": {
+          "base_plain": {
+            "hits": 17,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_plain": {
+            "hits": 16,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 1
+          },
+          "base_legacy": {
+            "hits": 13,
+            "invalid": 1,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 4
+          },
+          "history_legacy": {
+            "hits": 13,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 1,
+            "degraded_vs_base_plain": 5
+          },
+          "base_target_last": {
+            "hits": 17,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_target_last": {
+            "hits": 16,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 1
+          },
+          "base_current_target": {
+            "hits": 17,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_current_target": {
+            "hits": 16,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 1
+          },
+          "base_action_only": {
+            "hits": 17,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_action_only": {
+            "hits": 16,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 1
+          }
+        }
+      },
+      "normal": {
+        "queries": 28,
+        "heads": {
+          "base_plain": {
+            "hits": 17,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_plain": {
+            "hits": 16,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 1
+          },
+          "base_legacy": {
+            "hits": 13,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 4
+          },
+          "history_legacy": {
+            "hits": 12,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 5
+          },
+          "base_target_last": {
+            "hits": 17,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_target_last": {
+            "hits": 16,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 1
+          },
+          "base_current_target": {
+            "hits": 17,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_current_target": {
+            "hits": 16,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 1
+          },
+          "base_action_only": {
+            "hits": 17,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_action_only": {
+            "hits": 16,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 1
+          }
+        }
+      },
+      "normal_submit": {
+        "queries": 4,
+        "heads": {
+          "base_plain": {
+            "hits": 4,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_plain": {
+            "hits": 4,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "base_legacy": {
+            "hits": 0,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 4
+          },
+          "history_legacy": {
+            "hits": 0,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 4
+          },
+          "base_target_last": {
+            "hits": 4,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_target_last": {
+            "hits": 4,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "base_current_target": {
+            "hits": 4,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_current_target": {
+            "hits": 4,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "base_action_only": {
+            "hits": 4,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_action_only": {
+            "hits": 4,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          }
+        }
+      },
+      "correction": {
+        "queries": 10,
+        "heads": {
+          "base_plain": {
+            "hits": 0,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_plain": {
+            "hits": 0,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "base_legacy": {
+            "hits": 0,
+            "invalid": 1,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_legacy": {
+            "hits": 1,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 1,
+            "degraded_vs_base_plain": 0
+          },
+          "base_target_last": {
+            "hits": 0,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_target_last": {
+            "hits": 0,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "base_current_target": {
+            "hits": 0,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_current_target": {
+            "hits": 0,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "base_action_only": {
+            "hits": 0,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_action_only": {
+            "hits": 0,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          }
+        }
+      },
+      "distractor_entry": {
+        "queries": 12,
+        "heads": {
+          "base_plain": {
+            "hits": 1,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_plain": {
+            "hits": 0,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 1
+          },
+          "base_legacy": {
+            "hits": 1,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_legacy": {
+            "hits": 0,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 1
+          },
+          "base_target_last": {
+            "hits": 1,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_target_last": {
+            "hits": 0,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 1
+          },
+          "base_current_target": {
+            "hits": 1,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_current_target": {
+            "hits": 0,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 1
+          },
+          "base_action_only": {
+            "hits": 1,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_action_only": {
+            "hits": 0,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 1
+          }
+        }
+      },
+      "by_task": {
+        "click-button": {
+          "queries": 22,
+          "heads": {
+            "base_plain": {
+              "hits": 1,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_plain": {
+              "hits": 0,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 1
+            },
+            "base_legacy": {
+              "hits": 1,
+              "invalid": 1,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_legacy": {
+              "hits": 1,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 1,
+              "degraded_vs_base_plain": 1
+            },
+            "base_target_last": {
+              "hits": 1,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_target_last": {
+              "hits": 0,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 1
+            },
+            "base_current_target": {
+              "hits": 1,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_current_target": {
+              "hits": 0,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 1
+            },
+            "base_action_only": {
+              "hits": 1,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_action_only": {
+              "hits": 0,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 1
+            }
+          }
+        },
+        "click-test": {
+          "queries": 4,
+          "heads": {
+            "base_plain": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_plain": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "base_legacy": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_legacy": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "base_target_last": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_target_last": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "base_current_target": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_current_target": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "base_action_only": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_action_only": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            }
+          }
+        },
+        "enter-text": {
+          "queries": 8,
+          "heads": {
+            "base_plain": {
+              "hits": 8,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_plain": {
+              "hits": 8,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "base_legacy": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 4
+            },
+            "history_legacy": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 4
+            },
+            "base_target_last": {
+              "hits": 8,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_target_last": {
+              "hits": 8,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "base_current_target": {
+              "hits": 8,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_current_target": {
+              "hits": 8,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "base_action_only": {
+              "hits": 8,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_action_only": {
+              "hits": 8,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            }
+          }
+        },
+        "focus-text": {
+          "queries": 4,
+          "heads": {
+            "base_plain": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_plain": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "base_legacy": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_legacy": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "base_target_last": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_target_last": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "base_current_target": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_current_target": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "base_action_only": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_action_only": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            }
+          }
+        }
+      }
+    },
+    "selection": {
+      "selected_head": "history_plain",
+      "eligible_candidates": [],
+      "normal_floors": {
+        "normal": 17,
+        "normal_submit": 4
+      },
+      "prompt_restoration_passed_validation": false,
+      "rule": "normal/Submit >= both plain controls; maximize correction, normal, fewer invalids, fixed candidate order; otherwise history_plain fallback",
+      "predictions_sha256": "ed0c1ed4e0ed86586918f94db4dd810d6ba7cfdac0ad9f8d350976cbe22b2c50",
+      "config_sha256": "272def3570d67049ec766fd626f547252d48d942340be929c226315edb341f4b",
+      "runtime_code": "ec8b086d64b4c40c3d1fbe4e17a4b0037fd27ecc",
+      "validation_split_sha256": "00587f8766c9f2f41f2b1383b379096c324aee548b194d10f1844a4ba858b168",
+      "history_adapter_sha256": "5f4b578ed4e6e7bfd5e1bc4a5f6da20f6153e3d414f3c6996d2603cbc6c93e44"
+    },
+    "actual_generation_calls_including_submit": 188,
+    "peak_cuda_allocated_bytes": 4646364672,
+    "peak_cuda_reserved_bytes": 5194645504
+  },
+  "test": {
+    "offline": {
+      "all": {
+        "queries": 110,
+        "heads": {
+          "base_plain": {
+            "hits": 46,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_plain": {
+            "hits": 52,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 11,
+            "degraded_vs_base_plain": 5
+          },
+          "history_legacy": {
+            "hits": 43,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 13,
+            "degraded_vs_base_plain": 16
+          }
+        }
+      },
+      "normal": {
+        "queries": 80,
+        "heads": {
+          "base_plain": {
+            "hits": 44,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_plain": {
+            "hits": 46,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 7,
+            "degraded_vs_base_plain": 5
+          },
+          "history_legacy": {
+            "hits": 36,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 7,
+            "degraded_vs_base_plain": 15
+          }
+        }
+      },
+      "normal_submit": {
+        "queries": 12,
+        "heads": {
+          "base_plain": {
+            "hits": 12,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_plain": {
+            "hits": 12,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_legacy": {
+            "hits": 2,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 10
+          }
+        }
+      },
+      "correction": {
+        "queries": 30,
+        "heads": {
+          "base_plain": {
+            "hits": 2,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_plain": {
+            "hits": 6,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 4,
+            "degraded_vs_base_plain": 0
+          },
+          "history_legacy": {
+            "hits": 7,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 6,
+            "degraded_vs_base_plain": 1
+          }
+        }
+      },
+      "distractor_entry": {
+        "queries": 32,
+        "heads": {
+          "base_plain": {
+            "hits": 3,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 0,
+            "degraded_vs_base_plain": 0
+          },
+          "history_plain": {
+            "hits": 5,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 4,
+            "degraded_vs_base_plain": 2
+          },
+          "history_legacy": {
+            "hits": 5,
+            "invalid": 0,
+            "newly_hit_vs_base_plain": 4,
+            "degraded_vs_base_plain": 2
+          }
+        }
+      },
+      "by_task": {
+        "click-button": {
+          "queries": 56,
+          "heads": {
+            "base_plain": {
+              "hits": 5,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_plain": {
+              "hits": 8,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 5,
+              "degraded_vs_base_plain": 2
+            },
+            "history_legacy": {
+              "hits": 9,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 7,
+              "degraded_vs_base_plain": 3
+            }
+          }
+        },
+        "click-dialog": {
+          "queries": 11,
+          "heads": {
+            "base_plain": {
+              "hits": 1,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_plain": {
+              "hits": 7,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 6,
+              "degraded_vs_base_plain": 0
+            },
+            "history_legacy": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 5,
+              "degraded_vs_base_plain": 0
+            }
+          }
+        },
+        "click-tab": {
+          "queries": 7,
+          "heads": {
+            "base_plain": {
+              "hits": 4,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_plain": {
+              "hits": 1,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 3
+            },
+            "history_legacy": {
+              "hits": 2,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 1,
+              "degraded_vs_base_plain": 3
+            }
+          }
+        },
+        "click-test": {
+          "queries": 6,
+          "heads": {
+            "base_plain": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_plain": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_legacy": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            }
+          }
+        },
+        "enter-text": {
+          "queries": 24,
+          "heads": {
+            "base_plain": {
+              "hits": 24,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_plain": {
+              "hits": 24,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_legacy": {
+              "hits": 14,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 10
+            }
+          }
+        },
+        "focus-text": {
+          "queries": 6,
+          "heads": {
+            "base_plain": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_plain": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            },
+            "history_legacy": {
+              "hits": 6,
+              "invalid": 0,
+              "newly_hit_vs_base_plain": 0,
+              "degraded_vs_base_plain": 0
+            }
+          }
+        }
+      }
+    },
+    "selection": {
+      "selected_head": "history_plain",
+      "eligible_candidates": [],
+      "normal_floors": {
+        "normal": 17,
+        "normal_submit": 4
+      },
+      "prompt_restoration_passed_validation": false,
+      "rule": "normal/Submit >= both plain controls; maximize correction, normal, fewer invalids, fixed candidate order; otherwise history_plain fallback",
+      "predictions_sha256": "ed0c1ed4e0ed86586918f94db4dd810d6ba7cfdac0ad9f8d350976cbe22b2c50",
+      "config_sha256": "272def3570d67049ec766fd626f547252d48d942340be929c226315edb341f4b",
+      "runtime_code": "ec8b086d64b4c40c3d1fbe4e17a4b0037fd27ecc",
+      "validation_split_sha256": "00587f8766c9f2f41f2b1383b379096c324aee548b194d10f1844a4ba858b168",
+      "history_adapter_sha256": "5f4b578ed4e6e7bfd5e1bc4a5f6da20f6153e3d414f3c6996d2603cbc6c93e44"
+    },
+    "online_normal": {
+      "base_plain": {
+        "episodes": 24,
+        "successes": 17,
+        "prefix_mismatches": 0,
+        "runtime_errors": 0,
+        "resets": 0
+      },
+      "history_plain": {
+        "episodes": 24,
+        "successes": 17,
+        "prefix_mismatches": 0,
+        "runtime_errors": 0,
+        "resets": 0
+      },
+      "history_legacy": {
+        "episodes": 24,
+        "successes": 14,
+        "prefix_mismatches": 0,
+        "runtime_errors": 0,
+        "resets": 0
+      }
+    },
+    "online_conditional": {
+      "base_plain": {
+        "episodes": 16,
+        "successes": 2,
+        "prefix_mismatches": 0,
+        "runtime_errors": 0,
+        "resets": 2
+      },
+      "history_plain": {
+        "episodes": 16,
+        "successes": 7,
+        "prefix_mismatches": 0,
+        "runtime_errors": 0,
+        "resets": 2
+      },
+      "history_legacy": {
+        "episodes": 16,
+        "successes": 5,
+        "prefix_mismatches": 0,
+        "runtime_errors": 0,
+        "resets": 2
+      }
+    },
+    "online_by_mode": {
+      "retry_in_place": {
+        "base_plain": {
+          "episodes": 14,
+          "successes": 2,
+          "prefix_mismatches": 0,
+          "runtime_errors": 0,
+          "resets": 0
+        },
+        "history_plain": {
+          "episodes": 14,
+          "successes": 6,
+          "prefix_mismatches": 0,
+          "runtime_errors": 0,
+          "resets": 0
+        },
+        "history_legacy": {
+          "episodes": 14,
+          "successes": 5,
+          "prefix_mismatches": 0,
+          "runtime_errors": 0,
+          "resets": 0
+        }
+      },
+      "restart_after_terminal": {
+        "base_plain": {
+          "episodes": 2,
+          "successes": 0,
+          "prefix_mismatches": 0,
+          "runtime_errors": 0,
+          "resets": 2
+        },
+        "history_plain": {
+          "episodes": 2,
+          "successes": 1,
+          "prefix_mismatches": 0,
+          "runtime_errors": 0,
+          "resets": 2
+        },
+        "history_legacy": {
+          "episodes": 2,
+          "successes": 0,
+          "prefix_mismatches": 0,
+          "runtime_errors": 0,
+          "resets": 2
+        }
+      }
+    },
+    "actual_generation_calls_including_submit": 274,
+    "peak_cuda_allocated_bytes": 4646364672,
+    "peak_cuda_reserved_bytes": 5307891712
+  },
+  "paired_selected_vs_controls": {
+    "normal": {
+      "base_plain": {
+        "newly_successful": 2,
+        "degraded": 2
+      },
+      "history_plain": {
+        "newly_successful": 0,
+        "degraded": 0
+      },
+      "history_legacy": {
+        "newly_successful": 3,
+        "degraded": 0
+      }
+    },
+    "conditional": {
+      "base_plain": {
+        "newly_successful": 5,
+        "degraded": 0
+      },
+      "history_plain": {
+        "newly_successful": 0,
+        "degraded": 0
+      },
+      "history_legacy": {
+        "newly_successful": 4,
+        "degraded": 2
+      }
+    }
+  },
+  "runtime_errors": [],
+  "prefix_mismatches": [],
+  "sampled_gpu": {
+    "gpu": 0,
+    "visible_quota_mib": 12032,
+    "samples": 348,
+    "interval_seconds_approx": 2,
+    "peak_memory_used_mib": 5419
+  },
+  "limitations": [
+    "Small descriptive pilot on one frozen adapter; no statistical non-inferiority or broad generalization claim.",
+    "Validation was used for prompt selection; fresh test was read after frozen selection and was not used to change it.",
+    "Failure selection is evaluator/teacher based; not autonomous error detection.",
+    "Fixed controller supplies targets and INPUT-to-Submit transitions; not autonomous planning.",
+    "Terminal restarts are separate from in-place recovery; online checks reuse offline test scenes/candidates.",
+    "The action-only profile removes coordinates; any gain is not an equal-information ordering result.",
+    "Device memory is sampled and may miss instantaneous peaks.",
+    "Some successful GUI clicks lie just outside strict teacher boxes; both metrics retain their original definitions and are not rescored with a post-hoc margin."
+  ],
+  "environment_success_outside_strict_teacher_box": [
+    {
+      "id": "click-button-8003-normal_entry",
+      "head": "base_plain",
+      "conditional": false,
+      "point": [
+        0.17,
+        0.29
+      ],
+      "target_boxes": [
+        [
+          0.006024096385542169,
+          0.29439252336448596,
+          0.20599585843373494,
+          0.3925233644859813
+        ]
+      ]
+    },
+    {
+      "id": "click-tab-8002-normal_entry",
+      "head": "history_plain",
+      "conditional": false,
+      "point": [
+        0.089,
+        0.269
+      ],
+      "target_boxes": [
+        [
+          0.02108433734939759,
+          0.27102803738317754,
+          0.14166039156626506,
+          0.37850467289719625
+        ]
+      ]
+    },
+    {
+      "id": "click-tab-8002-normal_entry",
+      "head": "history_legacy",
+      "conditional": false,
+      "point": [
+        0.089,
+        0.269
+      ],
+      "target_boxes": [
+        [
+          0.02108433734939759,
+          0.27102803738317754,
+          0.14166039156626506,
+          0.37850467289719625
+        ]
+      ]
+    },
+    {
+      "id": "click-tab-8002-correction",
+      "head": "history_plain",
+      "conditional": true,
+      "point": [
+        0.089,
+        0.269
+      ],
+      "target_boxes": [
+        [
+          0.02108433734939759,
+          0.27102803738317754,
+          0.14166039156626506,
+          0.37850467289719625
+        ]
+      ]
+    }
+  ],
+  "implementation_validation": {
+    "server_tests_passed": 96,
+    "local_unit_tests_passed": 85,
+    "local_browser_tests_passed_before_pure_training_extensions": 11,
+    "ci": "https://github.com/ljk-777/GUI-Recover/actions/runs/44476901245",
+    "ci_jobs": [
+      "Ubuntu 22.04",
+      "Ubuntu 24.04",
+      "package"
+    ],
+    "real_cpu_processor_masks": [
+      {
+        "kind": "normal_entry",
+        "history_input": false,
+        "tokens": 342,
+        "assistant_tokens": 15,
+        "mask_verified": true
+      },
+      {
+        "kind": "correction",
+        "history_input": false,
+        "tokens": 342,
+        "assistant_tokens": 15,
+        "mask_verified": true
+      },
+      {
+        "kind": "correction",
+        "history_input": true,
+        "tokens": 378,
+        "assistant_tokens": 15,
+        "mask_verified": true
+      },
+      {
+        "kind": "normal_submit",
+        "history_input": false,
+        "tokens": 338,
+        "assistant_tokens": 14,
+        "mask_verified": true
+      },
+      {
+        "kind": "normal_submit",
+        "history_input": true,
+        "tokens": 374,
+        "assistant_tokens": 14,
+        "mask_verified": true
+      }
+    ]
+  },
+  "base_model": {
+    "repository": "showlab/ShowUI-2B",
+    "revision": "cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60",
+    "weights_sha256": "68080df785764e98976eb9cc93a07c6c69cf8a6933738496e02aef55b53d2aa3",
+    "evaluation_precision": "bfloat16"
+  },
+  "decision": "Keep published defaults and base unchanged. Balanced adapters remain experimental and failed the validation gate; no further test-driven training or RL."
+}

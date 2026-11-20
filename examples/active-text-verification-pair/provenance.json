@@ -1,0 +1,33 @@
+{
+  "task": "enter-text",
+  "seed": 75000,
+  "policy": "active_tail",
+  "branches": {
+    "none": {
+      "selected": {
+        "image": "selected-002.png",
+        "sha256": "9ffb1bb846bc952adf420d412379b094c47ed0a09ea335f87f230fb13ac83c51"
+      },
+      "post_input": {
+        "image": "001.png",
+        "sha256": "c3206fb421624c28dbe5bdf814aaf8986d3720f66488e4343eeb6278511caf96"
+      },
+      "trace_sha256": "26c761c61464f3a7c9668127042a664cd0a84b4a6be883b02febd20fb7eadc25",
+      "repairs": 0,
+      "success": true
+    },
+    "trailing-space-input": {
+      "selected": {
+        "image": "selected-002.png",
+        "sha256": "c462c74918703df370f7028c2750196c87a9b5073be867127018847ae54471f3"
+      },
+      "post_input": {
+        "image": "001.png",
+        "sha256": "c3206fb421624c28dbe5bdf814aaf8986d3720f66488e4343eeb6278511caf96"
+      },
+      "trace_sha256": "17e2c0bebaa135e19b0c2f77c5fec28b6afe4f071d8957b7587da17aaf718c04",
+      "repairs": 1,
+      "success": true
+    }
+  }
+}

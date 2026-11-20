@@ -1,0 +1,41 @@
+{
+  "id": "click-button-20018-none",
+  "scene_id": "click-button-20018",
+  "task": "click-button",
+  "seed": 20018,
+  "regime": "none",
+  "strategy": "oracle_plain",
+  "success": false,
+  "reason": "task_not_completed",
+  "prefix_matched": true,
+  "waits": 0,
+  "repairs": 1,
+  "logical_actor_calls": 2,
+  "invalid_predictions": 0,
+  "source_prediction_reused": true,
+  "verifier_calls": 1,
+  "verifier_seconds": 1.613423228263855e-05,
+  "trigger_strategy": "oracle",
+  "repair_policy": {
+    "mode": "plain",
+    "crop_fraction": 0.6,
+    "feedback_sha256": "cbf940774ae19e0344e50f9a7c1b9171d631c54ed506739b921be35510b12cc7",
+    "uses_teacher": false,
+    "coordinates_in_feedback": false
+  },
+  "triggered_recovery": true,
+  "reward": 0.0,
+  "terminated": false,
+  "truncated": false,
+  "task_info": {
+    "REWARD_GLOBAL": 0,
+    "RAW_REWARD_GLOBAL": 0,
+    "REWARD_REASON": null,
+    "DONE_GLOBAL": false,
+    "EPISODE_ID": 0,
+    "TASK_READY": true
+  },
+  "environment_steps": 2,
+  "new_actor_generations": 0,
+  "elapsed_seconds": 3.2302488926798105
+}

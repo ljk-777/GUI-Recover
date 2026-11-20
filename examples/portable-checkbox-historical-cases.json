@@ -1,0 +1,331 @@
+{
+  "scope": "Previously observed natural errors, re-executed for regression testing with cached first actions.",
+  "cases": [
+    {
+      "seed": 43009,
+      "goal": "Select 5k, oB1jJb, AdkU2S and click Submit.",
+      "target": "The checkbox labeled \"5k\"",
+      "immediate_state": [],
+      "state_after_recovery": [
+        "5k"
+      ],
+      "achieved_after_recovery": true,
+      "completed_with_oracle_continuation": true,
+      "decisions": {
+        "legacy": {
+          "trigger": false,
+          "wait": true,
+          "premature": false,
+          "immediate": {
+            "status": "unknown",
+            "reason": "ambiguous_target_label",
+            "target_score": 0.6881167033922643,
+            "target_margin": 0.5043794806365336
+          },
+          "after_wait": {
+            "status": "unknown",
+            "reason": "ambiguous_target_label",
+            "target_score": 0.6881167033922643,
+            "target_margin": 0.5043794806365336
+          }
+        },
+        "target_state": {
+          "trigger": true,
+          "wait": false,
+          "premature": false,
+          "immediate": {
+            "status": "not_achieved",
+            "reason": "target_unchecked",
+            "repair": {
+              "kind": "check_target",
+              "point": [
+                0.04819277108433735,
+                0.2881619937694704
+              ]
+            },
+            "label_profile": "basic_two_scale",
+            "label_scales": [
+              {
+                "scale": 1,
+                "row": 0,
+                "score": 0.7997843691387104,
+                "margin": 0.5214387946703343
+              },
+              {
+                "scale": 4,
+                "row": 0,
+                "score": 0.9275150496022567,
+                "margin": 0.5782591810714072
+              }
+            ],
+            "target_row": 0,
+            "checked_before": false,
+            "checked_after": false,
+            "other_changed_rows": []
+          },
+          "after_wait": {
+            "status": "not_achieved",
+            "reason": "target_unchecked",
+            "repair": {
+              "kind": "check_target",
+              "point": [
+                0.04819277108433735,
+                0.2881619937694704
+              ]
+            },
+            "label_profile": "basic_two_scale",
+            "label_scales": [
+              {
+                "scale": 1,
+                "row": 0,
+                "score": 0.7997843691387104,
+                "margin": 0.5214387946703343
+              },
+              {
+                "scale": 4,
+                "row": 0,
+                "score": 0.9275150496022567,
+                "margin": 0.5782591810714072
+              }
+            ],
+            "target_row": 0,
+            "checked_before": false,
+            "checked_after": false,
+            "other_changed_rows": []
+          }
+        }
+      },
+      "recovery": {
+        "actions": [
+          {
+            "kind": "check_target",
+            "action": {
+              "action": "CLICK",
+              "value": null,
+              "position": [
+                0.04819277108433735,
+                0.2881619937694704
+              ]
+            },
+            "evidence": {
+              "status": "not_achieved",
+              "reason": "target_unchecked",
+              "repair": {
+                "kind": "check_target",
+                "point": [
+                  0.04819277108433735,
+                  0.2881619937694704
+                ]
+              },
+              "label_profile": "basic_two_scale",
+              "label_scales": [
+                {
+                  "scale": 1,
+                  "row": 0,
+                  "score": 0.7997843691387104,
+                  "margin": 0.5214387946703343
+                },
+                {
+                  "scale": 4,
+                  "row": 0,
+                  "score": 0.9275150496022567,
+                  "margin": 0.5782591810714072
+                }
+              ],
+              "target_row": 0,
+              "checked_before": false,
+              "checked_after": false,
+              "other_changed_rows": []
+            }
+          }
+        ],
+        "final": {
+          "status": "achieved",
+          "reason": "target_checked",
+          "label_profile": "basic_two_scale",
+          "label_scales": [
+            {
+              "scale": 1,
+              "row": 0,
+              "score": 0.7997843691387104,
+              "margin": 0.5214387946703343
+            },
+            {
+              "scale": 4,
+              "row": 0,
+              "score": 0.9275150496022567,
+              "margin": 0.5782591810714072
+            }
+          ],
+          "target_row": 0,
+          "checked_before": false,
+          "checked_after": true,
+          "other_changed_rows": []
+        }
+      }
+    },
+    {
+      "seed": 43013,
+      "goal": "Select xlWUm4D, dTMG and click Submit.",
+      "target": "The checkbox labeled \"xlWUm4D\"",
+      "immediate_state": [],
+      "state_after_recovery": [
+        "xlWUm4D"
+      ],
+      "achieved_after_recovery": true,
+      "completed_with_oracle_continuation": true,
+      "decisions": {
+        "legacy": {
+          "trigger": false,
+          "wait": true,
+          "premature": false,
+          "immediate": {
+            "status": "unknown",
+            "reason": "ambiguous_target_label",
+            "target_score": 0.6975110592143373,
+            "target_margin": 0.32175834581211527
+          },
+          "after_wait": {
+            "status": "unknown",
+            "reason": "ambiguous_target_label",
+            "target_score": 0.6975110592143373,
+            "target_margin": 0.32175834581211527
+          }
+        },
+        "target_state": {
+          "trigger": true,
+          "wait": false,
+          "premature": false,
+          "immediate": {
+            "status": "not_achieved",
+            "reason": "target_unchecked",
+            "repair": {
+              "kind": "check_target",
+              "point": [
+                0.04819277108433735,
+                0.2881619937694704
+              ]
+            },
+            "label_profile": "basic_two_scale",
+            "label_scales": [
+              {
+                "scale": 1,
+                "row": 0,
+                "score": 0.7729199540800435,
+                "margin": 0.28214141821832295
+              },
+              {
+                "scale": 4,
+                "row": 0,
+                "score": 0.9014432895379806,
+                "margin": 0.38463205897377295
+              }
+            ],
+            "target_row": 0,
+            "checked_before": false,
+            "checked_after": false,
+            "other_changed_rows": []
+          },
+          "after_wait": {
+            "status": "not_achieved",
+            "reason": "target_unchecked",
+            "repair": {
+              "kind": "check_target",
+              "point": [
+                0.04819277108433735,
+                0.2881619937694704
+              ]
+            },
+            "label_profile": "basic_two_scale",
+            "label_scales": [
+              {
+                "scale": 1,
+                "row": 0,
+                "score": 0.7729199540800435,
+                "margin": 0.28214141821832295
+              },
+              {
+                "scale": 4,
+                "row": 0,
+                "score": 0.9014432895379806,
+                "margin": 0.38463205897377295
+              }
+            ],
+            "target_row": 0,
+            "checked_before": false,
+            "checked_after": false,
+            "other_changed_rows": []
+          }
+        }
+      },
+      "recovery": {
+        "actions": [
+          {
+            "kind": "check_target",
+            "action": {
+              "action": "CLICK",
+              "value": null,
+              "position": [
+                0.04819277108433735,
+                0.2881619937694704
+              ]
+            },
+            "evidence": {
+              "status": "not_achieved",
+              "reason": "target_unchecked",
+              "repair": {
+                "kind": "check_target",
+                "point": [
+                  0.04819277108433735,
+                  0.2881619937694704
+                ]
+              },
+              "label_profile": "basic_two_scale",
+              "label_scales": [
+                {
+                  "scale": 1,
+                  "row": 0,
+                  "score": 0.7729199540800435,
+                  "margin": 0.28214141821832295
+                },
+                {
+                  "scale": 4,
+                  "row": 0,
+                  "score": 0.9014432895379806,
+                  "margin": 0.38463205897377295
+                }
+              ],
+              "target_row": 0,
+              "checked_before": false,
+              "checked_after": false,
+              "other_changed_rows": []
+            }
+          }
+        ],
+        "final": {
+          "status": "achieved",
+          "reason": "target_checked",
+          "label_profile": "basic_two_scale",
+          "label_scales": [
+            {
+              "scale": 1,
+              "row": 0,
+              "score": 0.7729199540800435,
+              "margin": 0.28214141821832295
+            },
+            {
+              "scale": 4,
+              "row": 0,
+              "score": 0.9014432895379806,
+              "margin": 0.38463205897377295
+            }
+          ],
+          "target_row": 0,
+          "checked_before": false,
+          "checked_after": true,
+          "other_changed_rows": []
+        }
+      }
+    }
+  ]
+}

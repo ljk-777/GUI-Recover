@@ -1,0 +1,86 @@
+{
+  "capture": "Unmodified Chromium screenshots from the installed CPU portability demo on macOS",
+  "purpose": "Illustration from the dark textarea fixture",
+  "browser_version": "125.0.6422.26",
+  "wheel_sha256": "49c391d884cd8590d9a057cb0c61ff8dbecc8be14b69025ede71c6169da42fd0",
+  "cases": {
+    "clean": {
+      "fixture": "dark-textarea-1-clean",
+      "field_interior": [
+        88,
+        76,
+        389,
+        215
+      ],
+      "selection": {
+        "status": "visible_tail",
+        "ink_pixels": 88,
+        "background_rgb": [
+          30,
+          40,
+          53
+        ],
+        "left_edge_bleed": false,
+        "selection_region": [
+          170,
+          125,
+          177,
+          167
+        ]
+      },
+      "field_value_preserved_by_probe": true,
+      "screen_restored_by_probe": true,
+      "repaired": false,
+      "exact_submission": true,
+      "frames": {
+        "before": {
+          "file": "before.png",
+          "sha256": "4f809457481453e62f18e25b22bb73682bcd432e54b363f9cbc334e883cec68e"
+        },
+        "selected": {
+          "file": "clean-selected.png",
+          "sha256": "c54cfa8eaa3fa4a9139a194c78054ca3f36a3d19f2282519365de8594a1f7ad3"
+        }
+      }
+    },
+    "trailing_space": {
+      "fixture": "dark-textarea-1-trailing-space",
+      "field_interior": [
+        88,
+        76,
+        389,
+        215
+      ],
+      "selection": {
+        "status": "blank_tail",
+        "ink_pixels": 0,
+        "background_rgb": [
+          30,
+          40,
+          53
+        ],
+        "left_edge_bleed": false,
+        "selection_region": [
+          177,
+          125,
+          185,
+          167
+        ]
+      },
+      "field_value_preserved_by_probe": true,
+      "screen_restored_by_probe": true,
+      "repaired": true,
+      "exact_submission": true,
+      "frames": {
+        "before": {
+          "file": "before.png",
+          "sha256": "4f809457481453e62f18e25b22bb73682bcd432e54b363f9cbc334e883cec68e"
+        },
+        "selected": {
+          "file": "trailing-selected.png",
+          "sha256": "bbfe3b0dc8484d55a7a380a1c6bbdb2cbd4e30843e75d409f69790a0ee005004"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "click-tab-12002-drop-click",
+  "scene_id": "click-tab-12002",
+  "task": "click-tab",
+  "seed": 12002,
+  "regime": "drop-click",
+  "strategy": "verifier",
+  "success": false,
+  "reason": "task_not_completed",
+  "prefix_matched": true,
+  "waits": 1,
+  "repairs": 0,
+  "logical_actor_calls": 1,
+  "invalid_predictions": 0,
+  "source_prediction_reused": true,
+  "verifier_calls": 2,
+  "verifier_seconds": 0.18748917803168297,
+  "triggered_recovery": false,
+  "reward": 0.0,
+  "terminated": false,
+  "truncated": false,
+  "task_info": {
+    "REWARD_GLOBAL": 0,
+    "RAW_REWARD_GLOBAL": 0,
+    "REWARD_REASON": null,
+    "DONE_GLOBAL": false,
+    "EPISODE_ID": 0,
+    "TASK_READY": true
+  },
+  "environment_steps": 2,
+  "new_actor_generations": 0,
+  "elapsed_seconds": 3.6665373649448156
+}

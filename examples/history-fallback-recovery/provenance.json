@@ -1,0 +1,26 @@
+{
+  "case_id": "click-button-8022-correction",
+  "purpose": "Validation-selected no-history fallback on existing SFT weights repairs an executed failure that base retry does not.",
+  "selection": "Post-evaluation illustration only, excluded as a selection criterion; full denominators are in the two history results JSON files.",
+  "autonomous_detection": false,
+  "scripted_controller": true,
+  "screenshots": "Native unmodified MiniWoB rendering; MIT notice in ../MINIWOB_LICENSE.txt.",
+  "trials": {
+    "base": {
+      "head": "base_plain",
+      "source_code": "ec8b086d64b4c40c3d1fbe4e17a4b0037fd27ecc",
+      "adapter_sha256": null,
+      "success": false,
+      "conditional": true,
+      "recovery_mode": "restart_after_terminal"
+    },
+    "fallback": {
+      "head": "history_plain",
+      "source_code": "ec8b086d64b4c40c3d1fbe4e17a4b0037fd27ecc",
+      "adapter_sha256": "5f4b578ed4e6e7bfd5e1bc4a5f6da20f6153e3d414f3c6996d2603cbc6c93e44",
+      "success": true,
+      "conditional": true,
+      "recovery_mode": "restart_after_terminal"
+    }
+  }
+}

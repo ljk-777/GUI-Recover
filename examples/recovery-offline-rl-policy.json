@@ -1,0 +1,64 @@
+{
+  "algorithm": "finite_horizon_fitted_q_v1",
+  "discount": 1.0,
+  "costs": [
+    0.0,
+    0.02,
+    0.05,
+    0.05
+  ],
+  "q": {
+    "after_wait:achieved": {
+      "CONTINUE": 1.0,
+      "RETRY_PLAIN": 0.9500000000000001,
+      "RETRY_FIXED_ZOOM": 0.9500000000000001
+    },
+    "after_wait:not_achieved": {
+      "CONTINUE": 0.0,
+      "RETRY_PLAIN": 0.9499999999999998,
+      "RETRY_FIXED_ZOOM": 0.9499999999999998
+    },
+    "immediate:achieved": {
+      "CONTINUE": 1.0,
+      "WAIT": 0.98,
+      "RETRY_PLAIN": 0.9499999999999998,
+      "RETRY_FIXED_ZOOM": 0.9499999999999998
+    },
+    "immediate:not_achieved": {
+      "CONTINUE": 0.0,
+      "WAIT": 0.9549999999999997,
+      "RETRY_PLAIN": 0.45,
+      "RETRY_FIXED_ZOOM": 0.45
+    }
+  },
+  "support": {
+    "after_wait:achieved": {
+      "CONTINUE": 6,
+      "RETRY_PLAIN": 6,
+      "RETRY_FIXED_ZOOM": 6
+    },
+    "after_wait:not_achieved": {
+      "CONTINUE": 3,
+      "RETRY_PLAIN": 3,
+      "RETRY_FIXED_ZOOM": 3
+    },
+    "immediate:achieved": {
+      "CONTINUE": 3,
+      "WAIT": 3,
+      "RETRY_PLAIN": 3,
+      "RETRY_FIXED_ZOOM": 3
+    },
+    "immediate:not_achieved": {
+      "CONTINUE": 6,
+      "WAIT": 6,
+      "RETRY_PLAIN": 6,
+      "RETRY_FIXED_ZOOM": 6
+    }
+  },
+  "fit": {
+    "review_rows": 81,
+    "independent_state_action_outcomes": 63,
+    "duplicate_branch_rows_removed": 18,
+    "fitted_entries": 14
+  }
+}

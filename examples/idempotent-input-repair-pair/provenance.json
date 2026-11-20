@@ -1,0 +1,11 @@
+{
+  "task": "enter-text",
+  "seed": 67000,
+  "regime": "deferred-input",
+  "policies": [
+    "legacy_visual",
+    "learned_wait",
+    "replace_visual"
+  ],
+  "scope": "First audited improvement on delayed input, selected after evaluation"
+}

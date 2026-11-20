@@ -1,8 +1,35 @@
 # Offline examples
 
+The [RC3 tail selection](rc3-tail-selection/provenance.json) example contains a shared original frame and two native Chromium selections. A glyph appears in the clean selection, and the corresponding injected trailing space produces a blank selection. [RC3 validation results](rc3-tail-validation.json) include the CPU portability demo, paired native latency study and three-controller transfer comparison.
+
 Open `recovered/replay.html` to inspect one successful dropped-input recovery without installing a model or browser.
 `wrong-input/replay.html` is a content-correctness counterexample: visible ink does not prove that the text is correct.
 
 The planner in these examples is explicitly scripted; ShowUI predicts coordinates. They are not autonomous planning or full-benchmark scores.
 `provenance.json` records the model revision, experiment code and intervention. Screenshot hashes are in trajectory.jsonl.
 Synthetic pages are rendered from MiniWoB++, MIT; the original notice is preserved in MINIWOB_LICENSE.txt. No weights or server login details are included.
+
+`sft-smoke-results.json` records the first 64-pair, 32-update QLoRA smoke, adapter reload acceptance, unchanged 23/28 held-out grounding result, and 4/4 versus 4/4 scripted execution checks.
+`sft-grounding/` contains one single-frame unseen-task failure with teacher boxes and both predictions; it is not a recovery episode. The adapter remains a separate local artifact, not part of these examples.
+
+`sft-recovery-results.json` records the frozen follow-up: 225 pairs from 150 scenes, two 128-update adapters, six offline ablations and 72 GUI executions. Conditional corrections are selected by an offline evaluator; this is not autonomous error detection. Small conditional gains coexist with clean-task regressions, and neither adapter is promoted to the default.
+
+- [In-place conditional repair](sft-recovery/history_history/replay.html) and [base retry](sft-recovery/base_plain/replay.html): same executed error prefix, no reset; history adapter succeeds where base retry fails.
+- [Normal Submit regression](sft-history-regression/history_history/replay.html) and [base completion](sft-history-regression/base_plain/replay.html): history adapter repeats the input coordinate and fails to finish.
+
+Both pairs are post-evaluation illustrations, not the score denominator. Their native PNGs and logs are byte-identical to the experiment evidence; provenance states the controller and selection limits. Full results include failures and separate terminal-reset retries from in-place recovery. No adapter or base weights are committed here.
+
+
+`history-prompt-results.json` and `history-balanced-results.json` preserve the follow-up on fresh 8000-series scenes. Prompt ordering restores Submit, but all three balanced retraining seeds fail the original validation gate and remain experimental. The predeclared no-history fallback is reported independently of retraining.
+
+- `history-submit/`: the fixed enter-text seed 8000 across base, legacy, target-last and the fixed primary balanced model, preserving each outcome.
+- [Fallback retry](history-fallback-recovery/fallback/replay.html) and [base retry](history-fallback-recovery/base/replay.html): an actual evaluator-selected failure followed by a same-seed restart, not recovery inside the original episode or autonomous detection.
+- `history-balanced-regression/`: a retained clean-task counterexample for the fixed primary balanced model.
+
+These examples are post-evaluation illustrations, not the denominators. All PNGs and logs remain unmodified. Both reports retain strict teacher-box scores and GUI outcomes, including boundary differences; no post-hoc margin rescoring. No weights are committed.
+
+
+`visual-verification-results.json` records the fresh 300-scene/630-variant outcome-verification study, validation-only injection-transfer fitting and six fixed recovery controls. The primary visual verifier actually decides from screenshots/action/goal at runtime; only oracle accesses task labels/pending state. Deterministic control rendering and FIFO delayed input are explicit fixtures, not stock MiniWoB or real-network claims. Rejects, live/terminal state denominators, natural errors, caches and all failures are retained. Native illustrative cases are labelled post-evaluation and do not determine the score. Classifier/base weights are not committed.
+
+
+`contextual-repair-results.json` records the fixed feedback/zoom repair study, validation-only selection, untouched natural-error test, privileged conditional repair and unselected mixed runtime. Native screenshots and declared derived model inputs are distinct. Counterfactual healthy rechecks are geometric probes, not executed healthy episodes. The no-image action/phase detector ablation and termination-gating limitations are reported. All examples are post-evaluation illustrations; no actor weights or default-model promotion.
