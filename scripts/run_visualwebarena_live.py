@@ -56,10 +56,9 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
     """Use BrowserGym's screenshot and action contract with native VWA answers."""
 
     def __init__(self, task_id):
-        import browsergym.visualwebarena  # noqa: F401 — registers environments
         from browsergym.core.action.highlevel import HighLevelActionSet
+        from browsergym.core.env import BrowserEnv
         from browsergym.visualwebarena.task import GenericVisualWebArenaTask
-        import gymnasium as gym
 
         if task_id not in READ_ONLY_TASKS:
             raise ValueError("Task is outside the registered Classifieds subset")
@@ -89,8 +88,8 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
         self.visual_variant = "default"
         self.obs = None
         actions = HighLevelActionSet(subsets=["coord", "chat"], strict=True, multiaction=True)
-        self.env = gym.make(f"browsergym/{self.task}", headless=True,
-                            action_mapping=actions.to_python_code, task_entrypoint=StringOnlyTask)
+        self.env = BrowserEnv(StringOnlyTask, task_kwargs={"task_id": task_id}, headless=True,
+                              action_mapping=actions.to_python_code)
 
     def step(self, action: Action):
         checked = parse_action(json.dumps(action.to_dict()))
