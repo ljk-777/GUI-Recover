@@ -1,6 +1,7 @@
 """Ground controls with a separate Qwen2.5-VL checkpoint."""
 
 import json
+import re
 from math import isfinite
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from .policies import ShowUIPolicy
 
 QWEN_REVISION = "66285546d2b821cf421d4f5eb2576359d3770cd3"
 QWEN_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
+_LINE_SCROLL = re.compile(r"Action: SCROLL\nValue: ([+-]?[0-9]{1,6})(?:\nPosition: \[[0-9]{1,5}, [0-9]{1,5}\])?")
 
 
 def read_reply(raw):
@@ -122,8 +124,19 @@ class QwenGroundingPolicy:
             "Use only these four actions. Inspect the image and avoid repeating a failed action."
         )
         raw = self.ask(canvas, request)
+        response_format = "json"
+        self.last_metrics["provider_format"] = "invalid"
         try:
-            data = read_reply(raw)
+            try:
+                data = read_reply(raw)
+            except json.JSONDecodeError:
+                # Some single scroll replies use labelled lines. The scroll
+                # executor always uses the viewport center and a fixed step.
+                match = _LINE_SCROLL.fullmatch(raw.strip())
+                if match is None:
+                    raise
+                data = {"action": "SCROLL", "value": int(match[1]), "position": None}
+                response_format = "line_scroll"
             if not isinstance(data, dict) or set(data) != {"action", "value", "position"}:
                 raise ValueError("Expected one action dictionary")
             if not isinstance(data["action"], str):
@@ -146,6 +159,7 @@ class QwenGroundingPolicy:
             action = parse_action(json.dumps(data))
             if action.action not in ("CLICK", "INPUT", "SCROLL", "ANSWER"):
                 raise ValueError("Unsupported Qwen navigation action")
+            self.last_metrics["provider_format"] = response_format
             return json.dumps(action.to_dict())
         except (ValueError, RecursionError):
             return ""
