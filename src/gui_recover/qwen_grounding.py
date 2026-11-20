@@ -12,6 +12,14 @@ from .policies import ShowUIPolicy
 QWEN_REVISION = "66285546d2b821cf421d4f5eb2576359d3770cd3"
 QWEN_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
 _LINE_SCROLL = re.compile(r"Action: SCROLL\nValue: ([+-]?[0-9]{1,6})(?:\nPosition: \[[0-9]{1,5}, [0-9]{1,5}\])?")
+VISIBLE_ANSWER_PROMPT = (
+    "Check whether this screenshot contains enough evidence to answer the question. "
+    "For questions about a particular item or photo, check that it is the requested one. "
+    "If any required detail is missing, illegible, or requires another view, return {\"answer\":null}. "
+    "Otherwise return one JSON object with the short answer as the string value of the key answer. "
+    "Include every requested part. Read the screenshot directly and avoid guessing. "
+    "Return one JSON object only.\n"
+)
 
 
 def read_reply(raw):
@@ -39,6 +47,18 @@ def parse_pixel_point(raw, width, height):
     except (ValueError, RecursionError) as error:
         raise ActionError("Invalid Qwen pixel coordinates") from error
     return ((x + 0.5) / width, (y + 0.5) / height)
+
+
+def parse_visible_answer(raw):
+    data = read_reply(raw)
+    if not isinstance(data, dict) or set(data) != {"answer"}:
+        raise ActionError("Expected one answer field")
+    answer = data["answer"]
+    if answer is None:
+        return None
+    if not isinstance(answer, str) or not 0 < len(answer.strip()) <= 512:
+        raise ActionError("Expected a nonempty short answer or null")
+    return answer.strip()
 
 
 class QwenGroundingPolicy:
@@ -107,6 +127,17 @@ class QwenGroundingPolicy:
             return json.dumps(parse_pixel_point(raw, width, height))
         except ActionError:
             return ""
+
+    def check_answer(self, observation):
+        canvas = self.prepare_image(observation.screenshot)
+        raw = self.ask(canvas, f"{VISIBLE_ANSWER_PROMPT}Question: {observation.goal}")
+        self.last_metrics["provider_format"] = "answer_invalid"
+        try:
+            answer = parse_visible_answer(raw)
+        except (ValueError, RecursionError):
+            return None
+        self.last_metrics["provider_format"] = "answer_abstained" if answer is None else "answer_json"
+        return answer
 
     def predict(self, observation, history):
         canvas = self.prepare_image(observation.screenshot)

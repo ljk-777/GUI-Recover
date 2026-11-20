@@ -20,11 +20,17 @@ BACKEND_VARIABLES = ("VWA_CLASSIFIEDS", "VWA_SHOPPING", "VWA_REDDIT", "VWA_WIKIP
                      "VWA_HOMEPAGE", "VWA_CLASSIFIEDS_RESET_TOKEN")
 READ_ONLY_TASKS = (118, 120, 149)
 TRANSFER_TASKS = (11, 12, 22, 49, 119, 128, 148, 186, 221, 222)
-TASK_SETS = {"diagnostic": READ_ONLY_TASKS, "transfer": TRANSFER_TASKS}
+TASK_SETS = {
+    "diagnostic": READ_ONLY_TASKS,
+    "transfer": TRANSFER_TASKS,
+    "answer-diagnostic": (118, 128, 221),
+    "answer-transfer": (10, 13, 41, 42, 150, 163, 192, 209),
+}
 STUDY_MODES = {
     "visual": ("none", "feedback"),
     "format": ("none", "retry", "feedback"),
     "scroll": ("feedback", "scroll-feedback"),
+    "answer": ("navigation", "answer-check"),
 }
 
 
@@ -67,7 +73,7 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
         from browsergym.core.env import BrowserEnv
         from browsergym.visualwebarena.task import GenericVisualWebArenaTask
 
-        if task_id not in READ_ONLY_TASKS + TRANSFER_TASKS:
+        if not any(task_id in tasks for tasks in TASK_SETS.values()):
             raise ValueError("Task is outside the registered Classifieds subset")
         # The upstream module constructs an OpenAI client even for its local
         # string evaluator. These tasks require no external judging service.
@@ -140,8 +146,8 @@ def main():
         parser.error(f"Run the backend preflight first: {json.dumps(ready)}")
     if args.model is None or args.out is None or not 1 <= args.max_steps <= 12:
         parser.error("Provide local model, fresh output directory and a prediction budget of 1–12")
-    if args.study in ("format", "scroll") and args.actor != "qwen":
-        parser.error("The format and scroll studies use the Qwen navigation prompt")
+    if args.study != "visual" and args.actor != "qwen":
+        parser.error("The format, scroll, and answer studies use Qwen")
     probe_instance()
     args.out.mkdir(parents=True, exist_ok=False)
     if args.actor == "showui":
@@ -154,13 +160,19 @@ def main():
     strategies = {mode: [] for mode in STUDY_MODES[args.study]}
     for task_id in task_ids:
         for mode in strategies:
+            if args.study == "answer":
+                recovery, invalid_retry = "scroll-feedback", "feedback"
+            elif args.study == "format":
+                recovery, invalid_retry = "none", mode
+            else:
+                recovery = mode
+                invalid_retry = "feedback" if args.study == "scroll" else "none"
             env = VisualWebArenaEnvironment(task_id)
             try:
                 branch = args.out / f"{env.task}-{mode}"
                 row = run_episode(env, actor, env.task, 0, args.max_steps, branch,
-                                  recovery="none" if args.study == "format" else mode,
-                                  invalid_action_retry=mode if args.study == "format" else (
-                                      "feedback" if args.study == "scroll" else "none"),
+                                  recovery=recovery, invalid_action_retry=invalid_retry,
+                                  answer_check=mode == "answer-check",
                                   submit_answer=True, success_check=exact_vwa_success)
                 render_replay(branch)
                 strategies[mode].append(row)
@@ -169,8 +181,10 @@ def main():
                 env.close()
     counts = ("predictions", "model_calls", "steps", "invalid_predictions",
               "invalid_action_retries", "repaired_predictions")
-    if args.study == "scroll":
+    if args.study in ("scroll", "answer"):
         counts += ("scroll_feedbacks", "scroll_detection_signals")
+    if args.study == "answer":
+        counts += ("answer_checks", "answers_submitted", "answers_from_checks")
     write_json(args.out / "summary.json", {"benchmark": "visualwebarena", "task_ids": task_ids,
         "task_set": args.task_set, "study": args.study, "budget_unit": "predictions",
         "max_steps": args.max_steps, "model": actor.config, "strategies": {

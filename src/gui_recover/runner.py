@@ -5,7 +5,7 @@ import time
 from collections import Counter
 from pathlib import Path
 
-from .actions import ActionError, parse_action
+from .actions import Action, ActionError, parse_action
 from .recovery import ActionFault, FeedbackRecovery, detect
 
 
@@ -33,12 +33,15 @@ def is_success(reward, terminated, truncated, task_info):
 
 def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict",
                 fault_kind="none", fault_seed=0, recovery="none", *,
-                submit_answer=False, success_check=is_success, invalid_action_retry="none"):
-    """Run up to max_steps predictions, including any retry on the same observation."""
+                submit_answer=False, success_check=is_success, invalid_action_retry="none",
+                answer_check=False):
+    """Run up to max_steps predictions, including answer checks and action retries."""
     if invalid_action_retry not in ("none", "retry", "feedback"):
         raise ValueError("Unknown invalid-action retry mode")
     if invalid_action_retry == "feedback" and not callable(getattr(policy, "set_feedback", None)):
         raise ValueError("Invalid-action feedback requires a policy with set_feedback")
+    if answer_check and (not submit_answer or not callable(getattr(policy, "check_answer", None))):
+        raise ValueError("Answer checks require a policy with check_answer and native answer submission")
     directory = Path(out_dir)
     directory.mkdir(parents=True, exist_ok=False)
     trajectory = directory / "trajectory.jsonl"
@@ -57,6 +60,8 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
     metadata = {}
     normalized_outputs = 0
     invalid_predictions = invalid_action_retries = repaired_predictions = 0
+    answers_submitted = answers_from_checks = 0
+    checked_frames = set()
     retrying_invalid = False
     injector = ActionFault(fault_kind, fault_seed)
     controller = FeedbackRecovery(enabled=recovery in ("feedback", "scroll-feedback"),
@@ -80,12 +85,20 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
         obs, info = env.reset(seed)
         task_info = info.get("task_info", {})
         metadata = env.metadata()
+        frame = screenshot(obs, 0)
         emit({"event": "reset", "task": task, "seed": seed, "goal": obs.goal,
-              "task_info": task_info, **screenshot(obs, 0)})
+              "task_info": task_info, **frame})
         reason = "step_limit"
         for index in range(max_steps):
             before = time.perf_counter()
-            raw = policy.predict(obs, history)
+            frame_digest = frame["sha256"]
+            checking_answer = answer_check and frame_digest not in checked_frames
+            if checking_answer:
+                checked_frames.add(frame_digest)
+                answer = policy.check_answer(obs)
+                raw = None if answer is None else json.dumps(Action("ANSWER", answer).to_dict(), ensure_ascii=False)
+            else:
+                raw = policy.predict(obs, history)
             latency = time.perf_counter() - before
             predictions += 1
             invocation_count = getattr(policy, "last_metrics", {}).get("model_invocations")
@@ -94,8 +107,13 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
             else:
                 model_calls += invocation_count
             inference_seconds += latency
-            emit({"event": "prediction", "step": index, "raw": raw,
-                  "inference_seconds": latency, "metrics": getattr(policy, "last_metrics", {})})
+            prediction = {"event": "prediction", "step": index, "raw": raw,
+                          "inference_seconds": latency, "metrics": getattr(policy, "last_metrics", {})}
+            if checking_answer:
+                prediction.update(decision="answer_check", observation_sha256=frame_digest)
+            emit(prediction)
+            if checking_answer and raw is None:
+                continue
             try:
                 action = parse_action(raw, mode=parser_mode)
                 if parser_mode == "mixed":
@@ -131,16 +149,20 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
             before_obs = obs
             obs, reward, terminated, truncated, info, code = env.step(executed)
             steps += 1
+            if executed.action == "ANSWER":
+                answers_submitted += 1
+                answers_from_checks += checking_answer
             signal = detect(before_obs, obs, action)
             detection_signals += signal.unchanged_after_click or bool(signal.execution_error)
             scroll_detection_signals += signal.unchanged_after_scroll
             task_info = info.get("task_info", {})
             execution_errors += bool(obs.last_action_error)
+            frame = screenshot(obs, steps)
             emit({"event": "transition", "step": index, "action": executed.to_dict(),
                   "proposed_action": action.to_dict(),
                   "executed_code": code, "reward": reward, "terminated": terminated,
                   "truncated": truncated, "task_info": task_info,
-                  "execution_error": obs.last_action_error, **screenshot(obs, steps)})
+                  "execution_error": obs.last_action_error, **frame})
             emit({"event": "diagnostic", "step": index, "proposed_action": action.to_dict(),
                   "executed_action": executed.to_dict(), "fault": fault,
                   "unchanged_after_click": signal.unchanged_after_click,
@@ -176,6 +198,8 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
     result["normalized_outputs"] = normalized_outputs
     result.update({"invalid_action_retry": invalid_action_retry, "invalid_predictions": invalid_predictions,
                    "invalid_action_retries": invalid_action_retries, "repaired_predictions": repaired_predictions})
+    result.update({"answer_check": answer_check, "answer_checks": len(checked_frames),
+                   "answers_submitted": answers_submitted, "answers_from_checks": answers_from_checks})
     result["model_calls"] = model_calls if model_calls_known else None
     result["input_guard"] = getattr(policy, "guard_metrics", None)
     result.update({"fault_kind": fault_kind, "fault_seed": fault_seed,

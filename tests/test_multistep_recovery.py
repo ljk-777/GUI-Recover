@@ -2,7 +2,7 @@ import pytest
 
 from gui_recover.actions import Action, ActionError
 from gui_recover.multistep_recovery import BUTTONS, focus_probe, layout_fixture, validate_plan, with_full_credit
-from gui_recover.qwen_grounding import parse_pixel_point
+from gui_recover.qwen_grounding import parse_pixel_point, parse_visible_answer
 from gui_recover.verification import pixel_hash
 from gui_recover.verification_env import TransitionExecution
 
@@ -34,6 +34,15 @@ def test_qwen_pixel_adapter_rejects_unusable_outputs(raw):
 def test_qwen_pixels_are_mapped_to_centers():
     assert parse_pixel_point('{"point_2d":[2,3]}', 10, 20) == (0.25, 0.175)
     assert parse_pixel_point('```json\n[{"point_2d":[2,3]}]\n```', 10, 20) == (0.25, 0.175)
+
+
+def test_visible_answer_requires_only_a_short_string_or_an_explicit_abstention():
+    assert parse_visible_answer('{"answer":"  12 inches  "}') == "12 inches"
+    assert parse_visible_answer('{"answer":null}') is None
+    for raw in ('{"answer":""}', '{"answer":12}', '{"answer":"x","answer":null}',
+                '{"answer":"x","action":"CLICK"}', '{"answer":"x"}{"answer":"y"}'):
+        with pytest.raises(ValueError):
+            parse_visible_answer(raw)
 
 
 @pytest.mark.integration

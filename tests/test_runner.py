@@ -69,6 +69,57 @@ def test_policy_stop_does_not_inflate_inference_calls(tmp_path):
     assert result["model_calls"] == 0
 
 
+@pytest.mark.parametrize("budget,expected_calls,expected_steps,success", [
+    (4, ["check", "navigate", "navigate", "check"], 3, True),
+    (3, ["check", "navigate", "navigate"], 2, False),
+])
+def test_answer_check_shares_budget_and_visits_each_distinct_frame_once(
+        tmp_path, budget, expected_calls, expected_steps, success):
+    calls = []
+
+    class Browser(FakeEnv):
+        def __init__(self):
+            self.actions = []
+
+        def step(self, action):
+            self.actions.append(action.action)
+            finished = action.action == "ANSWER" and action.value == "seven"
+            assert action.action in ("CLICK", "ANSWER")
+            color = "black" if len(self.actions) >= 2 else "white"
+            screen = VisualObservation("The question", Image.new("RGB", (20, 10), color))
+            return screen, int(finished), finished, False, {}, "browser_action"
+
+        def reset(self, seed):
+            return VisualObservation("The question", Image.new("RGB", (20, 10), "white")), {}
+
+    class Policy:
+        last_metrics = {"model_invocations": 1}
+
+        def check_answer(self, obs):
+            calls.append("check")
+            return "seven" if obs.screenshot.getpixel((0, 0)) == (0, 0, 0) else None
+
+        def predict(self, obs, history):
+            calls.append("navigate")
+            assert len(history) == calls.count("navigate") - 1
+            return '{"action":"CLICK","value":null,"position":[0.5,0.5]}'
+
+    browser = Browser()
+    out = tmp_path / "episode"
+    result = run_episode(browser, Policy(), "fake", 0, budget, out, answer_check=True,
+                         submit_answer=True, success_check=lambda reward, done, truncated, info: reward == 1 and done)
+    assert calls == expected_calls
+    assert result["predictions"] == result["model_calls"] == budget
+    assert result["steps"] == expected_steps
+    assert result["answer_checks"] == calls.count("check")
+    assert result["success"] is success
+    assert result["answers_submitted"] == result["answers_from_checks"] == int(success)
+    assert result["invalid_predictions"] == 0
+    events = [json.loads(line) for line in (out / "trajectory.jsonl").read_text().splitlines()]
+    assert events[1]["observation_sha256"] == events[0]["sha256"]
+    assert events[1]["raw"] is None
+
+
 @pytest.mark.parametrize("mode,budget,expected_predictions,expected_steps,expected_retries", [
     ("none", 3, 1, 0, 0),
     ("retry", 3, 3, 1, 1),
