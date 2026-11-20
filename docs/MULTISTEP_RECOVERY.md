@@ -330,6 +330,16 @@ For a request for a listing title, the evidence policy can use a strong and dist
 
 Prepare the reference archive from the upstream checkout at revision 89f5af29305c3d1e9f97ce4421462060a70c9a03. Configure the usual VisualWebArena variables and a genuine Shopping instance at a distinct origin for the cross-site task. The cohort retains the original local native scoring rules. Both arms use the pinned Qwen 7B NF4 profile.
 
+On a host with Docker, the WebArena-Verified Shopping image can provide the storefront and seeded catalog. The following pins the Linux amd64 publisher image and puts the storefront on loopback. Use this origin for `VWA_SHOPPING`. Wait until BrowserGym's original Shopping login, a catalog search, and a product image load succeed before running the pair. [Upstream Shopping environment](https://servicenow.github.io/webarena-verified/v1.2.3/environments/shopping/)
+
+~~~bash
+docker run --detach --name gui-recover-shopping --platform linux/amd64 \
+  --publish 127.0.0.1:19981:80 \
+  --env WA_ENV_CTRL_EXTERNAL_SITE_URL=http://127.0.0.1:19981 \
+  am1n3e/webarena-verified-shopping@sha256:3e8cb9b945ea9b1c94ab26dba53e8d12dd0406abbf4bf686fd3bb2b6a5908feb
+export VWA_SHOPPING=http://127.0.0.1:19981
+~~~
+
 ~~~bash
 python scripts/prepare_vwa_input_holdout.py --upstream /path/to/visualwebarena \
   --protocol examples/vwa-input-heldout-protocol.json --out runs/vwa-input-cohort
