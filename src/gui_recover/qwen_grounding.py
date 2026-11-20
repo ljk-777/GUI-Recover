@@ -92,7 +92,7 @@ def native_action_after_note(raw):
 def normalize_qwen_action(data, size, *, native_navigation=False, compact_navigation=True, tab_count=0):
     if native_navigation and compact_navigation and isinstance(data, dict) and isinstance(data.get("action"), str):
         native_kind = data["action"].upper()
-        if native_kind == "SCROLL" and set(data) == {"action", "value"}:
+        if native_kind in ("SCROLL", "TAB_FOCUS") and set(data) == {"action", "value"}:
             data = {**data, "position": None}
         elif native_kind in ("CLICK", "LEFT_CLICK") and set(data) in (
                 {"action", "value"}, {"action", "value", "position"}):

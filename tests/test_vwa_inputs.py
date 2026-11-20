@@ -77,6 +77,8 @@ def test_tab_actions_validate_the_observed_tab_count_and_are_not_generic_browser
     data = {"action": "TAB_FOCUS", "value": "2", "position": None}
     action = normalize_qwen_action(data, (16, 12), native_navigation=True, tab_count=2)
     assert action.value == "2"
+    assert normalize_qwen_action({"action": "TAB_FOCUS", "value": "2"}, (16, 12),
+                                 native_navigation=True, tab_count=2) == action
     with pytest.raises(ActionError):
         normalize_qwen_action(data, (16, 12), native_navigation=True, tab_count=1)
     with pytest.raises(ActionError):
