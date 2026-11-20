@@ -34,6 +34,7 @@ TASK_SETS = {
     "evidence-navigation-diagnostic": (14, 15, 221),
     "evidence-ocr-diagnostic": (14, 15, 40, 83, 98, 221),
     "evidence-search-diagnostic": (14, 40, 98, 221),
+    "evidence-direct-search-diagnostic": (40, 98, 221),
 }
 STUDY_MODES = {
     "visual": ("none", "feedback"),
@@ -187,7 +188,7 @@ def run_study(actor, *, out, study, task_set, max_steps):
             mode: {**aggregate(rows), **{key: sum(row[key] for row in rows) for key in counts}}
             for mode, rows in strategies.items()}}
     if screen_reader is not None:
-        summary["screen_reader"] = {**screen_reader.config, "guarded_ocr": True}
+        summary["screen_reader"] = {**screen_reader.config, "guarded_ocr": True, "direct_navigation": True}
     write_json(out / "summary.json", summary)
 
 

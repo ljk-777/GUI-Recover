@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 
 from .actions import Action, ActionError
 from .qwen_grounding import native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
-from .screen_text import from_readable_control
+from .screen_text import exact_initial_search, from_readable_control, listing_detail
 from .verification import pixel_hash
 
 
@@ -240,11 +240,26 @@ class EvidenceAnswerPolicy:
                 "Return one JSON response and never answer the task directly."
             )
         rows = None
+        navigation_rows = None
         if self.screen_reader is not None:
             rows = self.screen_reader(observation.screenshot, canvas.size)
+            if not history:
+                try:
+                    shortcut = exact_initial_search(observation.goal, rows, canvas.size)
+                except ActionError:
+                    shortcut = None
+                if shortcut is not None:
+                    self.actor.last_metrics = {
+                        "model_invocations": 0, "provider_output": None, "provider_image_size": list(canvas.size),
+                        "evidence_stage": "locate", "evidence_frame": frame, "screen_text": rows,
+                        "provider_format": "evidence_exact_search", "peak_cuda_allocated_bytes": 0,
+                    }
+                    return json.dumps(shortcut.to_dict(), ensure_ascii=False)
+            navigation_rows = None if listing_detail(rows) else rows
+        if navigation_rows is not None:
             controls = "\n".join(
                 f"{index}: {json.dumps(row['text'], ensure_ascii=False)} at {row['bounds']}"
-                for index, row in enumerate(rows)
+                for index, row in enumerate(navigation_rows)
             )
             recent = [{"action": item["action"]["action"],
                        "value": (item["action"]["value"] or "")[:80]}
@@ -271,7 +286,7 @@ class EvidenceAnswerPolicy:
             self.last_metrics["screen_text"] = rows
         try:
             navigation, box, candidate, status = parse_evidence_location(
-                raw, observation.goal, canvas.size, confirm=self.confirm, rows=rows, guarded_ocr=rows is not None)
+                raw, observation.goal, canvas.size, confirm=self.confirm, rows=navigation_rows, guarded_ocr=True)
         except (ValueError, RecursionError):
             return None
         self.last_metrics["provider_format"] = status

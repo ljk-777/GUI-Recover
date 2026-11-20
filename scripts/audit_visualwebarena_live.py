@@ -13,6 +13,7 @@ from gui_recover.answer_evidence import (
 )
 from gui_recover.qwen_grounding import native_action_after_note, parse_visible_answer, read_reply
 from gui_recover.runner import INVALID_ACTION_FEEDBACK, aggregate, write_json
+from gui_recover.screen_text import exact_initial_search, listing_detail
 from gui_recover.verification import pixel_hash
 from gui_recover.visual_text_audit import checked_file, read_json, require
 from run_visualwebarena_live import ANSWER_STUDIES, EVIDENCE_STUDIES, STUDY_MODES, TASK_SETS, exact_vwa_success
@@ -20,7 +21,7 @@ from run_visualwebarena_live import ANSWER_STUDIES, EVIDENCE_STUDIES, STUDY_MODE
 
 def audit_evidence(directory, predictions, frame_before_prediction, frames, goal, *,
                    confirm=False, click_origins=None, compact_navigation=False, use_screen_text=False,
-                   guarded_ocr=False):
+                   guarded_ocr=False, direct_navigation=False):
     visited = set()
     answers = set()
     stages = Counter()
@@ -70,6 +71,19 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                             and len(coords) == 4 and all(type(value) is int for value in coords)
                             and 0 <= coords[0] < coords[2] <= size[0] and 0 <= coords[1] < coords[3] <= size[1],
                             "Invalid OCR bounds")
+            shortcut = None
+            if direct_navigation and rows is not None and step == 0:
+                try:
+                    shortcut = exact_initial_search(goal, rows, size)
+                except ActionError:
+                    pass
+            if shortcut is not None:
+                require(metrics["provider_format"] == "evidence_exact_search" and reply is None
+                        and parse_action(raw) == shortcut, "Search action differs from the visible field and task text")
+                stages["grounded_search"] += 1
+                continue
+            if direct_navigation and rows is not None and listing_detail(rows):
+                rows = None
             try:
                 navigation, box, candidate, status = parse_evidence_location(
                     reply, goal, size, confirm=confirm, compact_navigation=compact_navigation, rows=rows,
@@ -148,7 +162,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
 
 def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=False, answer_study=False,
                   evidence_check=False, confirm=False, use_navigation_context=False, compact_navigation=False,
-                  use_screen_text=False, guarded_ocr=False):
+                  use_screen_text=False, guarded_ocr=False, direct_navigation=False):
     events = [json.loads(line) for line in (directory / "trajectory.jsonl").read_text().splitlines()]
     row = read_json(directory / "episode.json")
     require(events[0]["event"] == "reset" and events[-1] == {"event": "episode_end", **row},
@@ -178,7 +192,9 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         metrics = prediction["metrics"]
         provider_format = metrics["provider_format"]
         formats[provider_format] += 1
-        require(metrics["model_invocations"] == 1, "Expected one model invocation per prediction")
+        is_shortcut = direct_navigation and use_screen_text and provider_format == "evidence_exact_search" and step == 0
+        require(metrics["model_invocations"] == (0 if is_shortcut else 1),
+                "Unexpected model invocation count for the decision")
         digest = observation["sha256"]
         frame_before_prediction[step] = frame_index
         if step in transition_by_step:
@@ -264,7 +280,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         evidence_stages, checked_answers = audit_evidence(
             directory, predictions, frame_before_prediction, frames, events[0]["goal"],
             confirm=confirm, click_origins=click_origins, compact_navigation=compact_navigation,
-            use_screen_text=use_screen_text, guarded_ocr=guarded_ocr)
+            use_screen_text=use_screen_text, guarded_ocr=guarded_ocr, direct_navigation=direct_navigation)
     answer_outcome = None
     if answer_study:
         submissions = [event for event in transitions if event["action"]["action"] == "ANSWER"]
@@ -341,7 +357,8 @@ def audit(directory):
                                    confirm=mode in ("evidence-confirm", "evidence-context", "evidence-ocr"),
                                    use_navigation_context=mode in ("evidence-context", "evidence-ocr"),
                                    compact_navigation=compact_navigation, use_screen_text=mode == "evidence-ocr",
-                                   guarded_ocr=summary.get("screen_reader", {}).get("guarded_ocr", False))
+                                   guarded_ocr=summary.get("screen_reader", {}).get("guarded_ocr", False),
+                                   direct_navigation=summary.get("screen_reader", {}).get("direct_navigation", False))
             require(record["row"]["task"] == name and record["row"]["seed"] == record["reset"][1] == 0,
                     "Task or seed mismatch")
             studies[mode].append(record)

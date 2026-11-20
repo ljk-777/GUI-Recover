@@ -2,6 +2,7 @@
 
 import json
 import math
+import re
 
 from .actions import Action, ActionError, parse_action
 from .qwen_grounding import normalize_qwen_action, read_reply
@@ -80,3 +81,21 @@ def from_readable_control(raw, rows, size, *, guarded=False):
     if guarded and data["action"] == "INPUT" and not empty_keyword:
         raise ActionError("Text input needs a recognized field rather than an arbitrary label")
     return normalize_qwen_action({"action": data["action"], "value": data["value"], "position": point}, size)
+
+
+def listing_detail(rows):
+    labels = [row["text"].casefold() for row in rows]
+    return (any(text.startswith("contact publisher") for text in labels)
+            or (any(text.startswith("published date:") for text in labels)
+                and any(text.startswith("location:") for text in labels)))
+
+
+def exact_initial_search(goal, rows, size):
+    match = re.match(r'^\s*search for\s+"([^"\n]{1,80})"', goal, re.IGNORECASE)
+    if match is None or not any(row["text"].casefold() == "search" for row in rows):
+        return None
+    fields = [index for index, row in enumerate(rows) if row["text"].casefold().startswith(("e.g.", "eg,"))]
+    if len(fields) != 1 or not any(row["text"].casefold() == "keyword" for row in rows):
+        return None
+    raw = json.dumps({"action": "SEARCH", "value": match[1], "control": fields[0]})
+    return from_readable_control(raw, rows, size, guarded=True)

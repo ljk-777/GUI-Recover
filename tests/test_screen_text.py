@@ -8,7 +8,7 @@ from PIL import Image
 from gui_recover.actions import Action, ActionError, compile_action, parse_action
 from gui_recover.answer_evidence import EvidenceAnswerPolicy, parse_evidence_location
 from gui_recover.environment import VisualObservation
-from gui_recover.screen_text import from_readable_control, visible_rows
+from gui_recover.screen_text import exact_initial_search, from_readable_control, visible_rows
 
 
 def test_ocr_regions_map_to_the_canvas_and_reject_unusable_rows():
@@ -68,3 +68,14 @@ def test_untranscribed_fast_candidate_still_gets_a_crop():
     action, box, answer, status = parse_evidence_location(
         reply, "How many bowls?", (100, 60), confirm=True, rows=rows, guarded_ocr=True)
     assert (action, box, answer, status) == (None, (30, 20, 70, 40), None, "evidence_region")
+
+
+def test_explicit_search_needs_visible_empty_form_and_exact_task_phrase():
+    rows = [{"text": "Keyword", "bounds": [10, 5, 20, 9]},
+            {"text": "e.g., an item", "bounds": [10, 12, 40, 20]},
+            {"text": "Search", "bounds": [60, 12, 80, 20]}]
+    goal = 'Search for "dishwasher" and find the brand.'
+    action = exact_initial_search(goal, rows, (100, 60))
+    assert action.action == "SEARCH" and action.value == "dishwasher"
+    assert exact_initial_search(goal, rows[:-1], (100, 60)) is None
+    assert exact_initial_search("What brand is the dishwasher?", rows, (100, 60)) is None
