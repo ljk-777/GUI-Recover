@@ -144,6 +144,14 @@ class VisualTextVerifier:
                 "score":score,"ink_shape":list(observed.shape)}
 
 
+def glyph_decision(observation, status):
+    if observation["action_mask"][Decision.WAIT] and status in ("empty", "unknown"):
+        return Decision.WAIT
+    if status in ("empty", "different"):
+        return Decision.RETRY_FIXED_ZOOM
+    return Decision.CONTINUE
+
+
 class ContentRecoveryPolicy:
     def __init__(self, verifier):
         self.verifier = verifier
@@ -153,13 +161,7 @@ class ContentRecoveryPolicy:
         if observation["phase"] != Phase.REVIEW:
             return Decision.CONTINUE
         result = self.verifier.verify(transition_view(observation))
-        status = result["status"]
-        if observation["action_mask"][Decision.WAIT] and status in ("empty","unknown"):
-            action = Decision.WAIT
-        elif status in ("empty","different"):
-            action = Decision.RETRY_FIXED_ZOOM
-        else:
-            action = Decision.CONTINUE
+        action = glyph_decision(observation, result["status"])
         self.evidence.append({**result,"waited":bool(observation["waited"]),"decision":action.name})
         return action
 

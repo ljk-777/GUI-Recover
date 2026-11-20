@@ -123,6 +123,26 @@ class TransitionExecution:
             actual,self.pending = self.pending,None
             self._step(actual,"pending_delivered_before_continuation")
 
+    def probe_text_tail(self):
+        """Capture a temporary selection and collapse it using fixed keyboard actions."""
+        original = self.obs.screenshot
+        self._probe_key("Shift+ArrowLeft", "probe_select_tail")
+        selected = self.obs.screenshot
+        if self.done or self.truncated or self.obs.last_action_error:
+            return selected, False
+        self._probe_key("ArrowRight", "probe_collapse_selection")
+        restored = self.obs.screenshot
+        return selected, restored.size == original.size and restored.tobytes() == original.tobytes()
+
+    def _probe_key(self, key, event):
+        code = f"keyboard_press({key!r})"
+        self.obs, self.reward, self.done, self.truncated, self.info, _ = self.env._step_code(code)
+        self._capture()
+        self.events.append({"event": event, "executed_code": code, "reward": self.reward,
+            "terminated": self.done, "truncated": self.truncated,
+            "task_info": deepcopy(self.info.get("task_info", {})), "execution_error": self.obs.last_action_error})
+        self.snapshots.append(self.obs)
+
     def repair(self, point, *, input_profile="legacy"):
         if input_profile not in INPUT_REPAIR_PROFILES:
             raise ValueError("Unknown input repair profile")

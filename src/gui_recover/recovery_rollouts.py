@@ -40,9 +40,17 @@ def _save_state(directory, index, obs, before):
     current = {"image": image.name, "sha256": file_sha256(image)}
     if before is None:
         before = current
-    return {**{name: obs[name] for name in ("goal", "target", "proposed_action", "phase",
+    state = {**{name: obs[name] for name in ("goal", "target", "proposed_action", "phase",
                                            "waited", "remaining_decisions")},
             "action_mask": obs["action_mask"].tolist(), "before": before, "current": current}
+    if "probed" in obs:
+        selection = None
+        if obs["probed"]:
+            picture = directory / f"selected-{index:03d}.png"
+            Image.fromarray(obs["selected"]).save(picture)
+            selection = {"image": picture.name, "sha256": file_sha256(picture)}
+        state.update(selected=selection, probed=obs["probed"], probe_restored=obs["probe_restored"])
+    return state
 
 
 def record_rollout(env, scene, policy, directory, *, choose=None, on_transition=None):
@@ -54,15 +62,18 @@ def record_rollout(env, scene, policy, directory, *, choose=None, on_transition=
     if state["current"]["sha256"] != scene["initial_sha256"]:
         raise RuntimeError("Reset screenshot differs from the registered layout")
     rollout = directory/"transitions.jsonl"
+    decision_type = getattr(env, "decision_type", Decision)
     with rollout.open("x") as stream:
+        schema_version = 2 if "probed" in observation else 1
         for step in range(1, env.max_decisions+1):
-            action = baseline_decision(observation, policy) if choose is None else Decision(choose(observation))
+            selected = baseline_decision(observation, policy) if choose is None else choose(observation)
+            action = decision_type(selected)
             if not observation["action_mask"][action]:
                 raise ValueError("The rollout policy selected a masked decision")
             previous = observation
             observation, reward, terminated, truncated, info = env.step(action)
             following = _save_state(directory, step, observation, state["before"])
-            stream.write(json.dumps({"schema_version": 1, "step": step, "observation": state,
+            stream.write(json.dumps({"schema_version": schema_version, "step": step, "observation": state,
                 "action": int(action), "decision": action.name, "reward": reward, "terminated": terminated,
                 "truncated": truncated, "next_observation": following, "evidence": info})+"\n")
             stream.flush()
@@ -79,6 +90,8 @@ def record_rollout(env, scene, policy, directory, *, choose=None, on_transition=
         "decisions": info["decisions"], "actor_requests": info["actor_requests"],
         "waits": info["waits"], "repairs": info["repairs"],
         "initial_sha256": scene["initial_sha256"], "trace_sha256": file_sha256(rollout)}
+    if "probes" in info:
+        result.update(probes=info["probes"], probe_seconds=info["probe_seconds"])
     write_json(directory/"episode.json", result)
     if result["outcome"] == "browser_error":
         raise RuntimeError("Browser execution error retained in rollout")
@@ -128,8 +141,13 @@ def iter_learning_episodes(directory, split="train"):
 
     def load_state(state, trace):
         result = dict(state)
-        for key in ("before", "current"):
+        for key in ("before", "current", "selected"):
+            if key not in state:
+                continue
             image = state[key]
+            if key == "selected" and image is None and not state["probed"]:
+                result[key] = np.zeros_like(result["current"])
+                continue
             path = (trace.parent/image["image"]).resolve()
             if path.parent != trace.parent or file_sha256(path) != image["sha256"]:
                 raise ValueError("Observation screenshot path or checksum invalid")
@@ -150,7 +168,7 @@ def iter_learning_episodes(directory, split="train"):
                 raise ValueError("Trace checksum changed")
             transitions = []
             for item in map(json.loads, trace.read_text().splitlines()):
-                if item["schema_version"] != 1:
+                if item["schema_version"] not in (1, 2):
                     raise ValueError("Unsupported transition schema")
                 transitions.append({**{key: item[key] for key in ("action", "reward", "terminated", "truncated")},
                     **{key: load_state(item[key], trace) for key in ("observation", "next_observation")}})
