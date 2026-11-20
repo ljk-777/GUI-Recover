@@ -141,4 +141,30 @@ Two of the three paired tasks reached an identical unchanged viewport after a sc
 
 [Live format and scroll results with run provenance](../examples/vwa-live-recovery-results.json)
 
+### Check whether the current viewport supports an answer
+
+The answer study keeps the same Qwen checkpoint, navigation prompt, invalid-action retry, and scroll feedback in both arms. The added check asks a separate question about the current screenshot before the first navigation prediction on that image. A short answer is submitted to the native judge. An explicit abstention or malformed response leaves the browser untouched and gives the remaining budget to navigation. A repeated screenshot is checked once per episode. Each check, retry, and navigation prediction counts against the same eight-call cap.
+
+```bash
+python scripts/run_visualwebarena_live.py --actor qwen --model models/Qwen2.5-VL-3B-Instruct \
+  --study answer --task-set answer-transfer --max-steps 8 --out runs/visualwebarena-answer-transfer
+python scripts/audit_visualwebarena_live.py runs/visualwebarena-answer-transfer \
+  --out runs/visualwebarena-answer-transfer-audit.json
+```
+
+The diagnostic set reuses tasks 118, 128 and 221 from earlier runs. The transfer set contains eight different tasks fixed before running the check. It includes category navigation, gallery inspection, reading details in listing photos, and a quantity question on a listing page. The CPU audit reconstructs which screenshot each check read, whether an answer reached the benchmark, the source of that answer, and the native reward.
+
+On the three diagnostic tasks, the navigation arm submitted zero answers. The added check made four judgments across distinct screenshots and submitted two answers. Both submissions occurred on the initial screenshot and received zero reward. Both arms finished with zero native successes.
+
+| Transfer strategy | Model calls | Answer checks | Answers submitted | Native successes |
+| --- | ---: | ---: | ---: | ---: |
+| Navigation | 35 | 0 | 0 | 0/8 |
+| Check each new viewport | 25 | 13 | 4 | 0/8 |
+
+All four transfer submissions came from the initial check and received zero reward. The other checks returned eight explicit abstentions and one malformed reply. The lower model-call count reflects the four early terminal failures. The check makes answer submission observable and exposes premature decisions on these tasks. The CPU audit verified 22 trajectories, 66 screenshots, and identical reset pixels in all 11 task pairs.
+
+A separate native judge check used answers built from the official references on four of these tasks. All four received full reward. That check made zero model calls and has its own result record.
+
+[Live answer-check results and run provenance](../examples/vwa-answer-check-results.json)
+
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
