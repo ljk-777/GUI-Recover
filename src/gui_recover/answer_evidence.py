@@ -62,13 +62,20 @@ def evidence_clipped(goal, box, size):
     return bool(requires_row and box[3] >= size[1] - 2)
 
 
-def evidence_navigation(raw, size, *, compact_navigation=True):
+def evidence_navigation(raw, size, *, compact_navigation=True, allow_click_box=False):
     try:
         data = read_reply(raw)
     except json.JSONDecodeError:
         data = native_action_after_note(raw)
     if not isinstance(data, dict) or "action" not in data:
         return None
+    if (allow_click_box and data["action"] == "CLICK" and set(data) == {"action", "value"}
+            and isinstance(data["value"], dict) and set(data["value"]) == {"bbox_2d"}):
+        box = evidence_box(json.dumps(data["value"]), size)
+        if box is None:
+            raise ActionError("A click box needs a visible region")
+        left, top, right, bottom = box
+        data = {"action": "CLICK", "value": None, "position": [(left + right) // 2, (top + bottom) // 2]}
     action = normalize_qwen_action(data, size, native_navigation=True, compact_navigation=compact_navigation)
     if action.action == "ANSWER":
         raise ActionError("An evidence search cannot submit an answer")
@@ -127,7 +134,7 @@ def has_transcribed_answer(answer, box, rows):
 
 
 def parse_evidence_location(raw, goal, size, *, confirm, compact_navigation=True, rows=None, guarded_ocr=False,
-                            navigation_only=False):
+                            navigation_only=False, allow_click_box=False):
     """Return a browser action or a validated evidence region and optional candidate."""
     candidate = None
     localized = None
@@ -141,7 +148,8 @@ def parse_evidence_location(raw, goal, size, *, confirm, compact_navigation=True
         if guarded_ocr and candidate is not None and not has_transcribed_answer(candidate, box, rows):
             candidate = None
     else:
-        navigation = evidence_navigation(raw, size, compact_navigation=compact_navigation) if confirm else None
+        navigation = evidence_navigation(raw, size, compact_navigation=compact_navigation,
+                                         allow_click_box=allow_click_box) if confirm else None
         if navigation is not None:
             return navigation, None, None, "evidence_navigation"
         box = evidence_box(raw, size)
@@ -201,6 +209,11 @@ def listing_screen_text(rows, size):
     if prices:
         text += f"\nVisible prices directly below aligned text:\n{prices}"
     return text
+
+
+def visible_contact_request(goal, rows):
+    return bool(rows and _CONTACT.search(goal) and _PHOTO.search(goal)
+                and any(row["text"].casefold() == "latest listings" for row in rows))
 
 
 class EvidenceAnswerPolicy:
@@ -317,9 +330,8 @@ class EvidenceAnswerPolicy:
                 "and other visual details, return the box only. A separate read will confirm the answer. Do not guess. "
                 f"Previous browser actions: {json.dumps(recent, ensure_ascii=False)}.\nVisible text:\n{controls}"
             )
-        if (self.ranked_capture is not None and not history and rows is not None
-                and _CONTACT.search(observation.goal) and _PHOTO.search(observation.goal)
-                and any(row["text"].casefold() == "latest listings" for row in rows)):
+        direct_contact = self.ranked_capture is not None and not history and visible_contact_request(observation.goal, rows)
+        if direct_contact:
             prompt += ("\nLook at the photos in the visible Latest Listings cards before choosing the next action. "
                        "If a card's pictured subject and title identify a strong candidate, click that card now "
                        "to verify the listing details. Open a category only if a matching card is absent.")
@@ -356,7 +368,7 @@ class EvidenceAnswerPolicy:
             if selection is None:
                 navigation, box, candidate, status = parse_evidence_location(
                     raw, observation.goal, canvas.size, confirm=self.confirm, rows=navigation_rows, guarded_ocr=True,
-                    navigation_only=link_count is not None)
+                    navigation_only=link_count is not None, allow_click_box=direct_contact)
         except (ValueError, RecursionError):
             return None
         if selection is not None:

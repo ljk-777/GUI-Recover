@@ -8,6 +8,7 @@ from .verification import pixel_hash
 
 
 BATCH_SIZE = 6
+ARTWORK_QUERIES = {"painting", "paintings", "drawing", "drawings", "illustration", "artwork"}
 
 
 class RankedCardEvidence:
@@ -42,15 +43,17 @@ class RankedCardEvidence:
 
         def ask(items, stage):
             panel = card_panel(items)
-            instruction = ("Independently recheck these proposed results before any submission. " if stage == "confirm"
-                           else "Judge every numbered card in the order shown. ")
+            instruction = "Independently recheck these proposed results before any submission. " if stage == "confirm" else ""
+            subject = "an animal" if criterion.casefold() == "animals" else criterion
+            predicate = f"visibly depicts {subject}"
+            if query.casefold() in ARTWORK_QUERIES:
+                predicate = f"is an artwork that {predicate}"
             raw = actor.ask(actor.prepare_image(panel), (
                 f"Task: {observation.goal}\n{instruction}"
-                f'For each numbered card, judge if the item fits the search "{query}" and visibly features {criterion}. '
+                f"For each numbered card, judge if the item {predicate}. "
                 "Look at the image first and use the rendered title for context. Inspect each card independently. "
-                f'Return only one JSON object with keys "1" through "{len(items)}", one per card. '
-                "Each value is [true or false, short visual cue] with at most three words for the cue. "
-                "Use null for the whole value when you cannot decide."
+                f'Return only one JSON object with keys "1" through "{len(items)}". Each value must be '
+                "[true or false, short visual cue], with at most three words for its cue. Use null when the cue is unclear."
             ))
             metrics.update(model_invocations=1, provider_output=raw, ranked_panel_pixels=pixel_hash(panel),
                            peak_cuda_allocated_bytes=actor.last_metrics["peak_cuda_allocated_bytes"])

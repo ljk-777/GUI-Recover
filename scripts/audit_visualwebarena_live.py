@@ -9,7 +9,7 @@ from PIL import Image
 
 from gui_recover.actions import ActionError, parse_action
 from gui_recover.answer_evidence import (
-    answer_signature, confirmation_image, evidence_answer, native_crop, parse_evidence_location,
+    answer_signature, confirmation_image, evidence_answer, native_crop, parse_evidence_location, visible_contact_request,
 )
 from gui_recover.environment import VisualObservation
 from gui_recover.listing_cards import RESULT_VIEW_HEIGHT, ranked_photo_request
@@ -87,8 +87,9 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         raw = prediction["raw"]
         reply = metrics["provider_output"]
         if scan is not None:
-            with Image.open(directory / f"{index:04d}.png") as screen:
-                reconstructed = replay_ranked_decision(scan, ranked_request, screen, goal, prediction)
+            with Image.open(directory / f"{index:04d}.png") as picture:
+                screen = picture.convert("RGB")
+            reconstructed = replay_ranked_decision(scan, ranked_request, screen, goal, prediction)
             stages[metrics["provider_format"]] += 1
             if reconstructed is not None and parse_action(reconstructed).action == "ANSWER":
                 answers.add(step)
@@ -151,7 +152,8 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                 if selected is None:
                     navigation, box, candidate, status = parse_evidence_location(
                         reply, goal, size, confirm=confirm, compact_navigation=compact_navigation, rows=rows,
-                        guarded_ocr=guarded_ocr, navigation_only=link_count is not None)
+                        guarded_ocr=guarded_ocr, navigation_only=link_count is not None,
+                        allow_click_box=use_ranked_cards and step == 0 and visible_contact_request(goal, rows))
             except (ValueError, RecursionError):
                 require(raw is None and "listing_preview" not in metrics,
                         "Unusable evidence localization generated a browser action or link preview")

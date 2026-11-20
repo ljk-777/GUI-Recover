@@ -107,6 +107,15 @@ def test_evidence_search_can_navigate_but_cannot_submit():
         evidence_navigation('{"action":"ANSWER","value":"red","position":null}', (20, 20))
 
 
+def test_contact_navigation_can_ground_a_click_in_a_visible_box():
+    raw = '{"action":"CLICK","value":{"bbox_2d":[3,4,11,12]}}'
+    assert evidence_navigation(raw, (20, 20), allow_click_box=True) == Action("CLICK", position=(0.375, 0.425))
+    for box in ('[3,4,21,12]', 'null'):
+        with pytest.raises(ActionError):
+            evidence_navigation('{"action":"CLICK","value":{"bbox_2d":' + box + '}}',
+                                (20, 20), allow_click_box=True)
+
+
 def test_only_a_visual_transition_after_a_click_becomes_context():
     before = VisualObservation("What color is the item?", Image.new("RGB", (200, 120), "yellow"))
     after = VisualObservation(before.goal, Image.new("RGB", (200, 120), "blue"))
