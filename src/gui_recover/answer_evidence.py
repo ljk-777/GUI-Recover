@@ -73,7 +73,7 @@ def evidence_answer(raw, goal):
     if (not isinstance(facts, list) or len(facts) > 6
             or any(not isinstance(fact, str) or not 0 < len(fact.strip()) <= 200 for fact in facts)):
         raise ActionError("Expected a bounded list of visual evidence descriptions")
-    if answer is None:
+    if answer is None or (isinstance(answer, str) and answer.strip().casefold() == "null"):
         return None, "evidence_abstained"
     if not isinstance(answer, str) or not 0 < len(answer.strip()) <= 512:
         raise ActionError("Expected a nonempty short answer or null")
@@ -223,7 +223,7 @@ class EvidenceAnswerPolicy:
         self.last_metrics.update(evidence_stage="confirm", evidence_frame=frame, evidence_bounds=list(bounds),
                                  evidence_panel_sha256=pixel_hash(panel), provider_format="evidence_invalid")
         try:
-            answer = parse_visible_answer(raw)
+            answer = parse_visible_answer(raw, allow_numeric=True)
         except (ValueError, RecursionError):
             return None
         if answer is None:

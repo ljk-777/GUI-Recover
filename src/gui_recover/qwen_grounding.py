@@ -51,13 +51,15 @@ def parse_pixel_point(raw, width, height):
     return ((x + 0.5) / width, (y + 0.5) / height)
 
 
-def parse_visible_answer(raw):
+def parse_visible_answer(raw, *, allow_numeric=False):
     data = read_reply(raw)
     if not isinstance(data, dict) or set(data) != {"answer"}:
         raise ActionError("Expected one answer field")
     answer = data["answer"]
     if answer is None:
         return None
+    if allow_numeric and (type(answer) is int or (type(answer) is float and isfinite(answer))):
+        answer = str(answer)
     if not isinstance(answer, str) or not 0 < len(answer.strip()) <= 512:
         raise ActionError("Expected a nonempty short answer or null")
     return answer.strip()

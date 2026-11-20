@@ -7,7 +7,7 @@ from gui_recover.actions import Action, ActionError, parse_action
 from gui_recover.answer_evidence import (EvidenceAnswerPolicy, answer_signature, evidence_answer, evidence_box,
                                          evidence_clipped, evidence_navigation, native_crop)
 from gui_recover.environment import VisualObservation
-from gui_recover.qwen_grounding import QwenGroundingPolicy
+from gui_recover.qwen_grounding import QwenGroundingPolicy, parse_visible_answer
 
 
 @pytest.mark.parametrize("box", [[-1, 4, 9, 10], [5, 4, 5, 10], [1, 3, 21, 8],
@@ -52,6 +52,16 @@ def test_independent_answer_signature_matches_formatting_variants():
     assert answer_signature("Blue and white.") == answer_signature("blue and white")
     assert answer_signature("$5 - $120") != answer_signature("$5")
     assert answer_signature("-3") != answer_signature("3")
+
+
+def test_independent_reader_accepts_finite_numeric_json_answers():
+    assert parse_visible_answer('{"answer":6}', allow_numeric=True) == "6"
+    assert parse_visible_answer('{"answer":1200.0}', allow_numeric=True) == "1200.0"
+    for output in ('{"answer":true}', '{"answer":NaN}', '{"answer":1e999}'):
+        with pytest.raises(ActionError):
+            parse_visible_answer(output, allow_numeric=True)
+    with pytest.raises(ActionError):
+        parse_visible_answer('{"answer":6}')
 
 
 def test_native_click_and_type_use_one_validated_input():

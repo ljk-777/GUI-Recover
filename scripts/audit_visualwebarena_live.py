@@ -102,7 +102,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
             require(metrics["evidence_bounds"] == bounds and metrics["evidence_panel_sha256"] == pixel_hash(panel),
                     "Confirmation pixels differ from the recorded viewport and crop")
             try:
-                independent = parse_visible_answer(reply)
+                independent = parse_visible_answer(reply, allow_numeric=True)
             except (ValueError, RecursionError):
                 pass
             else:
