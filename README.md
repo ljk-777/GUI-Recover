@@ -11,8 +11,10 @@ Fault injection, visual recovery experiments, and traceable evaluation for GUI a
 - **有限恢复**：弱视觉反馈，以及脚本规划基线上的输入出现检查与最多一次补输入。
 - **审计证据**：PNG/JSONL/HTML、截图哈希、固定版本、成功率和真实模型调用统计。
 
-输入检查只验证白底、初始为空的输入框里出现了文字笔画；不核对内容正确性。脚本规划只覆盖三种 MiniWoB 指令语法，必须与自主导航成绩分开。
+Alpha 的输入检查只验证白底、初始为空的输入框里是否出现文字笔画。Alpha 的脚本规划覆盖三种 MiniWoB 指令语法，使用独立的评测口径。
 详见 [发布验证与已知限制](docs/RELEASE_VALIDATION.md)。历史实验及负面结果也保留在 docs/ 中。
+
+MiniWoB Enter Text 的新实验根据截图比对输入字形，工程冒烟覆盖少输、附加标点和首字母大小写错误。保存的轨迹可用 CPU 复核。见 [视觉文本核验](docs/VISUAL_TEXT_CONTENT.md)。
 
 ```text
 MiniWoB reset → 任务文本 + 截图 → Policy.predict → 严格动作解析
