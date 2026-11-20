@@ -87,3 +87,24 @@ def test_benchmark_adapter_can_submit_answers_without_changing_default(tmp_path)
     assert ordinary["reason"] == "policy_stop"
     assert environment.actions == [Action("ANSWER", "result")]
     assert submitted["success"]
+
+
+def test_qwen_navigation_translates_one_action_and_keeps_the_raw_reply():
+    import json
+
+    from PIL import Image
+
+    from gui_recover.environment import VisualObservation
+    from gui_recover.qwen_grounding import QwenGroundingPolicy
+
+    policy = QwenGroundingPolicy.__new__(QwenGroundingPolicy)
+    policy.recovery_feedback = None
+    policy.prepare_image = lambda screen: screen
+    policy._generate = lambda messages: '{"action":"CLICK","value":null,"position":[4, 2]}'
+    policy.last_metrics = {}
+    obs = VisualObservation("Open the item", Image.new("RGB", (10, 10)))
+    assert json.loads(policy.predict(obs, [])) == {"action": "CLICK", "value": None, "position": [0.45, 0.25]}
+    assert policy.last_metrics["provider_image_size"] == [10, 10]
+    assert '"position":[4, 2]' in policy.last_metrics["provider_output"]
+    policy._generate = lambda messages: '{"action":"CLICK","value":null,"position":[false, 2]}'
+    assert policy.predict(obs, []) == ""

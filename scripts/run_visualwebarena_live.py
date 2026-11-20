@@ -5,6 +5,7 @@ import importlib.metadata
 import json
 import os
 from pathlib import Path
+from unittest.mock import patch
 from urllib.parse import urlsplit
 from urllib.request import urlopen
 
@@ -57,15 +58,39 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
     def __init__(self, task_id):
         import browsergym.visualwebarena  # noqa: F401 — registers environments
         from browsergym.core.action.highlevel import HighLevelActionSet
+        from browsergym.visualwebarena.task import GenericVisualWebArenaTask
         import gymnasium as gym
 
         if task_id not in READ_ONLY_TASKS:
             raise ValueError("Task is outside the registered Classifieds subset")
+        # The upstream module constructs an OpenAI client even for its local
+        # string evaluator. These tasks require no external judging service.
+        os.environ["OPENAI_API_KEY"] = "local-string-evaluator"
+        os.environ["OPENAI_BASE_URL"] = "http://127.0.0.1:1/v1"
+        class StringOnlyTask(GenericVisualWebArenaTask):
+            def setup(self, page):
+                for config in self.task_configs:
+                    evaluation = config["eval"]
+                    if (config["sites"] != ["classifieds"] or config.get("require_reset")
+                            or evaluation["eval_types"] != ["string_match"]
+                            or set(evaluation["reference_answers"]) != {"must_include"}):
+                        raise ValueError("Task requires more than the registered local string evaluator")
+
+                def unavailable_captioner(*args, **kwargs):
+                    raise RuntimeError("Captioning must not be used by the local string evaluator")
+
+                # This upstream release initializes the image model on every
+                # task. Keep its native string judge and skip unused assets.
+                with patch("visualwebarena.evaluation_harness.image_utils.get_captioning_fn",
+                           return_value=unavailable_captioner):
+                    return super().setup(page)
+
         self.task = f"visualwebarena.{task_id}"
         self.visual_variant = "default"
         self.obs = None
         actions = HighLevelActionSet(subsets=["coord", "chat"], strict=True, multiaction=True)
-        self.env = gym.make(f"browsergym/{self.task}", headless=True, action_mapping=actions.to_python_code)
+        self.env = gym.make(f"browsergym/{self.task}", headless=True,
+                            action_mapping=actions.to_python_code, task_entrypoint=StringOnlyTask)
 
     def step(self, action: Action):
         checked = parse_action(json.dumps(action.to_dict()))
