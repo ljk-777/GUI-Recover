@@ -10,7 +10,7 @@ from .actions import Action, ActionError
 from .qwen_grounding import native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
 from .screen_text import exact_initial_search, from_readable_control, listing_detail
 from .verification import pixel_hash
-from .visible_links import agreed_listing_answer, link_answer_count, listing_selection, preview_destinations
+from .visible_links import agreed_listing_answer, link_answer_count, listing_selection, preview_destinations, priced_titles
 
 
 _AMOUNT = re.compile(r"(?<![\w.])(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]+)?(?![\w.])")
@@ -188,6 +188,16 @@ def indexed_text(rows):
                      for index, row in enumerate(rows))
 
 
+def listing_screen_text(rows, size):
+    cards = priced_titles(rows, size)
+    prices = "\n".join(f"Title {title} {json.dumps(rows[title]['text'], ensure_ascii=False)} costs {rows[price]['text']}"
+                       for price, title in cards.items())
+    text = f"Visible text:\n{indexed_text(rows)}"
+    if prices:
+        text += f"\nVisible prices directly below aligned text:\n{prices}"
+    return text
+
+
 class EvidenceAnswerPolicy:
     """Use one model invocation per prediction, including crop localization."""
 
@@ -300,8 +310,9 @@ class EvidenceAnswerPolicy:
                 "Find all requested listings using the screenshot, their positions, and the indexed text. "
                 f"The answer needs {link_count[0]} to {link_count[1]} distinct listing links. "
                 "When the full requested group is visible, select the text index for each matching listing TITLE, "
-                'such as {"listings":[10,12]}. Exclude navigation, prices, labels, and unrelated cards. '
+                'as an array in a JSON object keyed "listings". Exclude navigation, prices, labels, and unrelated cards. '
                 "Check any required ordering, category, price, and result scope before selecting. "
+                "If the question limits the answer to a visible row, compare that row's cards in place. "
                 "If the right results are not shown, issue one navigation command. "
                 'Use {"action":"CLICK","value":null,"control":index} for a visible button or filter, '
                 '{"action":"SEARCH","value":"short query","control":index} on the empty Keyword placeholder to search, '
@@ -309,7 +320,7 @@ class EvidenceAnswerPolicy:
                 '{"action":"SCROLL","value":"down","position":null} to see lower listings. '
                 'Return {"listings":null} only if you cannot select or navigate. Never type or invent a URL. '
                 f"Return one JSON object.\nPrevious actions: {json.dumps(recent, ensure_ascii=False)}.\n"
-                f"Visible text:\n{controls}"
+                f"{listing_screen_text(rows, canvas.size)}"
             )
         raw = self.actor.ask(canvas, prompt)
         self.last_metrics.update(evidence_stage="locate", evidence_frame=frame, provider_format="evidence_invalid")
@@ -416,7 +427,7 @@ class EvidenceAnswerPolicy:
     def verify_links(self, observation, frame, rows, selected, destinations, count):
         canvas = self.actor.prepare_image(observation.screenshot)
         raw = self.actor.ask(canvas, (
-            f"Visible text from the screenshot:\n{indexed_text(rows)}\n\n"
+            f"{listing_screen_text(rows, canvas.size)}\n\n"
             f"Question: {observation.goal}\n"
             "Identify the complete set of matching listing titles using the screenshot. "
             "Check the scope, ordering, and visible card details. Exclude headings and controls. "

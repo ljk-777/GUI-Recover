@@ -49,6 +49,13 @@ def test_link_selection_requires_the_complete_requested_count_and_in_bounds_titl
             listing_selection(json.dumps({"listings": value}), ROWS, size, (2, 2))
 
 
+def test_aligned_price_selection_maps_to_the_clickable_title_once():
+    rows = ROWS + [{"text": "20.00 $", "bounds": [9, 22, 26, 30]}]
+    assert listing_selection('{"listings":[3,1]}', rows, (100, 40), (2, 2))[0] == [0, 1]
+    with pytest.raises(ActionError, match="same listing"):
+        listing_selection('{"listings":[0,3]}', rows, (100, 40), (2, 2))
+
+
 @pytest.mark.parametrize("confirm,expected", [([1, 0], True), ([0, 2], False), (None, False)])
 def test_listing_policy_submits_only_agreed_browser_destinations(confirm, expected):
     class Actor:

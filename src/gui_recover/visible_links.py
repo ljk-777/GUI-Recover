@@ -16,6 +16,8 @@ _LINK_COUNT = re.compile(
     r"(?:(?:cheapest|newest|oldest|most|least|recently|listed|recent|expensive|matching|relevant|available)\s+)*"
     r"(?:listings?|items?|products?|results?|posts?|links?|urls?)\b", re.IGNORECASE,
 )
+_AMOUNT = r"(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{2})?"
+_PRICE = re.compile(rf"^(?:\$\s*{_AMOUNT}|{_AMOUNT}\s*\$)$")
 
 
 _TOOLTIP_DESTINATIONS = """
@@ -86,6 +88,23 @@ def link_answer_count(goal):
     return (2, 3) if request[0].casefold().endswith("s") else (1, 1)
 
 
+def priced_titles(rows, size):
+    """Pair a visible price with the single aligned text line immediately above it."""
+    width, height = size
+    matches = {}
+    for price, row in enumerate(rows):
+        if _PRICE.fullmatch(row["text"]) is None:
+            continue
+        left, top, _, _ = row["bounds"]
+        candidates = [index for index, title in enumerate(rows) if
+                      abs(left - title["bounds"][0]) <= max(4, width // 100)
+                      and 0 <= top - title["bounds"][3] <= max(4, height // 30)
+                      and _PRICE.fullmatch(title["text"]) is None]
+        if len(candidates) == 1:
+            matches[price] = candidates[0]
+    return matches
+
+
 def listing_selection(raw, rows, size, count):
     """Resolve selected visible text centers to normalized browser points."""
     try:
@@ -100,9 +119,12 @@ def listing_selection(raw, rows, size, count):
     if indices is None:
         return [], []
     if (not isinstance(indices, list) or not count[0] <= len(indices) <= min(count[1], 3)
-            or any(type(index) is not int or not 0 <= index < len(rows) for index in indices)
-            or len(set(indices)) != len(indices)):
+            or any(type(index) is not int or not 0 <= index < len(rows) for index in indices)):
         raise ActionError("Expected the required number of distinct visible titles")
+    prices = priced_titles(rows, size)
+    indices = [prices.get(index, index) for index in indices]
+    if len(set(indices)) != len(indices):
+        raise ActionError("Multiple selections point to the same listing title")
     return indices, normalized_points([
         from_readable_control(json.dumps({"action": "CLICK", "value": None, "control": index}), rows, size).position
         for index in indices
