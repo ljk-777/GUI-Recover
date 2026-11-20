@@ -5,9 +5,9 @@ from PIL import Image
 
 from gui_recover.actions import Action, ActionError, parse_action
 from gui_recover.answer_evidence import (EvidenceAnswerPolicy, answer_signature, evidence_answer, evidence_box,
-                                         evidence_clipped, evidence_navigation, native_crop)
+                                         confirmation_image, evidence_clipped, evidence_navigation, native_crop)
 from gui_recover.environment import VisualObservation
-from gui_recover.qwen_grounding import QwenGroundingPolicy
+from gui_recover.qwen_grounding import QwenGroundingPolicy, normalize_qwen_action, parse_visible_answer
 
 
 @pytest.mark.parametrize("box", [[-1, 4, 9, 10], [5, 4, 5, 10], [1, 3, 21, 8],
@@ -54,6 +54,16 @@ def test_independent_answer_signature_matches_formatting_variants():
     assert answer_signature("-3") != answer_signature("3")
 
 
+def test_independent_reader_accepts_finite_numeric_json_answers():
+    assert parse_visible_answer('{"answer":6}', allow_numeric=True) == "6"
+    assert parse_visible_answer('{"answer":1200.0}', allow_numeric=True) == "1200.0"
+    for output in ('{"answer":true}', '{"answer":NaN}', '{"answer":1e999}'):
+        with pytest.raises(ActionError):
+            parse_visible_answer(output, allow_numeric=True)
+    with pytest.raises(ActionError):
+        parse_visible_answer('{"answer":6}')
+
+
 def test_native_click_and_type_use_one_validated_input():
     actor = QwenGroundingPolicy.__new__(QwenGroundingPolicy)
     actor.recovery_feedback = None
@@ -69,6 +79,25 @@ def test_native_click_and_type_use_one_validated_input():
     assert actor.predict(obs, [], allow_answer=False) == ""
     actor._generate = lambda messages: '{"action":"key","key":"Return"}'
     assert parse_action(actor.predict(obs, [], allow_answer=False)) == Action("ENTER")
+    scroll = '{"action":"SCROLL","value":"down","position":null}'
+    actor._generate = lambda messages: f"The target is below the viewport.\n\n{scroll}"
+    assert parse_action(actor.predict(obs, [], allow_answer=False)) == Action("SCROLL", "down")
+    actor._generate = lambda messages: f"{scroll}\n\n{scroll}"
+    assert actor.predict(obs, [], allow_answer=False) == ""
+
+
+def test_native_click_aliases_require_one_unambiguous_pixel_point():
+    size = (20, 20)
+    for reply in ({"action": "CLICK", "value": "[5, 8]"},
+                  {"action": "CLICK", "value": [5, 8], "position": [5, 8]}):
+        assert normalize_qwen_action(reply, size, native_navigation=True) == Action(
+            "CLICK", position=(0.275, 0.425))
+    for value, position in (([5, 8], [6, 8]), ([1, 8], [True, 8]), ([5, 8], [5.0, 8])):
+        with pytest.raises(ActionError):
+            normalize_qwen_action({"action": "CLICK", "value": value, "position": position},
+                                  size, native_navigation=True)
+    assert normalize_qwen_action({"action": "SCROLL", "value": "down"}, size,
+                                 native_navigation=True) == Action("SCROLL", "down")
 
 
 def test_evidence_search_can_navigate_but_cannot_submit():
@@ -76,6 +105,23 @@ def test_evidence_search_can_navigate_but_cannot_submit():
     assert evidence_navigation(reply, (20, 20)) == Action("INPUT", "red boat", (0.275, 0.425))
     with pytest.raises(ActionError):
         evidence_navigation('{"action":"ANSWER","value":"red","position":null}', (20, 20))
+
+
+def test_only_a_visual_transition_after_a_click_becomes_context():
+    before = VisualObservation("What color is the item?", Image.new("RGB", (200, 120), "yellow"))
+    after = VisualObservation(before.goal, Image.new("RGB", (200, 120), "blue"))
+    policy = EvidenceAnswerPolicy(object(), confirm=True, use_navigation_context=True)
+    click = Action("CLICK", position=(0.25, 0.75))
+    policy.observe_transition(before, before, click)
+    policy.observe_transition(before, after, Action("SCROLL", "down"))
+    assert policy.navigation_context is None
+    policy.observe_transition(before, after, click)
+    origin, position = policy.navigation_context
+    assert position == click.position and origin.getpixel((0, 0)) == (255, 255, 0)
+    crop = after.screenshot.crop((30, 40, 80, 100))
+    plain = confirmation_image(after.screenshot, crop, (30, 40, 80, 100))
+    linked = confirmation_image(after.screenshot, crop, (30, 40, 80, 100), policy.navigation_context)
+    assert linked.height > plain.height
 
 
 @pytest.mark.parametrize("confirm,reply,expected", [

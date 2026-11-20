@@ -29,6 +29,8 @@ TASK_SETS = {
     "evidence-diagnostic": (118, 221, 41, 42, 192, 209),
     "evidence-transfer": (23, 40, 43, 110, 161, 173, 174, 199),
     "evidence-confirm-transfer": (25, 27, 98, 100, 107, 109, 111, 178),
+    "evidence-context-transfer": (14, 15, 16, 26, 50, 80, 83, 129),
+    "evidence-navigation-diagnostic": (14, 15, 221),
 }
 STUDY_MODES = {
     "visual": ("none", "feedback"),
@@ -37,8 +39,10 @@ STUDY_MODES = {
     "answer": ("navigation", "answer-check"),
     "evidence": ("answer-check", "evidence-check"),
     "evidence-confirm": ("answer-check", "evidence-confirm"),
+    "evidence-context": ("answer-check", "evidence-context"),
 }
-ANSWER_STUDIES = ("answer", "evidence", "evidence-confirm")
+EVIDENCE_STUDIES = ("evidence", "evidence-confirm", "evidence-context")
+ANSWER_STUDIES = ("answer", *EVIDENCE_STUDIES)
 
 
 def live_preflight():
@@ -150,8 +154,11 @@ def run_study(actor, *, out, study, task_set, max_steps):
             env = VisualWebArenaEnvironment(task_id)
             try:
                 branch = out / f"{env.task}-{mode}"
-                using_evidence = mode in ("evidence-check", "evidence-confirm")
-                policy = EvidenceAnswerPolicy(actor, confirm=mode == "evidence-confirm") if using_evidence else actor
+                using_evidence = study in EVIDENCE_STUDIES and mode != "answer-check"
+                policy = actor
+                if using_evidence:
+                    policy = EvidenceAnswerPolicy(actor, confirm=mode != "evidence-check",
+                                                  use_navigation_context=mode == "evidence-context")
                 row = run_episode(env, policy, env.task, 0, max_steps, branch,
                                   recovery=recovery, invalid_action_retry=invalid_retry,
                                   answer_check=mode == "answer-check",
@@ -209,7 +216,8 @@ def main():
     else:
         actor = QwenGroundingPolicy(args.model, device=args.device,
                                     max_new_tokens=128 if args.qwen_7b_4bit else 96, max_pixels=784 * 784,
-                                    load_in_4bit=args.qwen_7b_4bit, native_navigation=args.study == "evidence-confirm")
+                                    load_in_4bit=args.qwen_7b_4bit,
+                                    native_navigation=args.study in ("evidence-confirm", "evidence-context"))
     run_study(actor, out=args.out, study=args.study, task_set=args.task_set, max_steps=args.max_steps)
     return 0
 

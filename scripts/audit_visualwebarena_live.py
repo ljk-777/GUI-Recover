@@ -12,14 +12,15 @@ from gui_recover.answer_evidence import (
     answer_signature, confirmation_image, evidence_answer, evidence_box, evidence_clipped, evidence_navigation,
     native_crop,
 )
-from gui_recover.qwen_grounding import parse_visible_answer, read_reply
+from gui_recover.qwen_grounding import native_action_after_note, parse_visible_answer, read_reply
 from gui_recover.runner import INVALID_ACTION_FEEDBACK, aggregate, write_json
 from gui_recover.verification import pixel_hash
 from gui_recover.visual_text_audit import checked_file, read_json, require
-from run_visualwebarena_live import ANSWER_STUDIES, STUDY_MODES, TASK_SETS, exact_vwa_success
+from run_visualwebarena_live import ANSWER_STUDIES, EVIDENCE_STUDIES, STUDY_MODES, TASK_SETS, exact_vwa_success
 
 
-def audit_evidence(directory, predictions, frame_before_prediction, frames, goal, *, confirm=False):
+def audit_evidence(directory, predictions, frame_before_prediction, frames, goal, *,
+                   confirm=False, click_origins=None, compact_navigation=False):
     visited = set()
     answers = set()
     stages = Counter()
@@ -43,8 +44,12 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         require(metrics.get("evidence_stage") == stage, "Evidence check schedule disagrees with the observed frame")
         if stage is None:
             if raw is None:
-                require(metrics["provider_format"] == "answer_blocked"
-                        and read_reply(reply)["action"].upper() == "ANSWER", "Unexpected non-action navigation decision")
+                try:
+                    blocked = read_reply(reply)
+                except json.JSONDecodeError:
+                    blocked = native_action_after_note(reply)
+                require(metrics["provider_format"] == "answer_blocked" and blocked["action"].upper() == "ANSWER",
+                        "Unexpected non-action navigation decision")
             elif raw:
                 require(parse_action(raw).action != "ANSWER", "Navigation bypassed the evidence check")
             continue
@@ -56,7 +61,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
             pending = None
             size = metrics["provider_image_size"]
             try:
-                navigation = evidence_navigation(reply, size) if confirm else None
+                navigation = evidence_navigation(reply, size, compact_navigation=compact_navigation) if confirm else None
                 box = evidence_box(reply, size) if navigation is None else None
             except (ValueError, RecursionError):
                 require(raw is None, "Unusable evidence localization generated a browser action")
@@ -82,7 +87,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                     "Evidence-read pixels differ from the recorded screenshot crop")
             candidate = None
             try:
-                candidate, status = evidence_answer(reply, goal)
+                candidate, status = evidence_answer(reply, goal, allow_string_abstention=confirm)
             except (ValueError, RecursionError):
                 pass
             if candidate is None:
@@ -97,12 +102,23 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         else:
             _, bounds, candidate = pending_confirmation
             pending_confirmation = None
+            context = None
+            origin = click_origins.get(index) if click_origins is not None else None
+            if origin is not None:
+                origin_index, position = origin
+                with Image.open(directory / f"{origin_index:04d}.png") as previous:
+                    context = previous.copy(), position
+                require(metrics["evidence_context_sha256"] == frames[origin_index]
+                        and metrics["evidence_context_position"] == position, "Context differs from the recorded click")
+                stages["navigation_context"] += 1
+            else:
+                require("evidence_context_sha256" not in metrics, "Untracked navigation context reached confirmation")
             with Image.open(directory / f"{index:04d}.png") as screen:
-                panel = confirmation_image(screen, screen.crop(bounds), bounds)
+                panel = confirmation_image(screen, screen.crop(bounds), bounds, context)
             require(metrics["evidence_bounds"] == bounds and metrics["evidence_panel_sha256"] == pixel_hash(panel),
                     "Confirmation pixels differ from the recorded viewport and crop")
             try:
-                independent = parse_visible_answer(reply)
+                independent = parse_visible_answer(reply, allow_numeric=True)
             except (ValueError, RecursionError):
                 pass
             else:
@@ -123,7 +139,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
 
 
 def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=False, answer_study=False,
-                  evidence_check=False, confirm=False):
+                  evidence_check=False, confirm=False, use_navigation_context=False, compact_navigation=False):
     events = [json.loads(line) for line in (directory / "trajectory.jsonl").read_text().splitlines()]
     row = read_json(directory / "episode.json")
     require(events[0]["event"] == "reset" and events[-1] == {"event": "episode_end", **row},
@@ -228,8 +244,17 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
             frames.append(pixel_hash(picture))
     evidence_stages = {}
     if evidence_check:
+        click_origins = None
+        if use_navigation_context:
+            click_origins = {}
+            origin = None
+            for index, event in enumerate(transitions):
+                if event["action"]["action"] == "CLICK" and frames[index] != frames[index + 1]:
+                    origin = index, event["action"]["position"]
+                click_origins[index + 1] = origin
         evidence_stages, checked_answers = audit_evidence(
-            directory, predictions, frame_before_prediction, frames, events[0]["goal"], confirm=confirm)
+            directory, predictions, frame_before_prediction, frames, events[0]["goal"],
+            confirm=confirm, click_origins=click_origins, compact_navigation=compact_navigation)
     answer_outcome = None
     if answer_study:
         submissions = [event for event in transitions if event["action"]["action"] == "ANSWER"]
@@ -242,6 +267,8 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
             source = "navigation"
             if last["step"] in checked_answers:
                 source = "evidence-confirm" if confirm else ("evidence-check" if evidence_check else "answer-check")
+                if use_navigation_context:
+                    source = "evidence-context"
             answer_outcome = {"source": source, "prediction": last["step"] + 1, "native_reward": last["reward"]}
     before_retry = None
     if first_invalid is not None:
@@ -282,6 +309,7 @@ def audit(directory):
     task_ids = TASK_SETS[task_set]
     budget = summary["max_steps"]
     study = summary["study"]
+    compact_navigation = summary["model"].get("compact_navigation_replies", task_set == "evidence-navigation-diagnostic")
     require(study in ("format", "scroll", *ANSWER_STUDIES) and summary["budget_unit"] == "predictions"
             and 1 <= budget <= 12 and list(task_ids) == summary["task_ids"], "Unexpected study manifest")
     modes = STUDY_MODES[study]
@@ -299,8 +327,10 @@ def audit(directory):
                 recovery_mode, retry_mode = ("none", mode) if study == "format" else (mode, "feedback")
             record = audit_episode(directory / f"{name}-{mode}", budget, recovery_mode, retry_mode,
                                    answer_check=mode == "answer-check", answer_study=study in ANSWER_STUDIES,
-                                   evidence_check=mode in ("evidence-check", "evidence-confirm"),
-                                   confirm=mode == "evidence-confirm")
+                                   evidence_check=study in EVIDENCE_STUDIES and mode != "answer-check",
+                                   confirm=mode in ("evidence-confirm", "evidence-context"),
+                                   use_navigation_context=mode == "evidence-context",
+                                   compact_navigation=compact_navigation)
             require(record["row"]["task"] == name and record["row"]["seed"] == record["reset"][1] == 0,
                     "Task or seed mismatch")
             studies[mode].append(record)
@@ -321,7 +351,7 @@ def audit(directory):
                 mode: record["first_scroll_followup"] for mode, record in paired.items()}
         if study in ANSWER_STUDIES:
             by_task[task_id]["answer_outcome"] = {mode: record["answer_outcome"] for mode, record in paired.items()}
-        if study in ("evidence", "evidence-confirm"):
+        if study in EVIDENCE_STUDIES:
             by_task[task_id]["evidence_calls"] = paired[modes[-1]]["evidence_stages"]
     formats = {}
     for mode, records in studies.items():
@@ -334,12 +364,12 @@ def audit(directory):
               "peak_cuda_allocated_bytes": max(record["peak_cuda_allocated_bytes"]
                                                for records in studies.values() for record in records),
               "by_task": by_task}
-    if study in ("evidence", "evidence-confirm"):
+    if study in EVIDENCE_STUDIES:
         wrong = {mode: sum(outcome is not None and outcome["native_reward"] != 1.0 for outcome in (
             task["answer_outcome"][mode] for task in by_task.values())) for mode in modes}
         successes = {mode: summary["strategies"][mode]["successes"] for mode in modes}
         report["wrong_submissions"] = wrong
-        if task_set in ("evidence-transfer", "evidence-confirm-transfer"):
+        if task_set in ("evidence-transfer", "evidence-confirm-transfer", "evidence-context-transfer"):
             candidate = modes[-1]
             report["target_met"] = (len(task_ids) == 8 and budget == 8
                                     and all(task["identical_reset_pixels"] for task in by_task.values())

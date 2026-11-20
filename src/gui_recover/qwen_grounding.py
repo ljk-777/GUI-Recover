@@ -14,6 +14,7 @@ QWEN_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
 QWEN_7B_MODEL = "Qwen/Qwen2.5-VL-7B-Instruct"
 QWEN_7B_MIRROR_REVISION = "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f"
 _LINE_SCROLL = re.compile(r"Action: SCROLL\nValue: ([+-]?[0-9]{1,6})(?:\nPosition: \[[0-9]{1,5}, [0-9]{1,5}\])?")
+_CLICK_VALUE = re.compile(r"\[\s*([0-9]{1,5})\s*,\s*([0-9]{1,5})\s*\]")
 VISIBLE_ANSWER_PROMPT = (
     "Check whether this screenshot contains enough evidence to answer the question. "
     "For questions about a particular item or photo, check that it is the requested one. "
@@ -51,13 +52,15 @@ def parse_pixel_point(raw, width, height):
     return ((x + 0.5) / width, (y + 0.5) / height)
 
 
-def parse_visible_answer(raw):
+def parse_visible_answer(raw, *, allow_numeric=False):
     data = read_reply(raw)
     if not isinstance(data, dict) or set(data) != {"answer"}:
         raise ActionError("Expected one answer field")
     answer = data["answer"]
     if answer is None:
         return None
+    if allow_numeric and (type(answer) is int or (type(answer) is float and isfinite(answer))):
+        answer = str(answer)
     if not isinstance(answer, str) or not 0 < len(answer.strip()) <= 512:
         raise ActionError("Expected a nonempty short answer or null")
     return answer.strip()
@@ -77,7 +80,34 @@ def native_input_pair(raw):
     return {"action": "INPUT", "position": first["coordinate"], "value": second.get("text", second.get("value"))}
 
 
-def normalize_qwen_action(data, size, *, native_navigation=False):
+def native_action_after_note(raw):
+    """Allow one trailing JSON action after a bounded plain-text paragraph."""
+    note, _, action = raw.strip().rpartition("\n\n")
+    if not 0 < len(note) <= 1024 or any(marker in note for marker in ("{", "}", "[", "]", "```")):
+        raise ActionError("Expected a single action after a plain-text note")
+    return read_reply(action)
+
+
+def normalize_qwen_action(data, size, *, native_navigation=False, compact_navigation=True):
+    if native_navigation and compact_navigation and isinstance(data, dict) and isinstance(data.get("action"), str):
+        native_kind = data["action"].upper()
+        if native_kind == "SCROLL" and set(data) == {"action", "value"}:
+            data = {**data, "position": None}
+        elif native_kind in ("CLICK", "LEFT_CLICK") and set(data) in (
+                {"action", "value"}, {"action", "value", "position"}):
+            value = data["value"]
+            point = value if isinstance(value, list) else None
+            if isinstance(value, str) and (match := _CLICK_VALUE.fullmatch(value.strip())):
+                point = [int(match[1]), int(match[2])]
+            if point is not None:
+                if len(point) != 2 or any(type(component) is not int for component in point):
+                    raise ActionError("Invalid coordinates in click value")
+                if data.get("position") is not None and data["position"] != point:
+                    raise ActionError("Conflicting click coordinates")
+                # Parse any supplied position too so booleans and floats are
+                # not accepted merely because they compare equal to integers.
+                position = data.get("position")
+                data = {"action": "CLICK", "value": None, "position": point if position is None else position}
     if not isinstance(data, dict) or set(data) != {"action", "value", "position"}:
         raise ActionError("Expected one action dictionary")
     if not isinstance(data["action"], str):
@@ -157,7 +187,7 @@ class QwenGroundingPolicy:
             self.config.update(model=QWEN_7B_MODEL, revision=QWEN_7B_MIRROR_REVISION,
                                quantization="bitsandbytes NF4 double quantization", asset_provenance=manifest)
         if native_navigation:
-            self.config["native_navigation"] = True
+            self.config.update(native_navigation=True, compact_navigation_replies=True)
 
     def reset(self, seed):
         self.torch.manual_seed(seed)
@@ -252,7 +282,10 @@ class QwenGroundingPolicy:
                 if match is None:
                     if not native_navigation:
                         raise
-                    data = native_input_pair(raw)
+                    try:
+                        data = native_input_pair(raw)
+                    except (ValueError, RecursionError):
+                        data = native_action_after_note(raw)
                     response_format = "native_navigation"
                 else:
                     data = {"action": "SCROLL", "value": int(match[1]), "position": None}

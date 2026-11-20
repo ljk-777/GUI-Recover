@@ -7,7 +7,7 @@ from decimal import Decimal
 from PIL import Image, ImageDraw
 
 from .actions import Action, ActionError
-from .qwen_grounding import normalize_qwen_action, parse_visible_answer, read_reply
+from .qwen_grounding import native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
 from .verification import pixel_hash
 
 
@@ -55,17 +55,20 @@ def evidence_clipped(goal, box, size):
     return bool(requires_row and box[3] >= size[1] - 2)
 
 
-def evidence_navigation(raw, size):
-    data = read_reply(raw)
+def evidence_navigation(raw, size, *, compact_navigation=True):
+    try:
+        data = read_reply(raw)
+    except json.JSONDecodeError:
+        data = native_action_after_note(raw)
     if not isinstance(data, dict) or "action" not in data:
         return None
-    action = normalize_qwen_action(data, size, native_navigation=True)
+    action = normalize_qwen_action(data, size, native_navigation=True, compact_navigation=compact_navigation)
     if action.action == "ANSWER":
         raise ActionError("An evidence search cannot submit an answer")
     return action
 
 
-def evidence_answer(raw, goal):
+def evidence_answer(raw, goal, *, allow_string_abstention=False):
     data = read_reply(raw)
     if not isinstance(data, dict) or set(data) != {"answer", "evidence"}:
         raise ActionError("Expected an answer and its visual evidence")
@@ -73,7 +76,7 @@ def evidence_answer(raw, goal):
     if (not isinstance(facts, list) or len(facts) > 6
             or any(not isinstance(fact, str) or not 0 < len(fact.strip()) <= 200 for fact in facts)):
         raise ActionError("Expected a bounded list of visual evidence descriptions")
-    if answer is None:
+    if answer is None or (allow_string_abstention and isinstance(answer, str) and answer.strip().casefold() == "null"):
         return None, "evidence_abstained"
     if not isinstance(answer, str) or not 0 < len(answer.strip()) <= 512:
         raise ActionError("Expected a nonempty short answer or null")
@@ -89,7 +92,7 @@ def evidence_answer(raw, goal):
     return answer.strip(), "evidence_answer"
 
 
-def confirmation_image(screen, crop, bounds):
+def confirmation_image(screen, crop, bounds, navigation_context=None):
     overview = screen.convert("RGB")
     overview.thumbnail((448, 336), Image.Resampling.LANCZOS)
     ow, oh = overview.size
@@ -97,8 +100,19 @@ def confirmation_image(screen, crop, bounds):
               min(ow - 1, bounds[2] * ow // screen.width),
               min(oh - 1, bounds[3] * oh // screen.height))
     ImageDraw.Draw(overview).rectangle(scaled, outline="#176fde", width=2)
-    panel = Image.new("RGB", (ow + 12 + crop.width, max(oh, crop.height)), "white")
+    previous = None
+    if navigation_context is not None:
+        before, (x, y) = navigation_context
+        previous = before.convert("RGB")
+        previous.thumbnail((448, 336), Image.Resampling.LANCZOS)
+        px = min(previous.width - 1, int(x * previous.width))
+        py = min(previous.height - 1, int(y * previous.height))
+        ImageDraw.Draw(previous).ellipse((px - 7, py - 7, px + 7, py + 7), outline="#d85319", width=3)
+    left_height = oh + (12 + previous.height if previous is not None else 0)
+    panel = Image.new("RGB", (ow + 12 + crop.width, max(left_height, crop.height)), "white")
     panel.paste(overview)
+    if previous is not None:
+        panel.paste(previous, (0, oh + 12))
     panel.paste(crop, (ow + 12, 0))
     return panel
 
@@ -115,12 +129,14 @@ def answer_signature(answer):
 class EvidenceAnswerPolicy:
     """Use one model invocation per prediction, including crop localization."""
 
-    def __init__(self, actor, *, confirm=False):
+    def __init__(self, actor, *, confirm=False, use_navigation_context=False):
         self.actor = actor
         self.confirm = confirm
+        self.use_navigation_context = use_navigation_context
         self.checked_frames = set()
         self.pending_crop = None
         self.pending_answer = None
+        self.navigation_context = None
 
     @property
     def last_metrics(self):
@@ -131,9 +147,15 @@ class EvidenceAnswerPolicy:
         self.checked_frames.clear()
         self.pending_crop = None
         self.pending_answer = None
+        self.navigation_context = None
 
     def set_feedback(self, message):
         self.actor.set_feedback(message)
+
+    def observe_transition(self, before, after, action):
+        if (self.use_navigation_context and action.action == "CLICK"
+                and pixel_hash(before.screenshot) != pixel_hash(after.screenshot)):
+            self.navigation_context = before.screenshot.copy(), action.position
 
     def locate(self, observation, frame):
         canvas = self.actor.prepare_image(observation.screenshot)
@@ -183,12 +205,16 @@ class EvidenceAnswerPolicy:
 
     def read(self, observation, frame, crop, bounds):
         canvas = self.actor.prepare_image(crop)
+        visibility_check = ("If the requested details cannot be read, use null for answer. "
+                            "A separate visual check will confirm that this is the correct item. "
+                            if self.navigation_context is not None else
+                            "If the requested subject, scope, or any required detail cannot be verified, use null for answer. ")
         prompt = (
             f"Question: {observation.goal}\n"
             "Inspect this crop. Identify the requested subject and list at most three brief, relevant facts. "
             "Omit unrelated text. For a count, count each visible group separately before adding. "
             "For a price range, give both endpoints. For a total price, read rates and pack sizes before calculating. "
-            "If the requested subject, scope, or any required detail cannot be verified, use null for answer. "
+            f"{visibility_check}"
             'Return one JSON object with exactly two keys: "evidence" (a list of short strings), '
             'then "answer" (short string or null).'
         )
@@ -196,7 +222,7 @@ class EvidenceAnswerPolicy:
         self.last_metrics.update(evidence_stage="read", evidence_frame=frame, evidence_bounds=list(bounds),
                                  evidence_crop_sha256=pixel_hash(crop), provider_format="evidence_invalid")
         try:
-            answer, status = evidence_answer(raw, observation.goal)
+            answer, status = evidence_answer(raw, observation.goal, allow_string_abstention=self.confirm)
         except (ValueError, RecursionError):
             return None
         self.last_metrics["provider_format"] = status
@@ -208,11 +234,17 @@ class EvidenceAnswerPolicy:
         return None
 
     def verify(self, observation, frame, crop, bounds, candidate):
-        panel = confirmation_image(observation.screenshot, crop, bounds)
+        panel = confirmation_image(observation.screenshot, crop, bounds, self.navigation_context)
         canvas = self.actor.prepare_image(panel)
+        context_description = (
+            "The bottom-left panel shows the previous viewport. Its orange circle marks the click that changed the view. "
+            "Use it when the question depends on how this item was selected. "
+            if self.navigation_context is not None else ""
+        )
         prompt = (
             f"Question: {observation.goal}\n"
-            "The left panel is the whole viewport and the blue outline marks the area enlarged on the right. "
+            "The upper-left panel is the current viewport and the blue outline marks the area enlarged on the right. "
+            f"{context_description}"
             "Check the requested item's identity and the full scope in the overview, then read the enlargement. "
             "For a page, row, or search question, verify that the required results are visible. "
             "Give every requested component. A single price cannot answer a price range. "
@@ -222,8 +254,11 @@ class EvidenceAnswerPolicy:
         raw = self.actor.ask(canvas, prompt)
         self.last_metrics.update(evidence_stage="confirm", evidence_frame=frame, evidence_bounds=list(bounds),
                                  evidence_panel_sha256=pixel_hash(panel), provider_format="evidence_invalid")
+        if self.navigation_context is not None:
+            previous, position = self.navigation_context
+            self.last_metrics.update(evidence_context_sha256=pixel_hash(previous), evidence_context_position=list(position))
         try:
-            answer = parse_visible_answer(raw)
+            answer = parse_visible_answer(raw, allow_numeric=True)
         except (ValueError, RecursionError):
             return None
         if answer is None:
