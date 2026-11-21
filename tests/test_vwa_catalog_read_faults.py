@@ -88,3 +88,38 @@ def test_finalized_cases_resume_without_initializing_a_model(faults, monkeypatch
     report = faults.run_faults(out, plan, [case], None, None)
     assert checked == [case.episode, case.episode]
     assert report["native_successes"] == 1 and report["model_calls"] == 2
+
+
+def test_restart_recovers_an_incomplete_plan_write(faults, monkeypatch, tmp_path):
+    site = "http://localhost:19980"
+    monkeypatch.setenv("VWA_CLASSIFIEDS", site)
+    plan = {"cohort_sha256": "sealed", "listing_origin": site, "format": faults.FORMAT}
+    temporary_plan = tmp_path / "run-plan.json.partial"
+    temporary_plan.write_text('{"format":')
+    unrelated = tmp_path / "other-result.json"
+    unrelated.write_text('{"marker":true}')
+    with pytest.raises(ValueError, match="requires an empty output directory"):
+        faults.run_faults(tmp_path, plan, [], None, None)
+    assert json.loads(unrelated.read_text()) == {"marker": True}
+    assert not (tmp_path / "run-plan.json").exists()
+    assert temporary_plan.read_text() == '{"format":'
+
+    unrelated.unlink()
+    faults.run_faults(tmp_path, plan, [], None, None)
+    assert not temporary_plan.exists()
+    assert json.loads((tmp_path / "run-plan.json").read_text())["cohort_sha256"] == "sealed"
+
+
+def test_concurrent_writer_cannot_replace_the_plan(faults, monkeypatch, tmp_path):
+    fcntl = pytest.importorskip("fcntl")
+    site = "http://localhost:19980"
+    monkeypatch.setenv("VWA_CLASSIFIEDS", site)
+    plan = {"cohort_sha256": "sealed", "listing_origin": site, "format": faults.FORMAT}
+    with (tmp_path / ".run.lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        with pytest.raises(ValueError, match="already writing"):
+            faults.run_faults(tmp_path, plan, [], None, None)
+        assert not (tmp_path / "run-plan.json").exists()
+
+    faults.run_faults(tmp_path, plan, [], None, None)
+    assert (tmp_path / "run-plan.json").is_file()

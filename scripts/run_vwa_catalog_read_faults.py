@@ -224,6 +224,18 @@ def audit_fault_run(out, plan, cases):
 
 
 def run_faults(out, plan, cases, references, model):
+    import fcntl
+
+    out.mkdir(parents=True, exist_ok=True)
+    with (out / ".run.lock").open("a") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise ValueError(f"A fault run is already writing to {out}") from exc
+        return _run_faults(out, plan, cases, references, model)
+
+
+def _run_faults(out, plan, cases, references, model):
     listing_site = os.environ["VWA_CLASSIFIEDS"].rstrip("/")
     require(listing_site == plan["listing_origin"], "Use the same Classifieds origin as the clean run")
     scripts = Path(__file__).resolve().parent
@@ -232,13 +244,15 @@ def run_faults(out, plan, cases, references, model):
              "prepare_vwa_catalog_holdout.py", "run_visualwebarena_live.py", "run_vwa_catalog_holdout.py")),
              *sorted(package.glob("*.py"))]
     plan = {**plan, "source_files": {path.name: fingerprint(path.read_bytes()) for path in paths}}
-    out.mkdir(parents=True, exist_ok=True)
     plan_path = out / "run-plan.json"
     if plan_path.exists():
         require(read_json(plan_path) == plan, "Use an empty output directory or resume the exact run")
     else:
-        require(not any(out.iterdir()), "New fault run requires an empty output directory")
         temporary_plan = plan_path.with_suffix(".json.partial")
+        require(all(entry.name == ".run.lock" or
+                    (entry == temporary_plan and entry.is_file() and not entry.is_symlink())
+                    for entry in out.iterdir()),
+                "New fault run requires an empty output directory")
         write_json(temporary_plan, plan)
         temporary_plan.replace(plan_path)
     needed = []
