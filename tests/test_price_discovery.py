@@ -7,7 +7,7 @@ from PIL import Image
 from gui_recover.actions import ActionError, category_search_terms, compile_action, parse_action
 from gui_recover.environment import VisualObservation
 from gui_recover.price_discovery import (
-    PriceDiscovery, PriceTie, _detail_price_box, first_ranked_match, price_request, price_result_scope,
+    PriceDiscovery, PriceTie, _detail_price_box, _hardcover_candidate, first_ranked_match, price_request, price_result_scope,
 )
 from gui_recover.verification import pixel_hash
 
@@ -61,6 +61,20 @@ def test_price_match_requires_every_more_extreme_candidate_to_be_checked():
     ):
         with pytest.raises(ActionError):
             first_ranked_match(reply, count)
+
+
+def test_hardcover_review_opens_the_first_candidate_and_keeps_other_criteria_general():
+    assert price_request("Find the most expensive purple hard-case book, and tell me how much it costs in dollars.").hardcover_color == "purple"
+    for subject in ("purple paperback book", "non-purple hardcover book", "purple hardcover book with a signed page"):
+        request = price_request(f"Find the most expensive {subject}, and tell me how much it costs in dollars.")
+        assert request.hardcover_color is None
+    assert _hardcover_candidate("[0,1,2]", 3, retry=False) == (1, False)
+    assert _hardcover_candidate("[0,0,0]", 3, retry=False) == (None, True)
+    assert _hardcover_candidate("[3,2]", 3, retry=True) == (1, False)
+    with pytest.raises(ActionError):
+        _hardcover_candidate("[0,true,2]", 3, retry=False)
+    with pytest.raises(ActionError):
+        _hardcover_candidate("[2,2]", 3, retry=True)
 
 
 def test_price_discovery_keeps_order_across_batches_and_crops_the_opened_listing():

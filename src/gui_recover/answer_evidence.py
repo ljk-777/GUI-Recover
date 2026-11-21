@@ -13,7 +13,7 @@ from .listing_cards import (
     ranked_photo_request, reference_result_action, reference_result_destination, reference_title_region,
     reference_title_request,
 )
-from .price_discovery import SELFIE_PHOTO_REQUIREMENT, PriceDiscovery, price_request, same_origin
+from .price_discovery import SELFIE_PHOTO_REQUIREMENT, PriceDiscovery, cover_color_labels, price_request, same_origin
 from .qwen_grounding import ask_observation, native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
 from .ranked_cards import RankedCardEvidence
 from .screen_text import empty_keyword_field, exact_initial_search, from_readable_control, keyword_search, listing_detail
@@ -212,13 +212,14 @@ def parse_evidence_location(raw, goal, size, *, confirm, compact_navigation=True
     return None, box, candidate, "evidence_locate_read" if candidate is not None else "evidence_region"
 
 
-def confirmation_image(screen, crop, bounds, navigation_context=None):
-    overview = screen.convert("RGB")
+def confirmation_image(screen, crop, bounds, navigation_context=None, *, focus_listing=False):
+    overview_height = max(screen.height // 2, bounds[3]) if focus_listing else screen.height
+    overview = screen.crop((0, 0, screen.width, overview_height)).convert("RGB")
     overview.thumbnail((448, 336), Image.Resampling.LANCZOS)
     ow, oh = overview.size
-    scaled = (bounds[0] * ow // screen.width, bounds[1] * oh // screen.height,
+    scaled = (bounds[0] * ow // screen.width, bounds[1] * oh // overview_height,
               min(ow - 1, bounds[2] * ow // screen.width),
-              min(oh - 1, bounds[3] * oh // screen.height))
+              min(oh - 1, bounds[3] * oh // overview_height))
     ImageDraw.Draw(overview).rectangle(scaled, outline="#176fde", width=2)
     previous = None
     if navigation_context is not None:
@@ -269,6 +270,22 @@ def parse_selfie_price_confirmation(raw):
     if cue not in ("mirror_camera", "arms_length_portrait"):
         if cue is not None:
             raise ActionError("Unknown selfie cue")
+        return None
+    return parse_visible_answer(json.dumps({"answer": data["answer"]}), allow_numeric=True)
+
+
+def parse_independent_confirmation(raw, request=None):
+    if request is not None and request.requires_selfie_cue:
+        return parse_selfie_price_confirmation(raw)
+    color = request.hardcover_color if request is not None else None
+    if color is None:
+        return parse_visible_answer(raw, allow_numeric=True)
+    data = read_reply(raw)
+    if not isinstance(data, dict) or set(data) != {"answer", "cover_color", "binding"}:
+        raise ActionError("Expected the independently read price, cover color and binding")
+    visible = data["cover_color"]
+    if (not isinstance(visible, str) or visible.strip().casefold() not in cover_color_labels(color)
+            or data["binding"] != "hardcover"):
         return None
     return parse_visible_answer(json.dumps({"answer": data["answer"]}), allow_numeric=True)
 
@@ -631,7 +648,10 @@ class EvidenceAnswerPolicy:
         return None
 
     def verify(self, observation, frame, crop, bounds, candidate):
-        panel = confirmation_image(observation.screenshot, crop, bounds, self.navigation_context)
+        request = self.price_discovery.request if self.price_discovery is not None else None
+        color = request.hardcover_color if request is not None else None
+        panel = confirmation_image(observation.screenshot, crop, bounds, self.navigation_context,
+                                   focus_listing=color is not None)
         canvas = self.actor.prepare_image(panel)
         context_description = (
             "The bottom-left panel shows the previous viewport. Its orange circle marks the click that changed the view. "
@@ -648,8 +668,17 @@ class EvidenceAnswerPolicy:
             "If anything required is missing, return {\"answer\":null}. "
             "Otherwise return one JSON object with one key answer and a short string value."
         )
-        selfie = self.price_discovery is not None and self.price_discovery.request.requires_selfie_cue
-        if selfie:
+        if color is not None:
+            shades = ", ".join(cover_color_labels(color))
+            prompt = (
+                "Inspect the current listing photo in the enlarged upper-left overview. Check the color of "
+                f"the outer book cover itself. A match has one of these hues: {shades}. "
+                "Confirm hardcover using the rigid cover or thick bound spine visible in the photo. "
+                "Read the dollar amount from the crop on the right. Return JSON with exactly three keys: "
+                '"cover_color" (visible hue or null), "binding" ("hardcover" if verified, otherwise null), '
+                'and "answer" (the visible numeric amount as a string, or null if anything is unverified).'
+            )
+        elif request is not None and request.requires_selfie_cue:
             target = self.price_discovery.request.visual_target
             prompt = (
                 f"Verify that the listing photo in the upper-left overview shows {target}. "
@@ -689,7 +718,7 @@ class EvidenceAnswerPolicy:
             previous, position = self.navigation_context
             self.last_metrics.update(evidence_context_sha256=pixel_hash(previous), evidence_context_position=list(position))
         try:
-            answer = parse_selfie_price_confirmation(raw) if selfie else parse_visible_answer(raw, allow_numeric=True)
+            answer = parse_independent_confirmation(raw, request)
         except (ValueError, RecursionError):
             return None
         if answer is None:

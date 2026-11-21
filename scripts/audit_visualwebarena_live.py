@@ -12,7 +12,7 @@ from gui_recover.actions import ActionError, parse_action
 from gui_recover.answer_evidence import (
     REFERENCE_CONTACT_REGION, REFERENCE_NAVIGATION, REFERENCE_SEARCH, REFERENCE_SEARCH_ABSTAINED,
     confirmation_image, confirmed_evidence_answer, contact_from_evidence, evidence_answer, native_crop,
-    parse_evidence_location, parse_selfie_price_confirmation, reference_contact_box, reference_search_action,
+    parse_evidence_location, parse_independent_confirmation, reference_contact_box, reference_search_action,
     visible_contact_request,
 )
 from gui_recover.environment import VisualObservation, frame_key
@@ -401,15 +401,15 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                 stages["navigation_context"] += 1
             else:
                 require("evidence_context_sha256" not in metrics, "Untracked navigation context reached confirmation")
+            request = price_scan.request if price_scan is not None else None
             with Image.open(directory / f"{index:04d}.png") as screen:
-                panel = confirmation_image(screen, screen.crop(bounds), bounds, context)
+                panel = confirmation_image(screen, screen.crop(bounds), bounds, context,
+                                           focus_listing=request is not None and request.hardcover_color is not None)
             require(metrics["evidence_bounds"] == bounds and metrics["evidence_panel_sha256"] == pixel_hash(panel),
                     "Confirmation pixels differ from the recorded viewport and crop")
-            selfie = price_scan is not None and price_scan.request.requires_selfie_cue
             tie = price_scan.tie if price_scan is not None else None
             try:
-                independent = (parse_selfie_price_confirmation(reply) if selfie
-                               else parse_visible_answer(reply, allow_numeric=True))
+                independent = parse_independent_confirmation(reply, request)
             except (ValueError, RecursionError):
                 pass
             else:

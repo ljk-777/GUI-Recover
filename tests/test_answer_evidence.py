@@ -6,7 +6,7 @@ from PIL import Image
 from gui_recover.actions import Action, ActionError, parse_action
 from gui_recover.answer_evidence import (EvidenceAnswerPolicy, answer_signature, evidence_answer, evidence_box,
                                          confirmation_image, confirmed_evidence_answer, evidence_clipped,
-                                         evidence_navigation, native_crop)
+                                         evidence_navigation, native_crop, parse_independent_confirmation)
 from gui_recover.environment import VisualObservation
 from gui_recover.price_discovery import PriceDiscovery, price_request
 from gui_recover.qwen_grounding import QwenGroundingPolicy, normalize_qwen_action, parse_visible_answer
@@ -73,6 +73,21 @@ def test_ranked_price_crop_accepts_one_redundant_evidence_wrapper_only():
     for evidence in ([[["2995.00 $"]]], [["2995.00 $"], ["other"]], [[2995]]):
         with pytest.raises(ActionError):
             evidence_answer(json.dumps({"evidence": evidence, "answer": "2995.00"}), goal, price_crop=True)
+
+
+def test_hardcover_confirmation_requires_a_visible_matching_color_and_rigid_binding():
+    request = price_request("Find the most expensive purple hard-case book, and tell me how much it costs in dollars.")
+    assert parse_independent_confirmation(
+        '{"answer":"1100.00","cover_color":"blue-violet","binding":"hardcover"}', request
+    ) == "1100.00"
+    assert parse_independent_confirmation(
+        '{"answer":"1100.00","cover_color":"blue","binding":"hardcover"}', request
+    ) is None
+    assert parse_independent_confirmation(
+        '{"answer":"1100.00","cover_color":"violet","binding":null}', request
+    ) is None
+    with pytest.raises(ActionError):
+        parse_independent_confirmation('{"answer":"1100.00"}', request)
 
 
 def test_independent_reader_accepts_finite_numeric_json_answers():

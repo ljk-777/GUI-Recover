@@ -27,6 +27,10 @@ _REQUEST = re.compile(
 )
 _QUALIFIER = re.compile(r"\s+(?:that|which|whose|with)\s+", re.IGNORECASE)
 _MULTIPLE_PEOPLE = re.compile(r"\b(?:has|with|shows?|showing)\s+multiple people\b", re.IGNORECASE)
+_COLORED_HARDCOVER = re.compile(
+    r"\b(black|white|red|orange|yellow|green|blue|purple|pink|brown|gray|grey)\s+"
+    r"hard[- ]?(?:cover|case|back)\s+(?:book|novel|textbook)\b", re.IGNORECASE,
+)
 _CATEGORIES = {
     "Books": {"book", "books", "textbook", "textbooks"},
     "Jewelry": {"ring", "rings", "bracelet", "bracelets", "necklace", "necklaces", "earrings"},
@@ -53,6 +57,11 @@ class PriceRequest:
     @property
     def requires_selfie_cue(self):
         return re.search(r"\bselfie\b", self.visual_target, re.IGNORECASE) is not None
+
+    @property
+    def hardcover_color(self):
+        match = _COLORED_HARDCOVER.fullmatch(self.visual_target.strip()) if self.category == "Books" else None
+        return match[1].casefold() if match is not None else None
 
 
 @dataclass
@@ -224,6 +233,49 @@ def _people_count_match(reply, count):
         raise ActionError("Expected one visible people count for every photo")
     index = next((index for index, people in enumerate(counts) if people >= 2), None)
     return index, index is None
+
+
+def cover_color_labels(color):
+    if color == "purple":
+        return ("purple", "violet", "blue-violet", "indigo")
+    if color in ("gray", "grey"):
+        return ("gray", "grey")
+    return (color,)
+
+
+def _hardcover_panel_prompt(color, count, *, retry):
+    shades = ", ".join(cover_color_labels(color))
+    if retry:
+        return (
+            f"Which numbered photos could show a {shades} hardcover book? Look for the outer cover "
+            "and spine of the actual book. Ignore clothing, background colors, unrelated printed artwork, "
+            "and clearly unsuitable books. Return a JSON list containing only the numbers of plausible cards. "
+            "Return [] if there are none."
+        )
+    colors = "purple or violet cover, including blue-violet or indigo" if color == "purple" else f"{shades} cover"
+    return (
+        f"Inspect each numbered listing photo. Use the photo to report any {colors}. "
+        "Ignore colored decorations, backgrounds, and printed artwork. "
+        "Check whether the color is the outer cover of a single rigid hardcover book. "
+        f"Return a JSON array of exactly {count} entries in card order. "
+        "Each entry is 0 for clearly unrelated, 1 for possibly matching when the binding is unclear, "
+        f"or 2 if a clearly {color} rigid book cover is visible. Return only the array."
+    )
+
+
+def _hardcover_candidate(reply, count, *, retry):
+    entries = read_reply(reply)
+    if not isinstance(entries, list):
+        raise ActionError("Expected a list of book cover judgments")
+    if retry:
+        if (len(entries) > count or any(type(index) is not int or not 1 <= index <= count for index in entries)
+                or len(set(entries)) != len(entries)):
+            raise ActionError("Invalid book cover shortlist")
+        return (min(entries) - 1, False) if entries else (None, True)
+    if len(entries) != count or any(type(entry) is not int or not 0 <= entry <= 2 for entry in entries):
+        raise ActionError("Expected one book cover judgment per card")
+    chosen = next((index for index, entry in enumerate(entries) if entry), None)
+    return chosen, chosen is None
 
 
 def _people_count_prompt(count):
@@ -434,6 +486,7 @@ class PriceDiscovery:
             self.retried_photo_response = True
             metrics["price_retried_photo_response"] = True
         count_people = retry and self.tie is not None and _MULTIPLE_PEOPLE.search(self.request.visual_target) is not None
+        color = self.request.hardcover_color
         example = '{"1":[false,"wooden table"],"2":[true,"person wearing ring"]}'
         condition = ""
         if self.request.requires_selfie_cue:
@@ -451,17 +504,24 @@ class PriceDiscovery:
             "[true or false, at most three words of visible evidence]. "
             f"For example, {example}."
         )
-        prompt = _people_count_prompt(len(batch)) if count_people else (
+        prompt = (
             f"Visual criterion: {self.request.visual_target}.\n"
             f"{condition}"
             "Inspect each numbered listing photo. First identify a concrete visual cue in the photo. "
             "Use that cue to decide whether the item visibly matches, recording false for a clearly unrelated photo. "
             f"{response_format}"
         )
+        if color is not None:
+            prompt = _hardcover_panel_prompt(color, len(batch), retry=retry)
+        elif count_people:
+            prompt = _people_count_prompt(len(batch))
         reply = actor.ask(actor.prepare_image(panel), prompt)
         metrics.update(model_invocations=1, provider_output=reply, price_panel_pixels=panel_hash,
                        peak_cuda_allocated_bytes=actor.last_metrics.get("peak_cuda_allocated_bytes", 0))
         try:
+            if color is not None:
+                metrics["price_hardcover_color"] = color
+                return _hardcover_candidate(reply, len(batch), retry=retry)
             if count_people:
                 metrics["price_counted_people"] = True
                 return _people_count_match(reply, len(batch))
