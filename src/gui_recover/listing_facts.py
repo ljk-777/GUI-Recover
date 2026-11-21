@@ -69,7 +69,7 @@ class ListingFacts:
 
     def with_price_from_crop(self, rows):
         cents = _displayed_cents(" ".join(row["text"] for row in rows))
-        return replace(self, cents=cents) if cents is not None else self
+        return replace(self, cents=cents) if cents is not None else None
 
     def confirm(self, reply, *, reread=False):
         key = self.field

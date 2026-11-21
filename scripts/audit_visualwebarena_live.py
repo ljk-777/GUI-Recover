@@ -12,7 +12,8 @@ from gui_recover.actions import ActionError, parse_action
 from gui_recover.answer_evidence import (
     REFERENCE_CONTACT_REGION, REFERENCE_NAVIGATION, REFERENCE_SEARCH, REFERENCE_SEARCH_ABSTAINED,
     REFERENCE_TITLE_AMBIGUOUS, REFERENCE_TITLE_CROP, REFERENCE_TITLE_HEADING, REFERENCE_TITLE_OPEN,
-    breadcrumb_ocr_image, confirmation_image, confirmation_outcome, contact_from_evidence, evidence_answer,
+    breadcrumb_ocr_image, checked_listing_confirmation, confirmation_image, confirmation_outcome,
+    contact_from_evidence, evidence_answer,
     listing_fact_reread_image, listing_price_ocr_image, native_crop,
     parse_evidence_location, reference_contact_box, reference_search_action,
     visible_contact_request,
@@ -52,6 +53,15 @@ def verify_ocr_rows(rows, size):
                 and len(coords) == 4 and all(type(value) is int for value in coords)
                 and 0 <= coords[0] < coords[2] <= size[0] and 0 <= coords[1] < coords[3] <= size[1],
                 "Invalid OCR bounds")
+
+
+def replay_price_ocr(screen_path, candidate, review):
+    with Image.open(screen_path) as screen:
+        image, bounds = listing_price_ocr_image(screen, candidate)
+    require(review["bounds"] == list(bounds) and review["pixels_sha256"] == pixel_hash(image),
+            "Price OCR reread differs from the saved screenshot")
+    verify_ocr_rows(review["rows"], image.size)
+    return review["rows"]
 
 
 def validate_tab_state(state):
@@ -150,6 +160,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
     pending = None
     pending_confirmation = None
     listing_fact_reread_pending = False
+    listing_price_checked = False
     pending_links = None
     link_count = link_answer_count(goal) if listing_site is not None else None
     ranked_request = ranked_photo_request(goal) if use_ranked_cards else None
@@ -207,6 +218,8 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         else:
             stage = None
         require(metrics.get("evidence_stage") == stage, "Evidence check schedule disagrees with the observed frame")
+        require("listing_price_check" not in metrics or (stage == "confirm" and not listing_fact_reread_pending),
+                "Price OCR check must occur during the first compound confirmation")
         require("listing_price_ocr" not in metrics or (stage == "confirm" and listing_fact_reread_pending),
                 "Price OCR reread is outside isolated compound confirmation")
         require("listing_preview" not in metrics or (stage == "locate" and link_count is not None),
@@ -512,18 +525,15 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                         "Isolated confirmation must be bounded to its crop and may run only once")
                 confirmed, status = confirmation_outcome(reply, candidate, listing_fact_reread=isolated_facts)
                 if "listing_price_ocr" in metrics:
-                    require(isolated_facts and candidate.field == "city" and status == "evidence_verify_disagreed",
+                    require(isolated_facts and not listing_price_checked and candidate.field == "city"
+                            and status == "evidence_verify_disagreed",
                             "Price OCR reread requires a disagreeing price-and-city reread")
-                    review = metrics["listing_price_ocr"]
-                    with Image.open(directory / f"{index:04d}.png") as screen:
-                        image, price_bounds = listing_price_ocr_image(screen, candidate)
-                    require(review["bounds"] == list(price_bounds) and review["pixels_sha256"] == pixel_hash(image),
-                            "Price OCR reread differs from the saved screenshot")
-                    verify_ocr_rows(review["rows"], image.size)
+                    rows = replay_price_ocr(directory / f"{index:04d}.png", candidate, metrics["listing_price_ocr"])
                     confirmed, status = confirmation_outcome(
-                        reply, candidate.with_price_from_crop(review["rows"]), listing_fact_reread=True,
+                        reply, candidate.with_price_from_crop(rows) or candidate, listing_fact_reread=True,
                     )
                     stages["listing_price_ocr"] += 1
+                listing_price_checked = False
                 require(metrics["provider_format"] == status, "Isolated confirmation status differs from the recorded reply")
                 require((metrics.get("stop_after_evidence") is True) == (confirmed is None),
                         "An unresolved isolated confirmation must stop without submission")
@@ -555,11 +565,22 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
             require(metrics["evidence_bounds"] == bounds and metrics["evidence_panel_sha256"] == pixel_hash(panel),
                     "Confirmation pixels differ from the recorded viewport and crop")
             tie = price_scan.tie if price_scan is not None else None
-            confirmed, status = confirmation_outcome(reply, candidate, request, expected_cents=tie.cents if tie is not None else None)
+            checked = candidate
+            listing_price_checked = "listing_price_check" in metrics
+            if listing_price_checked:
+                require(isinstance(candidate, ListingFacts) and candidate.field == "city",
+                        "Price OCR check requires a price-and-city candidate")
+                rows = replay_price_ocr(directory / f"{index:04d}.png", candidate, metrics["listing_price_check"])
+                confirmed, status, checked = checked_listing_confirmation(reply, candidate, rows)
+                stages["listing_price_check"] += 1
+            else:
+                confirmed, status = confirmation_outcome(
+                    reply, candidate, request, expected_cents=tie.cents if tie is not None else None,
+                )
             if metrics.get("listing_fact_reread_pending") is True:
-                require(isinstance(candidate, ListingFacts) and confirmed is None and not metrics.get("stop_after_evidence"),
+                require(isinstance(checked, ListingFacts) and confirmed is None and not metrics.get("stop_after_evidence"),
                         "Only unconfirmed compound fields can schedule an isolated reread")
-                pending_confirmation = frame, bounds, candidate
+                pending_confirmation = frame, bounds, checked
                 listing_fact_reread_pending = True
             elif isinstance(candidate, ListingFacts):
                 require((metrics.get("stop_after_evidence") is True) == (confirmed is None),

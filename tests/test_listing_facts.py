@@ -78,7 +78,10 @@ def test_compound_disagreement_rereads_only_the_two_fields_once(reread_city):
         return f'{{"text":"Location: {reread_city}, Illinois, United States","dollars":80.50}}'
 
     actor.ask = ask
-    policy = EvidenceAnswerPolicy(actor, confirm=True, screen_reader=lambda *_: detail_rows(),
+    def reader(image, size):
+        return detail_rows() if image is screen else [row("80.50 $", 10, 3, 150, 64)]
+
+    policy = EvidenceAnswerPolicy(actor, confirm=True, screen_reader=reader,
                                   listing_site=SITE, ranked_capture=lambda: pytest.fail("Detail page needs no cards"))
     observation = VisualObservation(DETAIL_GOAL, screen, tabs=(("Detail", ITEM),))
     assert policy.predict(observation, []) is None
@@ -92,8 +95,15 @@ def test_compound_disagreement_rereads_only_the_two_fields_once(reread_city):
         assert result is None and policy.last_metrics["stop_after_evidence"] is True
 
 
-@pytest.mark.parametrize("localized_price", ("80.50 $", "120 $", None))
-def test_city_price_recovery_requires_local_ocr_to_agree_with_the_isolated_model_read(localized_price):
+@pytest.mark.parametrize(("initial", "isolated", "localized_price", "submitted_price", "model_calls"), (
+    ("80.50", "80.50", "80.50 $", "80.50", 2),
+    ("90.50", "80.50", "80.50 $", "80.50", 2),
+    ("80.50", "90.50", "80.50 $", None, 2),
+    ("80.50", "80.50", "120 $", None, 2),
+    ("80.50", "80.50", None, None, 1),
+    ("90.50", "90.50", "90.50 $", "90.50", 1),
+))
+def test_city_price_requires_local_ocr_agreement(initial, isolated, localized_price, submitted_price, model_calls):
     screen = Image.new("RGB", (1000, 770), "white")
     draw = ImageDraw.Draw(screen)
     draw.rectangle((820, 132, 871, 149), fill="red")
@@ -117,20 +127,22 @@ def test_city_price_recovery_requires_local_ocr_to_agree_with_the_isolated_model
     def ask(image, prompt, **context):
         calls.append(context)
         actor.last_metrics = {"model_invocations": 1}
-        return ('{"city":"Oak Park","dollars":80.50}' if len(calls) == 1 else
-                '{"text":"Location: Oak Park, Illinois, United States","dollars":80.50}')
+        return (f'{{"city":"Oak Park","dollars":"{initial}"}}' if len(calls) == 1 else
+                f'{{"text":"Location: Oak Park, Illinois, United States","dollars":"{isolated}"}}')
 
     actor.ask = ask
     policy = EvidenceAnswerPolicy(actor, confirm=True, screen_reader=reader, listing_site=SITE,
                                   ranked_capture=lambda: pytest.fail("Detail page needs no cards"))
     observation = VisualObservation(DETAIL_GOAL, screen, tabs=(("Detail", ITEM),))
     assert policy.predict(observation, []) is None
-    assert policy.predict(observation, []) is None
     result = policy.predict(observation, [])
-    assert len(calls) == 2 and len(ocr_sizes) == 2
-    assert policy.last_metrics["listing_price_ocr"]["bounds"] == [787, 119, 913, 164]
-    if localized_price == "80.50 $":
-        assert parse_action(result) == Action("ANSWER", "Oak Park, 80.50 dollars")
+    assert policy.last_metrics["listing_price_check"]["bounds"] == [787, 119, 913, 164]
+    if model_calls == 2:
+        assert result is None and policy.last_metrics["listing_fact_reread_pending"] is True
+        result = policy.predict(observation, [])
+    assert len(calls) == model_calls and len(ocr_sizes) == 2
+    if submitted_price:
+        assert parse_action(result) == Action("ANSWER", f"Oak Park, {submitted_price} dollars")
     else:
         assert result is None and policy.last_metrics["stop_after_evidence"] is True
 

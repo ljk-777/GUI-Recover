@@ -342,6 +342,16 @@ def confirmation_outcome(raw, candidate, request=None, *, expected_cents=None, l
     return (confirmed, "evidence_verify_agreed") if confirmed is not None else (None, "evidence_verify_disagreed")
 
 
+def checked_listing_confirmation(raw, candidate, price_rows):
+    checked = candidate.with_price_from_crop(price_rows)
+    if checked is None:
+        return None, "evidence_verify_abstained", None
+    answer, status = confirmation_outcome(raw, candidate)
+    if answer is not None and checked.cents != candidate.cents:
+        return None, "evidence_verify_disagreed", checked
+    return answer, status, checked
+
+
 def indexed_text(rows):
     return "\n".join(f"{index}: {json.dumps(row['text'], ensure_ascii=False)} at {row['bounds']}"
                      for index, row in enumerate(rows))
@@ -889,24 +899,31 @@ class EvidenceAnswerPolicy:
             previous, position = self.navigation_context
             self.last_metrics.update(evidence_context_sha256=pixel_hash(previous), evidence_context_position=list(position))
         tie = self.price_discovery.tie if self.price_discovery is not None else None
-        confirmed, status = confirmation_outcome(raw, candidate, request, expected_cents=tie.cents if tie is not None else None)
+        checked = candidate
+        if isinstance(candidate, ListingFacts) and candidate.field == "city":
+            price_crop, price_bounds = listing_price_ocr_image(observation.screenshot, candidate)
+            rows = self.screen_reader(price_crop, price_crop.size)
+            self.last_metrics["listing_price_check"] = {
+                "bounds": list(price_bounds), "pixels_sha256": pixel_hash(price_crop), "rows": rows,
+            }
+            confirmed, status, checked = checked_listing_confirmation(raw, candidate, rows)
+        else:
+            confirmed, status = confirmation_outcome(
+                raw, candidate, request, expected_cents=tie.cents if tie is not None else None,
+            )
         self.last_metrics["provider_format"] = status
         if confirmed is None and isinstance(candidate, ListingFacts):
-            self.pending_fact_reread = frame, candidate
-            self.last_metrics["listing_fact_reread_pending"] = True
+            if checked is None:
+                self.last_metrics["stop_after_evidence"] = True
+            else:
+                self.pending_fact_reread = frame, checked
+                self.last_metrics["listing_fact_reread_pending"] = True
         return json.dumps(Action("ANSWER", confirmed).to_dict(), ensure_ascii=False) if confirmed is not None else None
 
     def reread_listing_facts(self, observation, frame, candidate):
         panel, bounds = listing_fact_reread_image(observation.screenshot, candidate)
         raw = self.actor.ask(self.actor.prepare_image(panel), candidate.reread_prompt())
         answer, status = confirmation_outcome(raw, candidate, listing_fact_reread=True)
-        if status == "evidence_verify_disagreed" and candidate.field == "city" and self.screen_reader is not None:
-            price_crop, price_bounds = listing_price_ocr_image(observation.screenshot, candidate)
-            rows = self.screen_reader(price_crop, price_crop.size)
-            self.last_metrics["listing_price_ocr"] = {
-                "bounds": list(price_bounds), "pixels_sha256": pixel_hash(price_crop), "rows": rows,
-            }
-            answer, status = confirmation_outcome(raw, candidate.with_price_from_crop(rows), listing_fact_reread=True)
         self.last_metrics.update(evidence_stage="confirm", evidence_frame=frame, provider_format=status,
                                  listing_fact_reread_sha256=pixel_hash(panel), listing_fact_reread_bounds=bounds)
         if answer is None:
