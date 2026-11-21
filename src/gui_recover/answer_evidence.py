@@ -120,9 +120,16 @@ def listing_fact_field_crop(screen, size, box):
     return native_crop(screen, size, padded, pad=False)
 
 
-def listing_price_ocr_image(screen, candidate):
+def listing_price_ocr_image(screen, candidate, *, enlarge=True):
     crop, bounds = listing_fact_field_crop(screen, candidate.canvas_size, candidate.price_bounds)
-    return crop.resize((2 * crop.width, 2 * crop.height), Image.Resampling.LANCZOS), bounds
+    if enlarge:
+        crop = crop.resize((2 * crop.width, 2 * crop.height), Image.Resampling.LANCZOS)
+    return crop, bounds
+
+
+def listing_price_ocr_receipt(screen, candidate, reader, *, enlarge=True):
+    crop, bounds = listing_price_ocr_image(screen, candidate, enlarge=enlarge)
+    return {"bounds": list(bounds), "pixels_sha256": pixel_hash(crop), "rows": reader(crop, crop.size)}
 
 
 def listing_fact_reread_image(screen, candidate):
@@ -901,12 +908,14 @@ class EvidenceAnswerPolicy:
         tie = self.price_discovery.tie if self.price_discovery is not None else None
         checked = candidate
         if isinstance(candidate, ListingFacts) and candidate.field == "city":
-            price_crop, price_bounds = listing_price_ocr_image(observation.screenshot, candidate)
-            rows = self.screen_reader(price_crop, price_crop.size)
-            self.last_metrics["listing_price_check"] = {
-                "bounds": list(price_bounds), "pixels_sha256": pixel_hash(price_crop), "rows": rows,
-            }
-            confirmed, status, checked = checked_listing_confirmation(raw, candidate, rows)
+            receipt = listing_price_ocr_receipt(observation.screenshot, candidate, self.screen_reader)
+            self.last_metrics["listing_price_check"] = receipt
+            confirmed, status, checked = checked_listing_confirmation(raw, candidate, receipt["rows"])
+            if checked is None:
+                # OCR can split a single amount into overlapping fragments after enlargement.
+                retry = listing_price_ocr_receipt(observation.screenshot, candidate, self.screen_reader, enlarge=False)
+                self.last_metrics["listing_price_native_retry"] = retry
+                confirmed, status, checked = checked_listing_confirmation(raw, candidate, retry["rows"])
         else:
             confirmed, status = confirmation_outcome(
                 raw, candidate, request, expected_cents=tie.cents if tie is not None else None,

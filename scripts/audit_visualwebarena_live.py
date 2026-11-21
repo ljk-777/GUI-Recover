@@ -54,9 +54,9 @@ def verify_ocr_rows(rows, size):
                 "Invalid OCR bounds")
 
 
-def replay_price_ocr(screen_path, candidate, review):
+def replay_price_ocr(screen_path, candidate, review, *, enlarge=True):
     with Image.open(screen_path) as screen:
-        image, bounds = listing_price_ocr_image(screen, candidate)
+        image, bounds = listing_price_ocr_image(screen, candidate, enlarge=enlarge)
     require(review["bounds"] == list(bounds) and review["pixels_sha256"] == pixel_hash(image),
             "Price OCR reread differs from the saved screenshot")
     verify_ocr_rows(review["rows"], image.size)
@@ -219,6 +219,8 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         require(metrics.get("evidence_stage") == stage, "Evidence check schedule disagrees with the observed frame")
         require("listing_price_check" not in metrics or (stage == "confirm" and not listing_fact_reread_pending),
                 "Price OCR check must occur during the first compound confirmation")
+        require("listing_price_native_retry" not in metrics or "listing_price_check" in metrics,
+                "Native price OCR retry requires the enlarged price check")
         require("listing_price_ocr" not in metrics or (stage == "confirm" and listing_fact_reread_pending),
                 "Price OCR reread is outside isolated compound confirmation")
         require("listing_preview" not in metrics or (stage == "locate" and link_count is not None),
@@ -575,6 +577,12 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                 rows = replay_price_ocr(directory / f"{index:04d}.png", candidate, metrics["listing_price_check"])
                 confirmed, status, checked = checked_listing_confirmation(reply, candidate, rows)
                 stages["listing_price_check"] += 1
+                if "listing_price_native_retry" in metrics:
+                    require(checked is None, "Native price OCR retry requires an unreadable enlarged crop")
+                    rows = replay_price_ocr(directory / f"{index:04d}.png", candidate,
+                                            metrics["listing_price_native_retry"], enlarge=False)
+                    confirmed, status, checked = checked_listing_confirmation(reply, candidate, rows)
+                    stages["listing_price_native_retry"] += 1
             else:
                 confirmed, status = confirmation_outcome(
                     reply, candidate, request, expected_cents=tie.cents if tie is not None else None,
