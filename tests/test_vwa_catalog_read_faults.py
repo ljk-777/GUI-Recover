@@ -60,6 +60,16 @@ def test_price_ocr_fault_changes_only_the_registered_amount(faults):
     assert policy.read_screen(screen, screen.size) == rows
 
 
+@pytest.mark.parametrize(("stage", "key"), (("initial", "city"), ("isolated", "text")))
+def test_correlated_price_fault_changes_only_the_model_amount(faults, stage, key):
+    reply = json.dumps({key: "Oak Park", "dollars": 25.5})
+    assert json.loads(faults.matching_price_reply(stage, reply, 2550, 3550)) == {
+        key: "Oak Park", "dollars": "35.50",
+    }
+    with pytest.raises(ValueError, match="originally read the unmodified price"):
+        faults.matching_price_reply(stage, reply, 2500, 3500)
+
+
 def test_offline_audit_rejects_an_injected_change_to_the_price(faults, monkeypatch, tmp_path):
     original = '{"city":"Oak Park","dollars":30}'
     altered = faults.changed_reply("shorten-city", original)

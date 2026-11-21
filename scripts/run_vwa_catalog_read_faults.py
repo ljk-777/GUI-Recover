@@ -5,8 +5,9 @@ import json
 import os
 import re
 import tempfile
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 import gui_recover
@@ -24,13 +25,22 @@ from run_visualwebarena_live import exact_vwa_success, holdout_profile, probe_in
 from run_vwa_catalog_holdout import PROFILE, browser_case, load_cohort
 
 
+PRICE_REPLY_FAULTS = {
+    "match-ocr-price-in-confirmation": "initial",
+    "match-ocr-price-in-reread": "isolated",
+}
 FAULT_FAMILIES = {
     "shorten-city": ("detail-price-city",),
     "omit-breadcrumb": ("gallery-reference", "search-reference"),
     "change-title-letter": ("search-highest-price",),
     "change-ocr-price-digit": ("detail-price-city",),
+    **dict.fromkeys(PRICE_REPLY_FAULTS, ("detail-price-city",)),
 }
-OCR_FAULT_TARGETS = {"omit-breadcrumb": REFERENCE_TITLE_HEADING, "change-ocr-price-digit": LISTING_FACTS_REGION}
+OCR_FAULT_TARGETS = {
+    "omit-breadcrumb": REFERENCE_TITLE_HEADING,
+    "change-ocr-price-digit": LISTING_FACTS_REGION,
+    **dict.fromkeys(PRICE_REPLY_FAULTS, LISTING_FACTS_REGION),
+}
 FORMAT = "gui-recover-catalog-read-faults-v1"
 
 
@@ -59,7 +69,7 @@ def changed_ocr(fault, rows):
         require(len(matches) == 1, "Clean OCR must show one listing breadcrumb")
         crumb, = matches
         return [row for row in rows if row is not crumb], {"fault": fault, "omitted_row": crumb}
-    require(fault == "change-ocr-price-digit", "Expected an OCR fault")
+    require(fault == "change-ocr-price-digit" or fault in PRICE_REPLY_FAULTS, "Expected an OCR fault")
     price = main_listing_price(rows)
     require(price is not None, "Clean OCR must show one listing price")
     (left, top, right, bottom), cents = price
@@ -78,6 +88,27 @@ def changed_ocr(fault, rows):
     require(new_price is not None and new_price[0] == price[0] and new_price[1] != cents,
             "Price digit fault must change the amount within the same price box")
     return altered, {"fault": fault, "original_row": original, "injected_row": mutated}
+
+
+def matching_price_reply(stage, reply, original_cents, injected_cents):
+    key = "city" if stage == "initial" else "text"
+    data = read_reply(reply, parse_float=Decimal)
+    require(isinstance(data, dict) and set(data) == {key, "dollars"} and isinstance(data[key], str)
+            and type(data["dollars"]) in (str, int, Decimal), "Expected an intact price and city reply")
+    try:
+        dollars = Decimal(str(data["dollars"]))
+    except InvalidOperation as exc:
+        raise ValueError("Expected a decimal amount in the model reply") from exc
+    require(dollars.is_finite() and dollars == Decimal(original_cents) / 100,
+            "The model must originally read the unmodified price")
+    return json.dumps({key: data[key], "dollars": format(Decimal(injected_cents) / 100, ".2f")}, ensure_ascii=False)
+
+
+def inject_matching_price(kind, target, raw):
+    stage = PRICE_REPLY_FAULTS[kind]
+    rows = target["screen_text"]
+    altered, _ = changed_ocr(kind, rows)
+    return matching_price_reply(stage, raw, main_listing_price(rows)[1], main_listing_price(altered)[1])
 
 
 def prediction_metrics(directory):
@@ -107,6 +138,12 @@ def clean_target(directory, fault):
         require(len(candidates) == 1, "Clean episode must have one OCR read at the registered evidence stage")
         step, = candidates
         changed_ocr(fault, step["screen_text"])
+        if fault in PRICE_REPLY_FAULTS:
+            confirmation = next((item for item in metrics if item.get("evidence_stage") == "confirm"), None)
+            require(confirmation is not None and confirmation["provider_format"] == "evidence_verify_agreed"
+                    and confirmation["evidence_frame"] == step["evidence_frame"],
+                    "Expected a successful first model read on the same screen")
+            step = {**step, "clean_confirmation": confirmation["provider_output"]}
     else:
         step = next((step for step in metrics if step.get("evidence_stage") == "confirm"), None)
         require(step is not None and step["provider_format"] == "evidence_verify_agreed",
@@ -158,7 +195,7 @@ def load_study(cohort, digest, fault_plan, clean_run):
 
 
 class FaultPolicy(EvidenceAnswerPolicy):
-    """Change a single read at the recorded frame, then use the regular recovery policy."""
+    """Change the registered reads, then use the regular recovery policy."""
 
     def __init__(self, actor, reader, case, **kwargs):
         self.fault_case = case
@@ -179,27 +216,44 @@ class FaultPolicy(EvidenceAnswerPolicy):
         altered, self.injected = changed_ocr(fault, rows)
         return altered
 
-    def verify(self, observation, frame, crop, bounds, candidate):
+    @contextmanager
+    def intercept_reply(self, frame, candidate, stage):
         fault = self.fault_case.kind
-        if (fault in OCR_FAULT_TARGETS or self.injected is not None
-                or not isinstance(candidate, ListingFacts) or frame != self.fault_case.target["evidence_frame"]):
-            return super().verify(observation, frame, crop, bounds, candidate)
+        target = self.fault_case.target
+        compound = fault in PRICE_REPLY_FAULTS
+        paired = compound and self.injected is not None and "reply" not in self.injected and PRICE_REPLY_FAULTS[fault] == stage
+        single = stage == "initial" and fault not in OCR_FAULT_TARGETS and self.injected is None
+        if not ((paired or single) and isinstance(candidate, ListingFacts) and frame == target["evidence_frame"]):
+            yield
+            return
         ask = self.actor.ask
 
         def ask_with_fault(*args, **kwargs):
             raw = ask(*args, **kwargs)
-            require(read_reply(raw) == read_reply(self.fault_case.target["provider_output"]),
-                    "Verification reply differs from the clean read")
-            changed = changed_reply(fault, raw)
-            self.injected = {"fault": fault, "original_reply": raw, "injected_reply": changed}
+            if paired:
+                changed = inject_matching_price(fault, target, raw)
+                self.injected["reply"] = {"stage": stage, "original_reply": raw, "injected_reply": changed}
+            else:
+                require(read_reply(raw) == read_reply(target["provider_output"]),
+                        "Verification reply differs from the clean read")
+                changed = changed_reply(fault, raw)
+                self.injected = {"fault": fault, "original_reply": raw, "injected_reply": changed}
             self.actor.last_metrics["provider_output"] = changed
             return changed
 
         self.actor.ask = ask_with_fault
         try:
-            return super().verify(observation, frame, crop, bounds, candidate)
+            yield
         finally:
             self.actor.ask = ask
+
+    def verify(self, observation, frame, crop, bounds, candidate):
+        with self.intercept_reply(frame, candidate, "initial"):
+            return super().verify(observation, frame, crop, bounds, candidate)
+
+    def reread_listing_facts(self, observation, frame, candidate):
+        with self.intercept_reply(frame, candidate, "isolated"):
+            return super().reread_listing_facts(observation, frame, candidate)
 
 
 def audit_fault(directory, case, plan):
@@ -213,6 +267,23 @@ def audit_fault(directory, case, plan):
     same_frame = [step for step in metrics if step.get("evidence_frame") == target["evidence_frame"]]
     if kind in OCR_FAULT_TARGETS:
         expected, expected_proof = changed_ocr(kind, target["screen_text"])
+        if kind in PRICE_REPLY_FAULTS:
+            stage = PRICE_REPLY_FAULTS[kind]
+            reply = proof.get("reply")
+            require(isinstance(reply, dict) and reply.get("stage") == stage, "Missing the registered model reply fault")
+            raw = reply["original_reply"]
+            initial = [step for step in same_frame if step.get("evidence_stage") == "confirm"
+                       and "listing_fact_reread_sha256" not in step]
+            selected = initial if stage == "initial" else [
+                step for step in same_frame if "listing_fact_reread_sha256" in step
+            ]
+            require(len(selected) == 1 and len(initial) == 1, "Expected one confirmation at the registered stage")
+            unmodified = raw if stage == "initial" else initial[0]["provider_output"]
+            require(read_reply(unmodified) == read_reply(target["clean_confirmation"])
+                    and selected[0]["provider_output"] == reply["injected_reply"],
+                    "The matching price fault must change only the registered confirmation")
+            expected_proof["reply"] = {"stage": stage, "original_reply": raw,
+                                       "injected_reply": inject_matching_price(kind, target, raw)}
         require(proof == expected_proof
                 and sum(step.get("evidence_stage") == "locate" and step.get("screen_text") == expected for step in same_frame) == 1,
                 "Expected one registered OCR change and the rest of the original rows")
