@@ -26,12 +26,15 @@ RANGE = re.compile(r"([\d,]+)\s*-\s*([\d,]+)\s+of\s+([\d,]+)\s+listings\b", re.I
 SAFE_TITLE = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ,'.&/-]{5,55}")
 OWN_INDEX = re.compile(r"^/index\.php\?page=item&id=([1-9][0-9]*)$")
 CITY_WORD_COUNTS = {"gui-recover-catalog-holdout-v4": (2, 1),
-                    "gui-recover-catalog-holdout-v5": (1, 2, 1, 2, 1, 2)}
-CATALOG_POOL_PAGES = {"gui-recover-catalog-holdout-v4": 12, "gui-recover-catalog-holdout-v5": 20}
+                    "gui-recover-catalog-holdout-v5": (1, 2, 1, 2, 1, 2),
+                    "gui-recover-catalog-holdout-v6": (1, 2, 1, 2, 1, 2)}
+DETAIL_PRICE_DIGITS = {"gui-recover-catalog-holdout-v6": (3, 2, 2, 3, 3, 2)}
+CATALOG_POOL_PAGES = {"gui-recover-catalog-holdout-v4": 12, "gui-recover-catalog-holdout-v5": 20,
+                      "gui-recover-catalog-holdout-v6": 20}
 
 
 def catalog_families(key):
-    if key == "gui-recover-catalog-holdout-v5":
+    if key in ("gui-recover-catalog-holdout-v5", "gui-recover-catalog-holdout-v6"):
         return FAMILIES[:1]
     return FAMILIES
 
@@ -184,6 +187,7 @@ def freeze(site, excluded, output, *, series=1):
     key = f"gui-recover-catalog-holdout-v{series}"
     ids = CATALOG_SERIES_IDS[key]
     city_word_counts = CITY_WORD_COUNTS.get(key)
+    price_digits = DETAIL_PRICE_DIGITS.get(key)
     families = catalog_families(key)
     detail_count = catalog_case_families(key).count(FAMILIES[0])
     pages = CATALOG_POOL_PAGES.get(key, 4)
@@ -218,6 +222,8 @@ def freeze(site, excluded, output, *, series=1):
         used.add(card.item)
 
     for card in available:
+        if price_digits and len(str(card.dollars)) != price_digits[len(specs)]:
+            continue
         verified = catalog.detail(card)
         if verified and card.dollars >= 10:
             city, digest = verified
@@ -307,6 +313,8 @@ def freeze(site, excluded, output, *, series=1):
     }
     if city_word_counts:
         protocol["detail_city_word_counts_capped_at_two"] = list(city_word_counts)
+    if price_digits:
+        protocol["detail_price_digits"] = list(price_digits)
     if key in CATALOG_POOL_PAGES:
         protocol["catalog_pages_per_category"] = pages
     for name, payload in (("cohort.json", protocol), ("tasks.json", specs), ("source-evidence.json", evidence),

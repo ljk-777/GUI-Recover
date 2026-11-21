@@ -56,7 +56,11 @@ def verify_ocr_rows(rows, size):
 
 def replay_price_ocr(screen_path, candidate, review, *, enlarge=True):
     with Image.open(screen_path) as screen:
-        image, bounds = listing_price_ocr_image(screen, candidate, enlarge=enlarge)
+        # The prior policy uses the same enlarged crop but has no scale argument.
+        if enlarge:
+            image, bounds = listing_price_ocr_image(screen, candidate)
+        else:
+            image, bounds = listing_price_ocr_image(screen, candidate, enlarge=False)
     require(review["bounds"] == list(bounds) and review["pixels_sha256"] == pixel_hash(image),
             "Price OCR reread differs from the saved screenshot")
     verify_ocr_rows(review["rows"], image.size)

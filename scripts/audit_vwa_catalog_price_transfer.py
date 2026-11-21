@@ -14,8 +14,8 @@ def read_json(path):
     return json.loads(path.read_bytes())
 
 
-def totals(rows):
-    return {
+def totals(rows, *, include_native_retries=False):
+    scores = {
         "native_successes": sum(row["success"] for row in rows.values()),
         "wrong_submissions": sum(row["answers_submitted"] > 0 and not row["success"] for row in rows.values()),
         "abstentions": sum(row["reason"] == "evidence_abstained" for row in rows.values()),
@@ -23,6 +23,11 @@ def totals(rows):
         "localized_ocr_reads": sum(row["evidence_stages"].get(key, 0) for row in rows.values()
                                    for key in ("listing_price_check", "listing_price_ocr")),
     }
+    if include_native_retries:
+        retries = sum(row["evidence_stages"].get("listing_price_native_retry", 0) for row in rows.values())
+        scores["native_scale_ocr_retries"] = retries
+        scores["localized_ocr_reads"] += retries
+    return scores
 
 
 def comparable_injection(path):
@@ -42,8 +47,9 @@ def compare(cohort, digest, protocol_path, fault_path, runs):
             or registered != {"cohort_sha256": digest, "cases": protocol["faults"]}
             or any(protocol[key] != PROFILE[key] for key in ("seed", "max_predictions", "max_model_calls"))):
         raise ValueError("The cohort, fault plan, or execution budget differs from the preregistration")
-    clean_runs = {arm: runs / f"visualwebarena-catalog-price-transfer-clean-{arm}-005" for arm in ("prior", "current")}
-    fault_runs = {arm: runs / f"visualwebarena-catalog-price-transfer-fault-{arm}-005" for arm in clean_runs}
+    series = int(cohort_protocol["sample_key"].rsplit("-v", 1)[1])
+    clean_runs = {arm: runs / f"visualwebarena-catalog-price-transfer-clean-{arm}-{series:03d}" for arm in ("prior", "current")}
+    fault_runs = {arm: runs / f"visualwebarena-catalog-price-transfer-fault-{arm}-{series:03d}" for arm in clean_runs}
     plan, fault_cases, _ = load_study(cohort, digest, fault_path, clean_runs["prior"], allow_unexecuted=True)
     clean_reports, fault_reports, policy_hashes = {}, {}, {}
     for arm in clean_runs:
@@ -73,8 +79,9 @@ def compare(cohort, digest, protocol_path, fault_path, runs):
                         for arm in fault]
             if receipts[0] == receipts[1]:
                 paired_fault.append(task)
-    clean_scores = {arm: totals(rows) for arm, rows in clean.items()}
-    fault_scores = {arm: totals(rows) for arm, rows in fault.items()}
+    include_retries = "native_scale_ocr_retries" in protocol["report"]
+    clean_scores = {arm: totals(rows, include_native_retries=include_retries) for arm, rows in clean.items()}
+    fault_scores = {arm: totals(rows, include_native_retries=include_retries) for arm, rows in fault.items()}
     preflight = (cohort / "preflight.log").read_text().splitlines()
     clean_losses = sorted(task for task in identifiers if clean["prior"][task]["success"] and not clean["current"][task]["success"])
     checks = {
@@ -86,6 +93,8 @@ def compare(cohort, digest, protocol_path, fault_path, runs):
         "fewer_wrong_submissions_under_faults": fault_scores["current"]["wrong_submissions"] < fault_scores["prior"]["wrong_submissions"],
         "clean_model_calls_do_not_increase": clean_scores["current"]["model_calls"] <= clean_scores["prior"]["model_calls"],
     }
+    if "no_current_wrong_submissions_under_faults" in protocol["acceptance"]:
+        checks["no_current_wrong_submissions_under_faults"] = fault_scores["current"]["wrong_submissions"] == 0
     if set(checks) != set(protocol["acceptance"]) or not all(value is True for value in protocol["acceptance"].values()):
         raise ValueError("Acceptance checks differ from the preregistration")
     return {

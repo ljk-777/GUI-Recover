@@ -17,7 +17,8 @@ from gui_recover.screen_text import RapidScreenReader
 from gui_recover.verification import pixel_hash
 from gui_recover.vwa_inputs import CATALOG_SERIES_IDS, LocalReferenceArchive
 from prepare_vwa_catalog_holdout import (
-    CATALOG_POOL_PAGES, CITY_WORD_COUNTS, FAMILIES, OWN_INDEX, catalog_case_families, catalog_families, encoded, fingerprint,
+    CATALOG_POOL_PAGES, CITY_WORD_COUNTS, DETAIL_PRICE_DIGITS, FAMILIES, OWN_INDEX,
+    catalog_case_families, catalog_families, encoded, fingerprint,
 )
 from run_visualwebarena_live import VisualWebArenaEnvironment, exact_vwa_success, holdout_profile, probe_instance
 
@@ -94,6 +95,11 @@ def load_cohort(directory, digest, homepage):
                  for row in evidence[:len(city_word_counts)]) != city_word_counts
     ):
         raise ValueError("Expected the registered mix of single-word and multiword city names")
+    price_digits = DETAIL_PRICE_DIGITS.get(sample_key)
+    if price_digits and (protocol.get("detail_price_digits") != list(price_digits)
+                         or tuple(len(str(row["source"]["visible"]["dollars"]))
+                                  for row in evidence[:len(price_digits)]) != price_digits):
+        raise ValueError("Expected the registered mix of two- and three-digit prices")
     references = LocalReferenceArchive(directory, protocol["reference_files_sha256"], homepage=homepage)
     used_images = set()
     for case, proof in zip(cases, evidence, strict=True):

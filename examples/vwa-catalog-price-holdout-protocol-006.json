@@ -1,0 +1,44 @@
+{
+  "scope": "Six unopened Classifieds price-and-city tasks. Each paired fault family includes one two-digit and one three-digit price.",
+  "cohort": "gui-recover-catalog-holdout-v6",
+  "checkpoint": "Qwen2.5-VL-7B-Instruct, frozen NF4",
+  "policy_revisions": {
+    "prior": "9e0e980091d7a049d3d5a0e30355d8f00485c3ac",
+    "current": "633f4138222bd78aece5569970da4766727f026e"
+  },
+  "policy_files": [
+    "src/gui_recover/answer_evidence.py",
+    "src/gui_recover/listing_facts.py"
+  ],
+  "seed": 0,
+  "max_predictions": 12,
+  "max_model_calls": 8,
+  "fault_anchor": "Prior clean arm on the same task. A case without a valid clean anchor remains in the registered denominator and fails coverage.",
+  "faults": {
+    "10601": "change-ocr-price-digit",
+    "10602": "change-ocr-price-digit",
+    "10603": "match-ocr-price-in-confirmation",
+    "10604": "match-ocr-price-in-confirmation",
+    "10605": "match-ocr-price-in-reread",
+    "10606": "match-ocr-price-in-reread"
+  },
+  "acceptance": {
+    "all_six_tasks_pass_native_preflight": true,
+    "all_clean_and_fault_pairs_audited_with_identical_start_frames": true,
+    "all_prior_clean_successes_preserved": true,
+    "clean_wrong_submissions_do_not_increase": true,
+    "more_native_successes_under_faults": true,
+    "fewer_wrong_submissions_under_faults": true,
+    "no_current_wrong_submissions_under_faults": true,
+    "clean_model_calls_do_not_increase": true
+  },
+  "report": [
+    "native_successes",
+    "wrong_submissions",
+    "abstentions",
+    "model_calls",
+    "localized_ocr_reads",
+    "native_scale_ocr_retries",
+    "unexecuted_registered_cases"
+  ]
+}
