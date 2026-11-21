@@ -1,0 +1,88 @@
+{
+  "scope": "previously observed development tasks",
+  "source_commit": "cd31a17efec8cf18684cf44b279936bcc9e7e1c4",
+  "task_set": "evidence-cards-reference-dev",
+  "prediction_budget": 8,
+  "max_observed_model_calls": 7,
+  "screenshot_count": 16,
+  "evidence_archive_sha256": "e24c7281867a6b14a44689081d04bd3c46cfb7a29d49eb118d91b2ddeca5cd46",
+  "hardware": "NVIDIA GeForce RTX 4090 D",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct (NF4)",
+  "wrong_submissions": {
+    "answer-check": 0,
+    "evidence-cards": 0
+  },
+  "by_task": {
+    "137": {
+      "identical_reset_pixels": true,
+      "answer_outcome": {
+        "answer-check": null,
+        "evidence-cards": {
+          "source": "evidence-cards",
+          "prediction": 7,
+          "native_reward": 1.0
+        }
+      },
+      "evidence_calls": {
+        "locate": 5,
+        "reference_search": 1,
+        "reference_results_expand": 1,
+        "reference_results_refine": 1,
+        "reference_results_open": 1,
+        "reference_contact_region": 1,
+        "read": 1,
+        "confirm": 1,
+        "navigation_context": 1
+      },
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "model_calls": 5,
+          "answers_submitted": 0,
+          "reason": "invalid_action"
+        },
+        "evidence-cards": {
+          "success": true,
+          "model_calls": 3,
+          "answers_submitted": 1,
+          "reason": "success"
+        }
+      }
+    },
+    "140": {
+      "identical_reset_pixels": true,
+      "answer_outcome": {
+        "answer-check": null,
+        "evidence-cards": {
+          "source": "evidence-cards",
+          "prediction": 6,
+          "native_reward": 1.0
+        }
+      },
+      "evidence_calls": {
+        "locate": 4,
+        "reference_search": 1,
+        "reference_results_expand": 1,
+        "reference_results_open": 1,
+        "reference_contact_region": 1,
+        "read": 1,
+        "confirm": 1,
+        "navigation_context": 1
+      },
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "model_calls": 7,
+          "answers_submitted": 0,
+          "reason": "invalid_action"
+        },
+        "evidence-cards": {
+          "success": true,
+          "model_calls": 3,
+          "answers_submitted": 1,
+          "reason": "success"
+        }
+      }
+    }
+  }
+}
