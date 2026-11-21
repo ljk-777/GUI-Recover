@@ -7,7 +7,7 @@ from PIL import Image
 from gui_recover.actions import ActionError, category_search_terms, compile_action, parse_action
 from gui_recover.environment import VisualObservation
 from gui_recover.price_discovery import (
-    PriceDiscovery, first_ranked_match, price_request, price_result_scope,
+    PriceDiscovery, _detail_price_box, first_ranked_match, price_request, price_result_scope,
 )
 from gui_recover.verification import pixel_hash
 
@@ -56,6 +56,9 @@ def test_price_match_requires_every_more_extreme_candidate_to_be_checked():
     assert first_ranked_match('{"1":[false,"table"],"2":[false,"box"]}', 2) == (None, True)
     assert first_ranked_match('{"1":[0,"table"],"2":[true,"hand"]}', 2) == (None, False)
     assert first_ranked_match('{"1":[true,"hand"]}', 3) == (None, False)
+    assert first_ranked_match('[["false","box"],["true","hand"]]', 2) == (1, False)
+    assert first_ranked_match('[["false","box"],["true","hand"]]', 3) == (None, False)
+    assert first_ranked_match('[[false,"box"],["true",""]]', 2) == (None, False)
 
 
 def test_price_discovery_keeps_order_across_batches_and_crops_the_opened_listing():
@@ -121,3 +124,17 @@ def test_price_discovery_rejects_duplicate_cards_after_turning_the_page():
     next_page = VisualObservation(goal, screen, tabs=(("Classifieds", url + "&iPage=2"),))
     assert discovery.decide(next_page, actor, lambda *_: rows(2), lambda: receipt) == (None, None)
     assert actor.last_metrics["stop_after_evidence"] is True
+
+
+def test_detail_price_crop_joins_the_visible_amount_and_currency_symbol():
+    rows = [
+        {"text": "8000.00", "bounds": [474, 79, 554, 99]},
+        {"text": "$", "bounds": [553, 81, 567, 98]},
+        {"text": "Published date: 2023/11/12", "bounds": [76, 143, 176, 154]},
+        {"text": "Contact publisher", "bounds": [426, 148, 516, 162]},
+        {"text": "2000.00 $", "bounds": [79, 690, 123, 704]},
+    ]
+    assert _detail_price_box(rows) == [474, 79, 567, 99]
+    assert _detail_price_box([rows[0], *rows[2:]]) is None
+    rows[1] = {"text": "$", "bounds": [588, 79, 603, 99]}
+    assert _detail_price_box(rows) is None

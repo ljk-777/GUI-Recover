@@ -27,6 +27,7 @@ _CATEGORIES = {
     "Beauty + health": {"wheelchair", "wheelchairs", "walker", "walkers"},
 }
 _DOLLAR_PRICE = re.compile(r"(?:\$\s*[\d,.]+|[\d,.]+\s*\$)")
+_PRICE_AMOUNT = re.compile(r"\d[\d,]*(?:\.\d{2})?")
 
 
 @dataclass(frozen=True)
@@ -117,16 +118,27 @@ def _detail_price_box(rows):
     published = _unique(rows, lambda text: text.startswith("published date:"))
     if published is None:
         return None
-    price = [row["bounds"] for row in rows if _DOLLAR_PRICE.fullmatch(row["text"])
-             and row["bounds"][1] < published["bounds"][1]
-             and row["bounds"][0] > published["bounds"][2]]
+    header = [row for row in rows
+              if row["bounds"][3] <= published["bounds"][1]
+              and row["bounds"][0] > published["bounds"][2]]
+    price = [row["bounds"] for row in header if _DOLLAR_PRICE.fullmatch(row["text"])]
+    # The OCR engine can put the currency symbol in its own box.
+    for symbol in (row["bounds"] for row in header if row["text"] == "$"):
+        for left, top, right, bottom in (row["bounds"] for row in header
+                                         if _PRICE_AMOUNT.fullmatch(row["text"])):
+            height = min(bottom - top, symbol[3] - symbol[1])
+            overlap = min(bottom, symbol[3]) - max(top, symbol[1])
+            gap = max(symbol[0] - right, left - symbol[2])
+            if 2 * overlap >= height and -height / 2 <= gap <= height / 2:
+                price.append([min(left, symbol[0]), min(top, symbol[1]),
+                              max(right, symbol[2]), max(bottom, symbol[3])])
     return price[0] if len(price) == 1 else None
 
 
 def first_ranked_match(reply, count):
     """Choose a match only after all earlier cards were explicitly rejected."""
     try:
-        decisions = read_card_checks(reply, count)
+        decisions = read_card_checks(reply, count, allow_ordered=True)
     except (ValueError, RecursionError):
         return None, False
     for index, value in enumerate(decisions):
