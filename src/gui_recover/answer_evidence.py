@@ -10,9 +10,10 @@ from PIL import Image, ImageDraw
 from .actions import Action, ActionError
 from .environment import frame_key
 from .listing_cards import (
-    exact_reference_title_request, ranked_photo_request, reference_result_action, reference_result_destination,
+    exact_reference_title_request, listing_title_heading, ranked_photo_request, reference_result_action, reference_result_destination,
     reference_title_open_action, reference_title_region, reference_title_request,
 )
+from .listing_facts import LISTING_FACTS_ABSTAINED, ListingFacts, listing_fact_decision
 from .price_discovery import SELFIE_PHOTO_REQUIREMENT, PriceDiscovery, cover_color_labels, price_request, same_origin
 from .qwen_grounding import ask_observation, native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
 from .ranked_cards import RankedCardEvidence
@@ -292,29 +293,17 @@ def parse_independent_confirmation(raw, request=None):
     return parse_visible_answer(json.dumps({"answer": data["answer"]}), allow_numeric=True)
 
 
-def listing_title_heading(rows, size):
-    """Use the full detail heading only when it agrees with the visible breadcrumb."""
-    crumbs = [row for row in rows if row["text"].casefold().startswith("classifieds > ")
-              and row["text"].count(" > ") >= 2]
-    dates = [row for row in rows if row["text"].casefold().startswith("published date:")]
-    if len(crumbs) != 1 or len(dates) != 1:
-        return None
-    crumb, date = crumbs[0], dates[0]
-    lines = [
-        row for row in rows
-        if crumb["bounds"][3] <= row["bounds"][1] < row["bounds"][3] <= date["bounds"][1]
-        and abs(row["bounds"][0] - date["bounds"][0]) <= max(8, size[0] // 30)
-    ]
-    lines.sort(key=lambda row: (row["bounds"][1], row["bounds"][0]))
-    heading = " ".join(" ".join(row["text"].split()) for row in lines)
-    title = crumb["text"].rsplit(" > ", 1)[1].strip()
-    if (not 1 <= len(heading) <= 200 or heading.casefold() != " ".join(title.casefold().split())
-            or heading.endswith(("…", "..."))):
-        return None
-    boxes = [row["bounds"] for row in lines]
-    bounds = (min(box[0] for box in boxes), min(box[1] for box in boxes),
-              max(box[2] for box in boxes), max(box[3] for box in boxes))
-    return bounds, heading
+def confirmation_outcome(raw, candidate, request=None, *, expected_cents=None):
+    try:
+        if isinstance(candidate, ListingFacts):
+            return candidate.confirm(raw)
+        answer = parse_independent_confirmation(raw, request)
+    except (ValueError, RecursionError):
+        return None, "evidence_invalid"
+    if answer is None:
+        return None, "evidence_verify_abstained"
+    confirmed = confirmed_evidence_answer(candidate, answer, price_crop=request is not None, expected_cents=expected_cents)
+    return (confirmed, "evidence_verify_agreed") if confirmed is not None else (None, "evidence_verify_disagreed")
 
 
 def indexed_text(rows):
@@ -404,6 +393,7 @@ class EvidenceAnswerPolicy:
         self.reference_refined = False
         self.reference_destination = None
         self.reference_title_frame = None
+        self.listing_fact_target = None
         self.checked_frames = set()
         self.pending_crop = None
         self.pending_answer = None
@@ -427,6 +417,7 @@ class EvidenceAnswerPolicy:
         self.reference_refined = False
         self.reference_destination = None
         self.reference_title_frame = None
+        self.listing_fact_target = None
         if self.ranked_capture is not None:
             self.ranked_evidence = RankedCardEvidence(self.listing_site)
 
@@ -439,6 +430,39 @@ class EvidenceAnswerPolicy:
         if (self.use_navigation_context and action.action == "CLICK"
                 and pixel_hash(before.screenshot) != pixel_hash(after.screenshot)):
             self.navigation_context = before.screenshot.copy(), action.position
+
+    def locate_listing_facts(self, observation, frame, rows, size):
+        if not self.confirm or self.ranked_capture is None or observation.reference_images or not observation.tabs:
+            return False, None
+        active = observation.tabs[observation.active_tab][1]
+        receipt = None
+
+        def capture():
+            nonlocal receipt
+            receipt = self.ranked_capture()
+            return receipt
+
+        decision = listing_fact_decision(observation.goal, active, self.listing_site, rows, size,
+                                         observation.screenshot, capture, target=self.listing_fact_target)
+        if decision is None:
+            return False, None
+        self.actor.last_metrics = {
+            "model_invocations": 0, "provider_output": None, "provider_format": decision.status,
+            "evidence_stage": "locate", "evidence_frame": frame, "screen_text": rows,
+            "provider_image_size": list(size), "peak_cuda_allocated_bytes": 0,
+        }
+        if receipt is not None:
+            self.last_metrics["listing_fact_receipt"] = receipt
+        if decision.facts is not None:
+            crop, bounds = native_crop(observation.screenshot, size, decision.facts.bounds)
+            self.pending_answer = frame, crop, bounds, decision.facts
+            self.last_metrics["evidence_bounds"] = list(bounds)
+        if decision.target is not None:
+            self.listing_fact_target = decision.target
+        if decision.status == LISTING_FACTS_ABSTAINED:
+            self.last_metrics["stop_after_evidence"] = True
+        raw = json.dumps(decision.action.to_dict(), ensure_ascii=False) if decision.action is not None else None
+        return True, raw
 
     def locate(self, observation, frame, history):
         reference = None
@@ -504,6 +528,9 @@ class EvidenceAnswerPolicy:
         link_count = link_answer_count(observation.goal) if self.listing_preview is not None else None
         if self.screen_reader is not None:
             rows = self.screen_reader(observation.screenshot, canvas.size)
+            handled, raw = self.locate_listing_facts(observation, frame, rows, canvas.size)
+            if handled:
+                return raw
             if exact_title and self.reference_destination is not None and active_url == self.reference_destination:
                 heading = listing_title_heading(rows, canvas.size)
                 if heading is not None:
@@ -724,7 +751,9 @@ class EvidenceAnswerPolicy:
             "If anything required is missing, return {\"answer\":null}. "
             "Otherwise return one JSON object with one key answer and a short string value."
         )
-        if self.reference_title_frame == frame:
+        if isinstance(candidate, ListingFacts):
+            prompt = candidate.confirmation_prompt()
+        elif self.reference_title_frame == frame:
             prompt = (
                 "Transcribe the opened listing's full heading exactly from the enlarged image on the right. "
                 'Keep every word even if the gallery card was shortened. Return only JSON with the key "answer". '
@@ -779,21 +808,10 @@ class EvidenceAnswerPolicy:
         if self.navigation_context is not None:
             previous, position = self.navigation_context
             self.last_metrics.update(evidence_context_sha256=pixel_hash(previous), evidence_context_position=list(position))
-        try:
-            answer = parse_independent_confirmation(raw, request)
-        except (ValueError, RecursionError):
-            return None
-        if answer is None:
-            self.last_metrics["provider_format"] = "evidence_verify_abstained"
-            return None
         tie = self.price_discovery.tie if self.price_discovery is not None else None
-        confirmed = confirmed_evidence_answer(candidate, answer, price_crop=self.price_discovery is not None,
-                                              expected_cents=tie.cents if tie is not None else None)
-        if confirmed is None:
-            self.last_metrics["provider_format"] = "evidence_verify_disagreed"
-            return None
-        self.last_metrics["provider_format"] = "evidence_verify_agreed"
-        return json.dumps(Action("ANSWER", confirmed).to_dict(), ensure_ascii=False)
+        confirmed, status = confirmation_outcome(raw, candidate, request, expected_cents=tie.cents if tie is not None else None)
+        self.last_metrics["provider_format"] = status
+        return json.dumps(Action("ANSWER", confirmed).to_dict(), ensure_ascii=False) if confirmed is not None else None
 
     def verify_links(self, observation, frame, rows, selected, destinations, count):
         canvas = self.actor.prepare_image(observation.screenshot)

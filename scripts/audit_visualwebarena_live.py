@@ -12,8 +12,8 @@ from gui_recover.actions import ActionError, parse_action
 from gui_recover.answer_evidence import (
     REFERENCE_CONTACT_REGION, REFERENCE_NAVIGATION, REFERENCE_SEARCH, REFERENCE_SEARCH_ABSTAINED,
     REFERENCE_TITLE_HEADING, REFERENCE_TITLE_OPEN,
-    confirmation_image, confirmed_evidence_answer, contact_from_evidence, evidence_answer, listing_title_heading, native_crop,
-    parse_evidence_location, parse_independent_confirmation, reference_contact_box, reference_search_action,
+    confirmation_image, confirmation_outcome, contact_from_evidence, evidence_answer, listing_title_heading, native_crop,
+    parse_evidence_location, reference_contact_box, reference_search_action,
     visible_contact_request,
 )
 from gui_recover.environment import VisualObservation, frame_key
@@ -21,6 +21,7 @@ from gui_recover.listing_cards import (
     RESULT_VIEW_HEIGHT, exact_reference_title_request, ranked_photo_request, reference_result_action,
     reference_result_destination, reference_title_open_action, reference_title_region, reference_title_request,
 )
+from gui_recover.listing_facts import LISTING_FACTS_ABSTAINED, LISTING_FACTS_STAGES, SEARCH_PRICE_NAVIGATION, listing_fact_decision
 from gui_recover.price_discovery import PRICE_DISCOVERY, PriceDiscovery, price_request, same_origin
 from gui_recover.qwen_grounding import native_action_after_note, parse_visible_answer, read_reply
 from gui_recover.ranked_cards import RankedCardEvidence
@@ -149,6 +150,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
     reference_query = None
     reference_refined = False
     reference_destination = None
+    listing_fact_target = None
     scan = None
     price_scan = None
     for prediction in predictions:
@@ -220,6 +222,38 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         if stage == "locate":
             visited.add(key)
             pending = None
+            if metrics["provider_format"] in LISTING_FACTS_STAGES:
+                require(confirm and use_ranked_cards and use_screen_text and not reference_images and tabs and reply is None,
+                        "Compound listing evidence requires a registered screenshot and active tab")
+                rows, size = metrics["screen_text"], metrics["provider_image_size"]
+                verify_ocr_rows(rows, size)
+                captured = False
+
+                def capture_cards():
+                    nonlocal captured
+                    captured = True
+                    return metrics["listing_fact_receipt"]
+
+                active = tabs["tabs"][tabs["active_tab"]][1]
+                with Image.open(directory / f"{index:04d}.png") as picture:
+                    screen = picture.convert("RGB")
+                    decision = listing_fact_decision(goal, active, listing_site, rows, size, screen, capture_cards,
+                                                     target=listing_fact_target)
+                    require(decision is not None and decision.status == metrics["provider_format"],
+                            "Compound listing evidence disagrees with the recorded screenshot")
+                    require(captured == ("listing_fact_receipt" in metrics), "Unexpected listing receipt")
+                    action = parse_action(raw) if raw is not None else None
+                    require(action == decision.action, "Listing navigation differs from the visible evidence")
+                    if decision.facts is not None:
+                        _, bounds = native_crop(screen, size, decision.facts.bounds)
+                        require(list(bounds) == metrics["evidence_bounds"], "Unexpected listing evidence crop")
+                        pending_confirmation = frame, list(bounds), decision.facts
+                if decision.target is not None:
+                    listing_fact_target = decision.target
+                require((metrics.get("stop_after_evidence") is True) == (decision.status == LISTING_FACTS_ABSTAINED),
+                        "Compound listing evidence stop disagrees with the reconstructed decision")
+                stages[decision.status.removeprefix("evidence_")] += 1
+                continue
             if metrics["provider_format"] == REFERENCE_TITLE_OPEN:
                 require(use_ranked_cards and use_screen_text and exact_reference_title_request(goal)
                         and len(reference_images) == 1 and reference_destination is None and tabs
@@ -440,17 +474,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
             require(metrics["evidence_bounds"] == bounds and metrics["evidence_panel_sha256"] == pixel_hash(panel),
                     "Confirmation pixels differ from the recorded viewport and crop")
             tie = price_scan.tie if price_scan is not None else None
-            try:
-                independent = parse_independent_confirmation(reply, request)
-            except (ValueError, RecursionError):
-                pass
-            else:
-                if independent is None:
-                    status = "evidence_verify_abstained"
-                else:
-                    confirmed = confirmed_evidence_answer(candidate, independent, price_crop=price_scan is not None,
-                                                          expected_cents=tie.cents if tie is not None else None)
-                    status = "evidence_verify_agreed" if confirmed is not None else "evidence_verify_disagreed"
+            confirmed, status = confirmation_outcome(reply, candidate, request, expected_cents=tie.cents if tie is not None else None)
             if status == "evidence_verify_agreed":
                 action = parse_action(raw)
                 require(action.action == "ANSWER" and action.value == confirmed, "Submission differs from agreed answer")
@@ -516,7 +540,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         is_shortcut = direct_navigation and use_screen_text and provider_format == "evidence_exact_search" and step == 0
         reference_region = use_browser_context and use_ranked_cards and provider_format in (
             "evidence_reference_region", REFERENCE_CONTACT_REGION, REFERENCE_TITLE_OPEN, REFERENCE_TITLE_HEADING,
-            *REFERENCE_NAVIGATION.values(),
+            *REFERENCE_NAVIGATION.values(), *LISTING_FACTS_STAGES,
         )
         ranked = use_ranked_cards and metrics.get("evidence_stage") in ("ranked_cards", PRICE_DISCOVERY)
         require(metrics["model_invocations"] in ((0, 1) if ranked else (0 if is_shortcut or reference_region else 1,)),
@@ -593,7 +617,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         if action["action"] == "SORT_LISTINGS_PRICE":
             before = frame_before_prediction[event["step"]]
             require(use_ranked_cards and use_browser_context
-                    and predictions[event["step"]]["metrics"]["provider_format"] == "price_sort"
+                    and predictions[event["step"]]["metrics"]["provider_format"] in ("price_sort", SEARCH_PRICE_NAVIGATION)
                     and event["executed_code"] == sort_listing_code(parse_action(predictions[event["step"]]["raw"]),
                                                                      [events[0], *transitions][before]["size"]),
                     "Price sort differs from the recorded on-screen action")

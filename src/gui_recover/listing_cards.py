@@ -149,6 +149,31 @@ def reference_title_request(goal):
     return bool(_TITLE.search(goal))
 
 
+def listing_title_heading(rows, size):
+    """Use the full detail heading only when it agrees with the visible breadcrumb."""
+    crumbs = [row for row in rows if row["text"].casefold().startswith("classifieds > ")
+              and row["text"].count(" > ") >= 2]
+    dates = [row for row in rows if row["text"].casefold().startswith("published date:")]
+    if len(crumbs) != 1 or len(dates) != 1:
+        return None
+    crumb, date = crumbs[0], dates[0]
+    lines = [
+        row for row in rows
+        if crumb["bounds"][3] <= row["bounds"][1] < row["bounds"][3] <= date["bounds"][1]
+        and abs(row["bounds"][0] - date["bounds"][0]) <= max(8, size[0] // 30)
+    ]
+    lines.sort(key=lambda row: (row["bounds"][1], row["bounds"][0]))
+    heading = " ".join(" ".join(row["text"].split()) for row in lines)
+    title = crumb["text"].rsplit(" > ", 1)[1].strip()
+    if (not 1 <= len(heading) <= 200 or heading.casefold() != " ".join(title.casefold().split())
+            or heading.endswith(("…", "..."))):
+        return None
+    boxes = [row["bounds"] for row in lines]
+    bounds = (min(box[0] for box in boxes), min(box[1] for box in boxes),
+              max(box[2] for box in boxes), max(box[3] for box in boxes))
+    return bounds, heading
+
+
 def title_point(card, size):
     left, top, right, bottom = card["title"]
     return ((left + right) / (2 * size[0]), (top + bottom) / (2 * size[1]))
