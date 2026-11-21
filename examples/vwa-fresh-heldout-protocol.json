@@ -1,0 +1,31 @@
+{
+  "task_ids": [
+    37,
+    82,
+    84,
+    85,
+    96,
+    99,
+    122,
+    10001
+  ],
+  "official_task_ids": [
+    37,
+    82,
+    84,
+    85,
+    96,
+    99,
+    122
+  ],
+  "supplemental_task_id": 10001,
+  "upstream_config_sha256": "5d7322cc3bef21c755abc966624530d15121ad73403f64177d2f06014dbfb14f",
+  "entries_sha256": "f8caaeebbe45148f2f9588fe2f368553da29972ec2dae0677d76539ab770687a",
+  "reference_files_sha256": "98c1ec76419d982dcecc97169bc74ee21d286804d3a2f75bfb79ae16c1966cab",
+  "seed": 0,
+  "max_predictions": 8,
+  "policy_comparison": [
+    "answer-check",
+    "evidence-cards"
+  ]
+}

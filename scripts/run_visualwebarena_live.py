@@ -33,9 +33,14 @@ HOLDOUT_TASK_SET = "evidence-links-holdout"
 HOLDOUT_PROTOCOL_SHA256 = "df60ebc2e7cb257d63b22a1d6eac4322e5ea53eed75f695850efcc8d51407629"
 INPUT_HOLDOUT_TASK_SET = "evidence-cards-input-holdout"
 INPUT_RETRIEVAL_TASK_SET = "evidence-cards-reference-dev"
-INPUT_TASK_SETS = (INPUT_HOLDOUT_TASK_SET, INPUT_RETRIEVAL_TASK_SET)
+FRESH_HOLDOUT_TASK_SET = "evidence-cards-fresh-holdout"
+STAGED_INPUT_TASK_SETS = (INPUT_HOLDOUT_TASK_SET, FRESH_HOLDOUT_TASK_SET)
+INPUT_TASK_SETS = (*STAGED_INPUT_TASK_SETS, INPUT_RETRIEVAL_TASK_SET)
 INPUT_PROTOCOL_SHA256 = "d97cc17118a061eb822879c109bdd6202431f60a41ad4dc0d1970e45ca2087fe"
 INPUT_MEDIA_SHA256 = "88a7fcad2505d581b266427896265c71367cbc067ed1da461eba127a45b20f58"
+FRESH_PROTOCOL_SHA256 = "c62ac0397ef9a40d718f32194696362691800a95dadf072593a2163aca39e4fe"
+FRESH_MEDIA_SHA256 = "98c1ec76419d982dcecc97169bc74ee21d286804d3a2f75bfb79ae16c1966cab"
+SUPPLEMENTAL_TASK_ID = 10001
 INPUT_CROSS_SITE_TASKS = (36, 233)
 INPUT_SITE_TOKENS = {
     "__CLASSIFIEDS__": "classifieds",
@@ -59,6 +64,7 @@ TASK_SETS = {
     HOLDOUT_TASK_SET: (6, 7, 34, 35, 38, 39, 106, 108),
     INPUT_HOLDOUT_TASK_SET: (36, 102, 136, 137, 138, 140, 142, 233),
     INPUT_RETRIEVAL_TASK_SET: (137, 140),
+    FRESH_HOLDOUT_TASK_SET: (37, 82, 84, 85, 96, 99, 122, SUPPLEMENTAL_TASK_ID),
 }
 STUDY_MODES = {
     "visual": ("none", "feedback"),
@@ -129,14 +135,13 @@ def registered_start_sites(start_url):
     return sites
 
 
-def input_holdout_archive(directory, task_set=INPUT_HOLDOUT_TASK_SET):
-    """Authenticate the registration and exact official task table before any rollout."""
-    protocol_bytes = (directory / "cohort.json").read_bytes()
-    if hashlib.sha256(protocol_bytes).hexdigest() != INPUT_PROTOCOL_SHA256:
-        raise ValueError("Input holdout protocol differs from the registered cohort")
-    protocol = json.loads(protocol_bytes)
-    task_ids = TASK_SETS[INPUT_HOLDOUT_TASK_SET]
-    native_table = json.loads(files("visualwebarena").joinpath("test_raw.json").read_text())
+def input_fingerprints(task_set):
+    if task_set == FRESH_HOLDOUT_TASK_SET:
+        return FRESH_PROTOCOL_SHA256, FRESH_MEDIA_SHA256
+    return INPUT_PROTOCOL_SHA256, INPUT_MEDIA_SHA256
+
+
+def registered_input_entries(native_table, task_ids):
     entries = sorted((row for row in native_table if row["task_id"] in task_ids), key=lambda row: row["task_id"])
     for row in entries:
         image = row.get("image")
@@ -144,11 +149,30 @@ def input_holdout_archive(directory, task_set=INPUT_HOLDOUT_TASK_SET):
             row["image"] = reference_name(image)
         elif image:
             row["image"] = [reference_name(item) for item in image]
+    return entries
+
+
+def input_holdout_archive(directory, task_set=INPUT_HOLDOUT_TASK_SET, *, supplemental=None):
+    """Authenticate the registration and exact task rows before opening a browser."""
+    protocol_bytes = (directory / "cohort.json").read_bytes()
+    protocol_hash, media_hash = input_fingerprints(task_set)
+    if hashlib.sha256(protocol_bytes).hexdigest() != protocol_hash:
+        raise ValueError("Input holdout protocol differs from the registered cohort")
+    protocol = json.loads(protocol_bytes)
+    native_table = json.loads(files("visualwebarena").joinpath("test_raw.json").read_text())
+    fresh = task_set == FRESH_HOLDOUT_TASK_SET
+    task_ids = TASK_SETS[FRESH_HOLDOUT_TASK_SET if fresh else INPUT_HOLDOUT_TASK_SET]
+    if fresh:
+        if (supplemental is None or supplemental.get("task_id") != SUPPLEMENTAL_TASK_ID
+                or any(row["task_id"] == SUPPLEMENTAL_TASK_ID for row in native_table)):
+            raise ValueError("Expected the registered independent task")
+        native_table.append(supplemental)
+    entries = registered_input_entries(native_table, task_ids)
     canonical = json.dumps(entries, sort_keys=True, separators=(",", ":")).encode()
     if (tuple(protocol["task_ids"]) != task_ids
             or hashlib.sha256(canonical).hexdigest() != protocol["entries_sha256"]):
         raise ValueError("Installed VisualWebArena tasks differ from the frozen native entries")
-    archive = LocalReferenceArchive(directory, INPUT_MEDIA_SHA256, homepage=os.environ["VWA_HOMEPAGE"])
+    archive = LocalReferenceArchive(directory, media_hash, homepage=os.environ["VWA_HOMEPAGE"])
     input_manifest = {}
     references = set()
     for row in entries:
@@ -166,7 +190,7 @@ def input_holdout_archive(directory, task_set=INPUT_HOLDOUT_TASK_SET):
         raise ValueError("Task references differ from the registered file set")
     cross_site = tuple(int(task) for task, item in input_manifest.items()
                        if set(item["start_sites"]) != {"classifieds"})
-    if cross_site != INPUT_CROSS_SITE_TASKS:
+    if cross_site != ((37,) if fresh else INPUT_CROSS_SITE_TASKS):
         raise ValueError("The registered cross-site start pages no longer match the staged schedule")
     return archive, {str(task_id): input_manifest[str(task_id)] for task_id in TASK_SETS[task_set]}
 
@@ -202,7 +226,7 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
     """Use BrowserGym's screenshot and action contract with native VWA answers."""
 
     def __init__(self, task_id, *, enable_card_view=False, enable_browser_context=False, reference_archive=None,
-                 start_sites=None):
+                 start_sites=None, supplemental=None):
         from browsergym.core.action.highlevel import HighLevelActionSet
         from browsergym.core.env import BrowserEnv
         from browsergym.visualwebarena.task import GenericVisualWebArenaTask
@@ -213,17 +237,31 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
         # string evaluator. These tasks require no external judging service.
         os.environ["OPENAI_API_KEY"] = "local-string-evaluator"
         os.environ["OPENAI_BASE_URL"] = "http://127.0.0.1:1/v1"
-        class StringOnlyTask(GenericVisualWebArenaTask):
+        class LocalAnswerTask(GenericVisualWebArenaTask):
+            def __init__(self, seed, task_id):
+                if supplemental is None:
+                    super().__init__(seed, task_id=task_id)
+                else:
+                    super().__init__(seed, task_id=137)
+                    if (task_id != SUPPLEMENTAL_TASK_ID or supplemental["task_id"] != task_id
+                            or supplemental["start_url"] != "__CLASSIFIEDS__"):
+                        raise ValueError("Unexpected supplemental Classifieds task")
+                    self.task_configs = [{**supplemental, "start_url": self.webarena_instance.urls["classifieds"]}]
+
             def setup(self, page):
                 permitted = set(INPUT_SITE_TOKENS.values()) if enable_browser_context else {"classifieds"}
                 sites = set()
                 for config in self.task_configs:
                     evaluation = config["eval"]
                     config_sites = set(config["sites"])
+                    evaluators = tuple(evaluation["eval_types"])
+                    local_evaluators = [("string_match",)]
+                    if task_id in TASK_SETS[FRESH_HOLDOUT_TASK_SET]:
+                        local_evaluators.extend((("url_match", "string_match"), ("string_match", "url_match")))
                     if ("classifieds" not in config_sites or not config_sites <= permitted or config.get("require_reset")
-                            or evaluation["eval_types"] != ["string_match"]
+                            or evaluators not in local_evaluators
                             or set(evaluation["reference_answers"]) != {"must_include"}):
-                        raise ValueError("Task requires more than the registered local string evaluator")
+                        raise ValueError("Task requires more than the registered local answer evaluators")
                     if config.get("image") and reference_archive is None:
                         raise ValueError("Task requires a registered local reference archive")
                     sites.update(config_sites)
@@ -270,7 +308,7 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
             subsets.append("tab")
         actions = HighLevelActionSet(subsets=subsets, strict=True, multiaction=True,
                                      custom_actions=[expand_listing_view] if enable_card_view else None)
-        self.env = BrowserEnv(StringOnlyTask, task_kwargs={"task_id": task_id}, headless=True,
+        self.env = BrowserEnv(LocalAnswerTask, task_kwargs={"task_id": task_id}, headless=True,
                               action_mapping=actions.to_python_code)
 
     def reset(self, seed):
@@ -329,16 +367,22 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
                 "links": visible_listing_links(page, os.environ["VWA_CLASSIFIEDS"], positions)}
 
 
-def stage_input_holdout(out, phase, model, input_manifest):
+def cross_site_tasks(task_set, input_manifest):
+    return tuple(task_id for task_id in TASK_SETS[task_set]
+                 if set(input_manifest[str(task_id)]["start_sites"]) != {"classifieds"})
+
+
+def stage_input_holdout(out, phase, model, input_manifest, task_set=INPUT_HOLDOUT_TASK_SET):
     """Freeze the rollout code and shared environment before the first staged episode."""
     import gui_recover
 
     package_root = Path(gui_recover.__file__).parent
     versions = ("browsergym-core", "browsergym-visualwebarena", "torch", "transformers",
                 "bitsandbytes", "playwright", "rapidocr", "onnxruntime")
+    protocol_hash, media_hash = input_fingerprints(task_set)
     plan = {
-        "protocol_sha256": INPUT_PROTOCOL_SHA256,
-        "reference_files_sha256": INPUT_MEDIA_SHA256,
+        "protocol_sha256": protocol_hash,
+        "reference_files_sha256": media_hash,
         "input_manifest": input_manifest,
         "model": model,
         "classifieds": os.environ["VWA_CLASSIFIEDS"],
@@ -359,19 +403,19 @@ def stage_input_holdout(out, phase, model, input_manifest):
             raise ValueError("Run the Classifieds phase before the cross-site phase")
         out.mkdir(parents=True)
         write_json(state, plan)
-    classifieds_tasks = tuple(task_id for task_id in TASK_SETS[INPUT_HOLDOUT_TASK_SET]
-                              if task_id not in INPUT_CROSS_SITE_TASKS)
+    cross_site = cross_site_tasks(task_set, input_manifest)
+    classifieds_tasks = tuple(task_id for task_id in TASK_SETS[task_set] if task_id not in cross_site)
     if phase == "classifieds":
         return classifieds_tasks
     finished_pairs = all((out / f"visualwebarena.{task_id}-{mode}" / "episode.json").is_file()
                          for task_id in classifieds_tasks for mode in STUDY_MODES["evidence-cards"])
     if not finished_pairs:
         raise ValueError("Complete the single-site Classifieds pairs before the cross-site phase")
-    return TASK_SETS[INPUT_HOLDOUT_TASK_SET]
+    return TASK_SETS[task_set]
 
 
 def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None, input_manifest=None,
-              input_phase="all"):
+              input_phase="all", supplemental=None):
     if task_set == HOLDOUT_TASK_SET and not holdout_profile(study, max_steps, actor.config):
         raise ValueError("The locked cohort requires the registered 8-decision Qwen 7B NF4 comparison")
     use_inputs = task_set in INPUT_TASK_SETS
@@ -382,16 +426,16 @@ def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None,
         backend_origins = holdout_backend_origins(input_manifest)
     staged = input_phase != "all"
     if staged:
-        if task_set != INPUT_HOLDOUT_TASK_SET or input_phase not in ("classifieds", "finish"):
+        if task_set not in STAGED_INPUT_TASK_SETS or input_phase not in ("classifieds", "finish"):
             raise ValueError("Staged execution is only available for the registered image-and-tab holdout")
-        task_ids = stage_input_holdout(out, input_phase, actor.config, input_manifest)
+        task_ids = stage_input_holdout(out, input_phase, actor.config, input_manifest, task_set)
     else:
         out.mkdir(parents=True, exist_ok=False)
         task_ids = TASK_SETS[task_set]
     screen_reader = RapidScreenReader() if study in OCR_MODES else None
     listing_site = os.environ["VWA_CLASSIFIEDS"] if study in LINK_MODES else None
     strategies = {mode: [] for mode in STUDY_MODES[study]}
-    new_pairs = INPUT_CROSS_SITE_TASKS if input_phase == "finish" else task_ids
+    new_pairs = cross_site_tasks(task_set, input_manifest) if input_phase == "finish" else task_ids
     for task_id in task_ids:
         for mode in strategies:
             task = f"visualwebarena.{task_id}"
@@ -413,7 +457,8 @@ def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None,
                 invalid_retry = "feedback" if study == "scroll" else "none"
             env = VisualWebArenaEnvironment(task_id, enable_card_view=mode == "evidence-cards",
                                             enable_browser_context=use_inputs, reference_archive=reference_archive,
-                                            start_sites=input_manifest[str(task_id)]["start_sites"] if use_inputs else None)
+                                            start_sites=input_manifest[str(task_id)]["start_sites"] if use_inputs else None,
+                                            supplemental=supplemental if task_id == SUPPLEMENTAL_TASK_ID else None)
             try:
                 pending = Path(mkdtemp(prefix=".episode-", dir=out)) / branch.name if staged else branch
                 using_evidence = study in EVIDENCE_STUDIES and mode != "answer-check"
@@ -464,7 +509,8 @@ def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None,
     if task_set == HOLDOUT_TASK_SET:
         summary["protocol_sha256"] = HOLDOUT_PROTOCOL_SHA256
     if use_inputs:
-        summary.update(protocol_sha256=INPUT_PROTOCOL_SHA256, reference_files_sha256=INPUT_MEDIA_SHA256,
+        protocol_hash, media_hash = input_fingerprints(task_set)
+        summary.update(protocol_sha256=protocol_hash, reference_files_sha256=media_hash,
                        browser_context=True, input_manifest=input_manifest,
                        backend_origins=backend_origins)
     final_summary = out / "summary.json"
@@ -508,12 +554,14 @@ def main():
     if args.task_set in INPUT_TASK_SETS and (args.cohort_dir is None or args.study != "evidence-cards"
                                             or args.max_steps != 8 or not args.qwen_7b_4bit):
         parser.error("Reference-image studies need --cohort-dir, --study evidence-cards, --max-steps 8, and --qwen-7b-4bit")
-    if args.input_phase != "all" and args.task_set != INPUT_HOLDOUT_TASK_SET:
+    if args.input_phase != "all" and args.task_set not in STAGED_INPUT_TASK_SETS:
         parser.error("--input-phase is only used by the registered image-and-tab holdout")
     if args.qwen_7b_4bit and (args.actor != "qwen" or args.device != "cuda"):
         parser.error("The Qwen 7B 4-bit profile requires --actor qwen --device cuda")
     probe_instance()
-    reference_archive, input_manifest = (input_holdout_archive(args.cohort_dir, args.task_set)
+    supplemental = (json.loads((args.cohort_dir / "supplemental-task.json").read_bytes())
+                    if args.task_set == FRESH_HOLDOUT_TASK_SET else None)
+    reference_archive, input_manifest = (input_holdout_archive(args.cohort_dir, args.task_set, supplemental=supplemental)
                                          if args.task_set in INPUT_TASK_SETS else (None, None))
     if args.task_set == INPUT_HOLDOUT_TASK_SET and args.input_phase != "classifieds":
         for site in holdout_backend_origins(input_manifest):
@@ -531,7 +579,8 @@ def main():
                                     load_in_4bit=args.qwen_7b_4bit,
                                     native_navigation=args.study in CONFIRM_MODES)
     run_study(actor, out=args.out, study=args.study, task_set=args.task_set, max_steps=args.max_steps,
-              reference_archive=reference_archive, input_manifest=input_manifest, input_phase=args.input_phase)
+              reference_archive=reference_archive, input_manifest=input_manifest, input_phase=args.input_phase,
+              supplemental=supplemental)
     return 0
 
 

@@ -18,11 +18,17 @@ def prepare(upstream, protocol_path, output):
     data = (upstream / "config_files/vwa/test_classifieds.raw.json").read_bytes()
     if hashlib.sha256(data).hexdigest() != protocol["upstream_config_sha256"]:
         raise ValueError("Upstream tasks differ from the registered checkout")
+    tasks = [task for task in json.loads(data) if task["task_id"] in protocol["task_ids"]]
+    reference_count, _ = prepare_reference_archive(upstream, tasks, output, expected_sha256=INPUT_MEDIA_SHA256)
+    (output / "cohort.json").write_bytes(protocol_bytes)
+    return reference_count
+
+
+def prepare_reference_archive(upstream, tasks, output, *, expected_sha256=None):
     names = set()
-    for task in json.loads(data):
-        if task["task_id"] in protocol["task_ids"]:
-            images = task.get("image") or []
-            names.update([images] if isinstance(images, str) else images)
+    for task in tasks:
+        images = task.get("image") or []
+        names.update([images] if isinstance(images, str) else images)
     image_root = (upstream / "environment_docker/webarena-homepage").resolve()
     assets = {}
     for name in sorted(names):
@@ -33,7 +39,8 @@ def prepare(upstream, protocol_path, output):
     references = {name: {"bytes": len(blob), "sha256": hashlib.sha256(blob).hexdigest()}
                   for name, blob in assets.items()}
     canonical = json.dumps(references, sort_keys=True, separators=(",", ":")).encode()
-    if hashlib.sha256(canonical).hexdigest() != INPUT_MEDIA_SHA256:
+    reference_sha256 = hashlib.sha256(canonical).hexdigest()
+    if expected_sha256 is not None and reference_sha256 != expected_sha256:
         raise ValueError("Upstream image bytes differ from the registered file set")
     output.mkdir(parents=True, exist_ok=False)
     archive = output / "reference-media.tar.gz"
@@ -45,8 +52,7 @@ def prepare(upstream, protocol_path, output):
     archive_digest = hashlib.sha256(archive.read_bytes()).hexdigest()
     (output / "reference-media.json").write_text(json.dumps(
         {"files": references, "archive_sha256": archive_digest}, indent=2) + "\n")
-    (output / "cohort.json").write_bytes(protocol_bytes)
-    return len(assets)
+    return len(assets), reference_sha256
 
 
 if __name__ == "__main__":
