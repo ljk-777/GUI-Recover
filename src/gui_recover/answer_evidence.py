@@ -573,6 +573,13 @@ class EvidenceAnswerPolicy:
             'Return one JSON object with exactly two keys: "evidence" (a list of short strings), '
             'then "answer" (short string or null).'
         )
+        if self.price_discovery is not None:
+            prompt = (
+                "Transcribe the single dollar price shown in this crop. The item photo is checked separately. "
+                'Return JSON with "evidence" containing the displayed price as a one-element list and '
+                '"answer" containing the amount as a string of digits and an optional decimal point. '
+                'If the printed price is unreadable, return {"evidence":[],"answer":null}.'
+            )
         raw = ask_observation(self.actor, canvas, prompt, observation)
         self.last_metrics.update(evidence_stage="read", evidence_frame=frame, evidence_bounds=list(bounds),
                                  evidence_crop_sha256=pixel_hash(crop), provider_format="evidence_invalid")
@@ -610,7 +617,16 @@ class EvidenceAnswerPolicy:
             "If anything required is missing, return {\"answer\":null}. "
             "Otherwise return one JSON object with one key answer and a short string value."
         )
-        if (self.ranked_capture is not None and self.navigation_context is not None
+        if self.price_discovery is not None:
+            target = self.price_discovery.request.visual_target
+            prompt = (
+                f"Check the listing photo in the upper-left overview. It must visibly show {target}. "
+                "The blue outline marks the price field enlarged on the right. Read its amount independently. "
+                'If the photo does not clearly match or the price is unreadable, return {"answer":null}. '
+                'Otherwise return JSON with "answer" containing only the amount as a string of digits and '
+                "an optional decimal point."
+            )
+        elif (self.ranked_capture is not None and self.navigation_context is not None
                 and _EMAIL.fullmatch(candidate) and _EMAIL_REQUEST.search(observation.goal)):
             prompt = (
                 f"Question: {observation.goal}\n"

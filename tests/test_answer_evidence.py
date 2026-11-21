@@ -7,7 +7,9 @@ from gui_recover.actions import Action, ActionError, parse_action
 from gui_recover.answer_evidence import (EvidenceAnswerPolicy, answer_signature, evidence_answer, evidence_box,
                                          confirmation_image, evidence_clipped, evidence_navigation, native_crop)
 from gui_recover.environment import VisualObservation
+from gui_recover.price_discovery import PriceDiscovery, price_request
 from gui_recover.qwen_grounding import QwenGroundingPolicy, normalize_qwen_action, parse_visible_answer
+from gui_recover.verification import pixel_hash
 
 
 @pytest.mark.parametrize("box", [[-1, 4, 9, 10], [5, 4, 5, 10], [1, 3, 21, 8],
@@ -174,3 +176,40 @@ def test_policy_localizes_without_submitting_and_reads_only_the_cropped_frame(co
     else:
         assert parse_action(candidate) == Action("ANSWER", expected)
     assert policy.predict(obs, []) == "navigation"
+
+
+@pytest.mark.parametrize("confirmed", ["12", None, "21"])
+def test_ranked_price_reader_transcribes_before_independent_photo_confirmation(confirmed):
+    class Actor:
+        def prepare_image(self, image):
+            return image
+
+        def ask(self, image, prompt):
+            self.last_metrics = {}
+            prompts.append(prompt)
+            return next(replies)
+
+    target = "ring that has an image taken as a selfie"
+    goal = f"Find the most expensive {target}, and tell me how much it costs in dollars."
+    screen = Image.new("RGB", (200, 120))
+    obs = VisualObservation(goal, screen)
+    prompts = []
+    replies = iter((
+        '{"evidence":["12.00 $"],"answer":"12.00"}',
+        json.dumps({"answer": confirmed}),
+    ))
+    actor = Actor()
+    policy = EvidenceAnswerPolicy(actor, confirm=True)
+    policy.price_discovery = PriceDiscovery(price_request(goal), "http://localhost:19980")
+    bounds = (70, 20, 130, 60)
+    policy.pending_crop = pixel_hash(screen), screen.crop(bounds), bounds, False
+
+    assert policy.predict(obs, []) is None
+    assert "Transcribe the single dollar price" in prompts[0]
+    assert target not in prompts[0]
+    answer = policy.predict(obs, [])
+    assert target in prompts[1] and "upper-left overview" in prompts[1]
+    if confirmed == "12":
+        assert parse_action(answer) == Action("ANSWER", "12.00")
+    else:
+        assert answer is None
