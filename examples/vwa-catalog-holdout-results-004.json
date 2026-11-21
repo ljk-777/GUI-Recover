@@ -539,5 +539,21 @@
     "visualwebarena-catalog-prior-policy-004": "aea2b8459ae94e865d69a9c8ac94854ab22378d2e6bad0116b1cad13a27dafdb",
     "visualwebarena-catalog-literalfault-prior-004": "edca707497b4dea5b0e5d4e6e69f3d5dda2722e0b276c0775a1cc33bd108448d",
     "visualwebarena-catalog-literalfault-current-004": "833c2219df242a67962b8aa64ad686d2772ef6fcc9aae677cb6415019603ecdc"
+  },
+  "cli_validation": {
+    "source_revision": "531e260e96a3865fd888dcb92e437bbdd7c2d09e",
+    "native_browser_smoke": {
+      "provider": "archived replies",
+      "responses_replayed": 5,
+      "live_model_calls": 0,
+      "native_successes": 3,
+      "task_count": 3,
+      "wrong_submissions": 0,
+      "archive_sha256": "dc1ff231e0d3f8cb110c6160d105949e6cde4cb48c8441ce84403b7fa804a9cb"
+    },
+    "resume_with_model_files_unavailable": {
+      "reused_episodes": 3,
+      "identical_audit": true
+    }
   }
 }

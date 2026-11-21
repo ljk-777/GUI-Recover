@@ -616,6 +616,8 @@ For a comparison, pass `compare` with the same arguments as `audit` and add `--p
 
 The run stores a plan, the episode trajectories and screenshots, one injection receipt per task, and an aggregate audit. To resume after interruption, use the same command and output path. The runner audits finished episodes before reusing them and stages new episodes in temporary subdirectories before finalizing them.
 
+An integration smoke test ran this entry point in native BrowserGym with five archived model replies and passed all three tasks. It exercised fault injection, real browser actions, scoring, and archive writing. A subsequent invocation reused the three finished episodes with the model files unavailable and produced the same audit.
+
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
