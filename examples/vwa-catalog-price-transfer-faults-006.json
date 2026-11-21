@@ -1,0 +1,11 @@
+{
+  "cohort_sha256": "26d82c1df9f7022cd9dad8c03625135f1c645f86deff570d846a9469d83c8a3d",
+  "cases": {
+    "10601": "change-ocr-price-digit",
+    "10602": "change-ocr-price-digit",
+    "10603": "match-ocr-price-in-confirmation",
+    "10604": "match-ocr-price-in-confirmation",
+    "10605": "match-ocr-price-in-reread",
+    "10606": "match-ocr-price-in-reread"
+  }
+}
