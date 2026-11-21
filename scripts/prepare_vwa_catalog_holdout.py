@@ -92,7 +92,9 @@ class Catalog:
             source = urlsplit(urljoin(self.origin, photo["src"])) if photo else None
             media_path = (source.path if source and source.netloc == url.netloc and not source.query
                           and source.path.startswith("/oc-content/uploads/") else None)
-            cards.append(Card(item, title.get_text(" ", strip=True),
+            # Use the whitespace that a reader sees under the theme's normal text layout.
+            displayed_title = " ".join(title.get_text(" ", strip=True).split())
+            cards.append(Card(item, displayed_title,
                               int(match_price[1].replace(",", "")) if match_price else None, media_path))
         total = int(match[3].replace(",", "")) if match else None
         return path, total, cards, digest

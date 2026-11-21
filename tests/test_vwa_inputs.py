@@ -32,6 +32,23 @@ def test_official_reference_names_preserve_the_asset_suffix():
     assert reference_name("http://elsewhere:5555/" + suffix, "http://localhost:5555/") != expected
 
 
+def test_catalog_title_uses_rendered_whitespace_instead_of_source_spacing(monkeypatch):
+    pytest.importorskip("bs4")
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1] / "scripts"))
+    from prepare_vwa_catalog_holdout import Catalog
+
+    catalog = Catalog("http://localhost:19980")
+    html = b"""<p>1 - 1 of 1 listings</p>
+        <li class="listing-card"><a class="title" href="/index.php?page=item&id=8">
+            Silver  ring
+            size 6
+        </a></li>"""
+    monkeypatch.setattr(catalog, "read", lambda path: html)
+    _, total, cards, _ = catalog.results(sPattern="ring")
+    assert total == 1
+    assert cards[0].title == "Silver ring size 6"
+
+
 def test_exact_archive_resolves_registered_asset_and_rejects_a_missing_reference(tmp_path):
     name = "images/fixture.png"
     data = reference_png()

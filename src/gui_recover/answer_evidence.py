@@ -738,8 +738,9 @@ class EvidenceAnswerPolicy:
     def verify(self, observation, frame, crop, bounds, candidate):
         if isinstance(candidate, ReferenceTitleCrop):
             raw = self.actor.ask(self.actor.prepare_image(crop), (
-                "Transcribe the full listing heading in this crop. Include every word and number. "
-                'Return only JSON with the key "answer". Use {"answer":null} if any part is unreadable.'
+                "Read the text in this image from top to bottom. Join wrapped lines with one space. "
+                "Keep every word, number, and punctuation mark. "
+                'Return only JSON with the key "answer". Use {"answer":null} if the text is unreadable.'
             ))
             answer, status = confirmation_outcome(raw, candidate)
             self.last_metrics.update(evidence_stage="confirm", evidence_frame=frame, evidence_bounds=list(bounds),
