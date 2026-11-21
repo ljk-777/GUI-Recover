@@ -443,8 +443,27 @@ The current guard requires a visible selfie cue during confirmation. A close-up 
 | 006 | Ordered card judgments and split OCR currency labels | 0/3 / 0/3 | 0 / 0 |
 | 007 | Separate price transcription and visual confirmation | 0/3 / 0/3 | 0 / 1 |
 | 008 | Require a visible selfie cue before confirming | 0/3 / 0/3 | 0 / 0 |
+| 009 | Verify tied-price coverage and resume the original ranking | 0/3 / 0/3 | 0 / 0 |
+| 010 | Retry a malformed photo response on the same panel | 0/3 / 0/3 | 0 / 0 |
+| 011 | Retry an explicit multiple-people criterion as visible counts | 0/3 / 0/3 | 0 / 0 |
 
 Run 008 used five model calls on task 84. The confirmer transcribed the amount again, reported no selfie cue, and withheld the answer. On the archived wrong candidate from run 007, a separate CUDA call reproduced the same abstention. The development success target remains open.
+
+### Recover across a tied price
+
+The price-sorted browser probe found 35 distinct books and 31 distinct lift listings across the first 36 positions of those searches. Filtering both ends of the visible price form to the boundary amount, then selecting **Newly listed**, yielded 7 of 7 distinct books and 20 of 20 distinct lift listings. The recovery uses the observed boundary price, the visible filter and sort controls, and screenshot-grounded listing receipts. The installed Classifieds backend treats price form values as whole dollars.
+
+When a later page repeats listings at the previously observed price boundary, the policy checks the equal-price group in date order. Before continuing past that price, its distinct count must match the visible total and include the known boundary listings from both pages. The browser returns to the interrupted URL and skips only listings whose price and identity belong to the completed group. A native browser smoke with controlled photo rejections verified both returns and resumed the original ranked searches.
+
+On CUDA run 009, task 82 covered the first tied-price group and opened a second group at the decision limit. Task 99 reached the exact-price view, then stopped on a malformed photo response. Run 010 retried on the same screenshot and card panel. The second response also failed to parse. The current policy can retry one malformed response per episode and counts the retry against the existing model budget.
+
+For an explicit multiple-people criterion within a verified tied-price group, the retry asks for a visible people count for every card. It accepts only one complete array of nonnegative integers. The selected listing still goes through a detail-page price read and independent confirmation. A CUDA probe on the archived three-card panel returned the visible counts 0, 1, and 3 with this prompt.
+
+Run 011 reproduced those counts on task 99 and opened the third candidate. The price reader transcribed the displayed amount with an extra list around its single evidence line. The current price reader accepts that one redundant wrapper for a price crop and still requires confirmation before submitting.
+
+The first isolated task 99 pair reached submission. Its listing passed the native URL rule. The submitted value `2995.00` failed the native text rule, and `2995` passed the same rule in a local scorer check. The price policy now serializes confirmed whole-dollar amounts as integers and preserves fractional amounts.
+
+The second isolated task 99 pair received native scores of 0/1 for the control and 1/1 for the evidence policy, with zero wrong submissions in either arm. The successful episode submitted `2995` after seven model calls and 12 decisions. This result covers one previously observed task. The three-task development acceptance target remains open.
 
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 

@@ -698,6 +698,536 @@
           "initial_tabs": 1
         }
       }
+    },
+    {
+      "run": "visualwebarena-price-discovery-dev-009",
+      "source_commit": "01613046bbdb24fece8ea269caae3cfa41504967",
+      "evidence_archive_sha256": "4d0b0a4d37d9a1283bcd1af2283cc66243bb0757d18996813f4cc4285c63fc80",
+      "native_successes": {
+        "answer-check": 0,
+        "evidence-cards": 0
+      },
+      "prediction_budget": 12,
+      "max_observed_model_calls": 8,
+      "screenshots": 37,
+      "wrong_submissions": {
+        "answer-check": 0,
+        "evidence-cards": 0
+      },
+      "by_task": {
+        "82": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "answer-check": {
+              "predictions": 8,
+              "model_calls": 8,
+              "steps": 4,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 4,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 1,
+              "scroll_feedbacks": 1,
+              "success": false,
+              "reason": "model_call_limit"
+            },
+            "evidence-cards": {
+              "predictions": 12,
+              "model_calls": 7,
+              "steps": 9,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "step_limit"
+            }
+          },
+          "answer_outcome": {
+            "answer-check": null,
+            "evidence-cards": null
+          },
+          "evidence_calls": {
+            "price_search": 1,
+            "price_sort": 1,
+            "price_expand": 1,
+            "price_more_cards": 3,
+            "price_next_page": 3,
+            "price_tie_open": 2,
+            "price_tie_return": 1
+          },
+          "reference_images": 0,
+          "initial_tabs": 1
+        },
+        "84": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "answer-check": {
+              "predictions": 8,
+              "model_calls": 8,
+              "steps": 4,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 4,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 1,
+              "scroll_feedbacks": 1,
+              "success": false,
+              "reason": "model_call_limit"
+            },
+            "evidence-cards": {
+              "predictions": 10,
+              "model_calls": 5,
+              "steps": 5,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "evidence_abstained"
+            }
+          },
+          "answer_outcome": {
+            "answer-check": null,
+            "evidence-cards": null
+          },
+          "evidence_calls": {
+            "price_search": 1,
+            "price_sort": 1,
+            "price_expand": 1,
+            "price_more_cards": 1,
+            "price_next_page": 1,
+            "price_open": 1,
+            "price_region": 1,
+            "read": 1,
+            "confirm": 1,
+            "navigation_context": 1,
+            "price_abstained": 1
+          },
+          "reference_images": 0,
+          "initial_tabs": 1
+        },
+        "99": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "answer-check": {
+              "predictions": 8,
+              "model_calls": 8,
+              "steps": 4,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 4,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 1,
+              "scroll_feedbacks": 1,
+              "success": false,
+              "reason": "model_call_limit"
+            },
+            "evidence-cards": {
+              "predictions": 8,
+              "model_calls": 4,
+              "steps": 5,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "evidence_abstained"
+            }
+          },
+          "answer_outcome": {
+            "answer-check": null,
+            "evidence-cards": null
+          },
+          "evidence_calls": {
+            "price_search": 1,
+            "price_sort": 1,
+            "price_expand": 1,
+            "price_more_cards": 2,
+            "price_next_page": 1,
+            "price_tie_open": 1,
+            "price_abstained": 1
+          },
+          "reference_images": 0,
+          "initial_tabs": 1
+        }
+      }
+    },
+    {
+      "run": "visualwebarena-price-discovery-dev-010",
+      "source_commit": "902db01fe6b05c744093302468ad8a332c85a313",
+      "evidence_archive_sha256": "739022631dcc894a55629709bc335971ffdfb07fc9b77b57ae8e9a80bb0816d1",
+      "native_successes": {
+        "answer-check": 0,
+        "evidence-cards": 0
+      },
+      "prediction_budget": 12,
+      "max_observed_model_calls": 8,
+      "screenshots": 37,
+      "wrong_submissions": {
+        "answer-check": 0,
+        "evidence-cards": 0
+      },
+      "by_task": {
+        "82": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "answer-check": {
+              "predictions": 8,
+              "model_calls": 8,
+              "steps": 4,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 4,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 1,
+              "scroll_feedbacks": 1,
+              "success": false,
+              "reason": "model_call_limit"
+            },
+            "evidence-cards": {
+              "predictions": 12,
+              "model_calls": 7,
+              "steps": 9,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "step_limit"
+            }
+          },
+          "answer_outcome": {
+            "answer-check": null,
+            "evidence-cards": null
+          },
+          "evidence_calls": {
+            "price_search": 1,
+            "price_sort": 1,
+            "price_expand": 1,
+            "price_more_cards": 3,
+            "price_next_page": 3,
+            "price_tie_open": 2,
+            "price_tie_return": 1
+          },
+          "reference_images": 0,
+          "initial_tabs": 1
+        },
+        "84": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "answer-check": {
+              "predictions": 8,
+              "model_calls": 8,
+              "steps": 4,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 4,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 1,
+              "scroll_feedbacks": 1,
+              "success": false,
+              "reason": "model_call_limit"
+            },
+            "evidence-cards": {
+              "predictions": 10,
+              "model_calls": 5,
+              "steps": 5,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "evidence_abstained"
+            }
+          },
+          "answer_outcome": {
+            "answer-check": null,
+            "evidence-cards": null
+          },
+          "evidence_calls": {
+            "price_search": 1,
+            "price_sort": 1,
+            "price_expand": 1,
+            "price_more_cards": 1,
+            "price_next_page": 1,
+            "price_open": 1,
+            "price_region": 1,
+            "read": 1,
+            "confirm": 1,
+            "navigation_context": 1,
+            "price_abstained": 1
+          },
+          "reference_images": 0,
+          "initial_tabs": 1
+        },
+        "99": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "answer-check": {
+              "predictions": 8,
+              "model_calls": 8,
+              "steps": 4,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 4,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 1,
+              "scroll_feedbacks": 1,
+              "success": false,
+              "reason": "model_call_limit"
+            },
+            "evidence-cards": {
+              "predictions": 9,
+              "model_calls": 5,
+              "steps": 5,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "evidence_abstained"
+            }
+          },
+          "answer_outcome": {
+            "answer-check": null,
+            "evidence-cards": null
+          },
+          "evidence_calls": {
+            "price_search": 1,
+            "price_sort": 1,
+            "price_expand": 1,
+            "price_more_cards": 2,
+            "price_next_page": 1,
+            "price_tie_open": 1,
+            "price_photo_retry": 1,
+            "price_abstained": 1
+          },
+          "reference_images": 0,
+          "initial_tabs": 1
+        }
+      }
+    },
+    {
+      "run": "visualwebarena-price-discovery-dev-011",
+      "source_commit": "076412988d0e1fc0dc61951afdd63c8764258d33",
+      "evidence_archive_sha256": "251351fe242741b54f18a70677cec10f8ebea4bbf575cfb2e59b97b066855065",
+      "native_successes": {
+        "answer-check": 0,
+        "evidence-cards": 0
+      },
+      "prediction_budget": 12,
+      "max_observed_model_calls": 8,
+      "screenshots": 38,
+      "wrong_submissions": {
+        "answer-check": 0,
+        "evidence-cards": 0
+      },
+      "by_task": {
+        "82": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "answer-check": {
+              "predictions": 8,
+              "model_calls": 8,
+              "steps": 4,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 4,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 1,
+              "scroll_feedbacks": 1,
+              "success": false,
+              "reason": "model_call_limit"
+            },
+            "evidence-cards": {
+              "predictions": 12,
+              "model_calls": 7,
+              "steps": 9,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "step_limit"
+            }
+          },
+          "answer_outcome": {
+            "answer-check": null,
+            "evidence-cards": null
+          },
+          "evidence_calls": {
+            "price_search": 1,
+            "price_sort": 1,
+            "price_expand": 1,
+            "price_more_cards": 3,
+            "price_next_page": 3,
+            "price_tie_open": 2,
+            "price_tie_return": 1
+          },
+          "reference_images": 0,
+          "initial_tabs": 1
+        },
+        "84": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "answer-check": {
+              "predictions": 8,
+              "model_calls": 8,
+              "steps": 4,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 4,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 1,
+              "scroll_feedbacks": 1,
+              "success": false,
+              "reason": "model_call_limit"
+            },
+            "evidence-cards": {
+              "predictions": 10,
+              "model_calls": 5,
+              "steps": 5,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "evidence_abstained"
+            }
+          },
+          "answer_outcome": {
+            "answer-check": null,
+            "evidence-cards": null
+          },
+          "evidence_calls": {
+            "price_search": 1,
+            "price_sort": 1,
+            "price_expand": 1,
+            "price_more_cards": 1,
+            "price_next_page": 1,
+            "price_open": 1,
+            "price_region": 1,
+            "read": 1,
+            "confirm": 1,
+            "navigation_context": 1,
+            "price_abstained": 1
+          },
+          "reference_images": 0,
+          "initial_tabs": 1
+        },
+        "99": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "answer-check": {
+              "predictions": 8,
+              "model_calls": 8,
+              "steps": 4,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 4,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 1,
+              "scroll_feedbacks": 1,
+              "success": false,
+              "reason": "model_call_limit"
+            },
+            "evidence-cards": {
+              "predictions": 12,
+              "model_calls": 6,
+              "steps": 6,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 0,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "evidence_abstained"
+            }
+          },
+          "answer_outcome": {
+            "answer-check": null,
+            "evidence-cards": null
+          },
+          "evidence_calls": {
+            "price_search": 1,
+            "price_sort": 1,
+            "price_expand": 1,
+            "price_more_cards": 2,
+            "price_next_page": 1,
+            "price_tie_open": 1,
+            "price_photo_retry": 1,
+            "price_open": 1,
+            "price_region": 1,
+            "read": 1,
+            "price_abstained": 1
+          },
+          "reference_images": 0,
+          "initial_tabs": 1
+        }
+      }
     }
   ],
   "wrong_candidate_replay": {
@@ -707,5 +1237,239 @@
     "model_calls": 1,
     "submission_proposed": false,
     "result": "evidence_verify_abstained"
+  },
+  "price_tie_browser_validation": {
+    "scope": "native browser with controlled photo rejections",
+    "smoke_evidence_archive_sha256": "c425a2ef59cc1a74e4aef798ac732c640751bd7e1971761e41b007453e03e9c3",
+    "controls": [
+      {
+        "category": "Books",
+        "keyword": "",
+        "price": 400,
+        "ranked_stats": {
+          "total": 1489,
+          "rows": 36,
+          "unique": 35,
+          "page_count": 3
+        },
+        "tie_stats": {
+          "total": 7,
+          "rows": 7,
+          "unique": 7,
+          "page_count": 1
+        }
+      },
+      {
+        "category": "Beauty + health",
+        "keyword": "lift",
+        "price": 2995,
+        "ranked_stats": {
+          "total": 126,
+          "rows": 36,
+          "unique": 31,
+          "page_count": 3
+        },
+        "tie_stats": {
+          "total": 20,
+          "rows": 20,
+          "unique": 20,
+          "page_count": 2
+        }
+      }
+    ],
+    "tasks": [
+      {
+        "task_id": 82,
+        "completed_group_sizes": [
+          7,
+          4
+        ],
+        "browser_errors": 0
+      },
+      {
+        "task_id": 99,
+        "completed_group_sizes": [
+          20,
+          25
+        ],
+        "browser_errors": 0
+      }
+    ]
+  },
+  "people_count_probe": {
+    "scope": "archived development photo panel only",
+    "panel_sha256": "028907a5f7b7462bca9454830bd9e1794a2b160aa61512525854201292d8f0de",
+    "counts": [
+      0,
+      1,
+      3
+    ]
+  },
+  "task_99_paired_regressions": [
+    {
+      "scope": "isolated paired development regression on task 99",
+      "prediction_budget": 12,
+      "max_observed_model_calls": 8,
+      "screenshots": 13,
+      "wrong_submissions": {
+        "answer-check": 0,
+        "evidence-cards": 1
+      },
+      "by_task": {
+        "99": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "answer-check": {
+              "predictions": 8,
+              "model_calls": 8,
+              "steps": 4,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 4,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 1,
+              "scroll_feedbacks": 1,
+              "success": false,
+              "reason": "model_call_limit"
+            },
+            "evidence-cards": {
+              "predictions": 12,
+              "model_calls": 7,
+              "steps": 7,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 0,
+              "answers_submitted": 1,
+              "answers_from_checks": 1,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": false,
+              "reason": "task_failure"
+            }
+          },
+          "answer_outcome": {
+            "answer-check": null,
+            "evidence-cards": {
+              "source": "evidence-cards",
+              "prediction": 12,
+              "native_reward": 0.0
+            }
+          },
+          "evidence_calls": {
+            "price_search": 1,
+            "price_sort": 1,
+            "price_expand": 1,
+            "price_more_cards": 2,
+            "price_next_page": 1,
+            "price_tie_open": 1,
+            "price_photo_retry": 1,
+            "price_open": 1,
+            "price_region": 1,
+            "read": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          },
+          "reference_images": 0,
+          "initial_tabs": 1
+        }
+      },
+      "run": "visualwebarena-price-task99-dev-001",
+      "source_commit": "268a022116ebf5bd6e171648612a16b0873ad729",
+      "evidence_archive_sha256": "f069694f4f5185b1abf32254b585942dde00e9970811e888c319412370c07de0"
+    },
+    {
+      "scope": "isolated paired development regression on task 99",
+      "prediction_budget": 12,
+      "max_observed_model_calls": 8,
+      "screenshots": 13,
+      "wrong_submissions": {
+        "answer-check": 0,
+        "evidence-cards": 0
+      },
+      "by_task": {
+        "99": {
+          "identical_reset_pixels": true,
+          "identical_first_invalid": false,
+          "strategies": {
+            "answer-check": {
+              "predictions": 8,
+              "model_calls": 8,
+              "steps": 4,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 4,
+              "answers_submitted": 0,
+              "answers_from_checks": 0,
+              "scroll_detection_signals": 1,
+              "scroll_feedbacks": 1,
+              "success": false,
+              "reason": "model_call_limit"
+            },
+            "evidence-cards": {
+              "predictions": 12,
+              "model_calls": 7,
+              "steps": 7,
+              "invalid_predictions": 0,
+              "invalid_action_retries": 0,
+              "repaired_predictions": 0,
+              "answer_checks": 0,
+              "answers_submitted": 1,
+              "answers_from_checks": 1,
+              "scroll_detection_signals": 0,
+              "scroll_feedbacks": 0,
+              "success": true,
+              "reason": "success"
+            }
+          },
+          "answer_outcome": {
+            "answer-check": null,
+            "evidence-cards": {
+              "source": "evidence-cards",
+              "prediction": 12,
+              "native_reward": 1.0
+            }
+          },
+          "evidence_calls": {
+            "price_search": 1,
+            "price_sort": 1,
+            "price_expand": 1,
+            "price_more_cards": 2,
+            "price_next_page": 1,
+            "price_tie_open": 1,
+            "price_photo_retry": 1,
+            "price_open": 1,
+            "price_region": 1,
+            "read": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          },
+          "reference_images": 0,
+          "initial_tabs": 1
+        }
+      },
+      "run": "visualwebarena-price-task99-dev-002",
+      "source_commit": "d59c288364b694ab74c36782d43db3d053687a7a",
+      "evidence_archive_sha256": "5118e1c700ed1ab107e640d0923b2981c0e5b44ca471db32266fcebcc80b21f0"
+    }
+  ],
+  "task_99_first_submission_diagnostic": {
+    "task_id": 99,
+    "native_evaluation_types": [
+      "url_match",
+      "string_match"
+    ],
+    "listing_passed_url_rule": true,
+    "passed_string_rule": {
+      "submitted": false,
+      "plain_number": true,
+      "currency": false,
+      "ungrouped_currency": false,
+      "amount_and_currency": false
+    }
   }
 }
