@@ -11,7 +11,7 @@ from gui_recover.price_discovery import (
 
 
 @pytest.mark.parametrize(("subject", "category", "query"), [
-    ("purple hard-case book", "Books", "purple"),
+    ("purple hard-case book", "Books", ""),
     ("ring that has an image taken as a selfie", "Jewelry", "ring"),
     ("wheelchair lift that has multiple people in the image of the listing", "Beauty + health", "lift"),
 ])

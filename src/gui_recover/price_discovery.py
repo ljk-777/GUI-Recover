@@ -19,7 +19,6 @@ _REQUEST = re.compile(
     r"and tell me how much it costs in dollars[.!?]?\s*$", re.IGNORECASE,
 )
 _QUALIFIER = re.compile(r"\s+(?:that|which|whose|with)\s+", re.IGNORECASE)
-_COLORS = {"black", "blue", "brown", "green", "orange", "pink", "purple", "red", "white", "yellow"}
 _CATEGORIES = {
     "Books": {"book", "books", "textbook", "textbooks"},
     "Jewelry": {"ring", "rings", "bracelet", "bracelets", "necklace", "necklaces", "earrings"},
@@ -51,9 +50,9 @@ def price_request(goal):
         return None
     category, terms = categories[0]
     noun = next(iter(terms))
-    qualifier = sorted(nouns & _COLORS)
-    if category == "Books" and len(qualifier) == 1:
-        query, alternate = qualifier[0], noun
+    if category == "Books":
+        # The category already identifies books. Cover colors need not occur in listing text.
+        query, alternate = "", None
     elif category == "Beauty + health" and "lift" in nouns:
         query, alternate = "lift", noun
     else:
@@ -91,9 +90,12 @@ def price_category_search(request, rows, size):
 
 def price_result_scope(rows, request, query, active_url):
     params = parse_qs(urlsplit(active_url).query)
-    if params.get("page") != ["search"] or params.get("sPattern") != [query] or not params.get("sCategory"):
+    expected_query = [query] if query else None
+    if params.get("page") != ["search"] or params.get("sPattern") != expected_query or not params.get("sCategory"):
         return None
-    prefix = f"classifieds > {request.category.casefold()} > search results: {query.casefold()}"
+    prefix = f"classifieds > {request.category.casefold()}"
+    if query:
+        prefix += f" > search results: {query.casefold()}"
     if _unique(rows, lambda text: text == prefix) is None:
         return None
     return listing_range(rows)
@@ -206,7 +208,8 @@ class PriceDiscovery:
             f"Task: {observation.goal}\n"
             "The numbered cards are in the required price order. Judge whether each pictured listing is "
             "the requested kind of item and meets every visual condition. Check the photo and title together. "
-            "Reject clearly unrelated items. Use null if the photo does not resolve a condition. "
+            "Use false when at least one condition clearly fails. Use null only when no condition clearly fails "
+            "but a required condition cannot be resolved from the photo and title. "
             f"Return only a JSON array of exactly {len(cards)} values in card order, each true, false, or null. "
             "Do not answer the task or give a price."
         ), observation)
