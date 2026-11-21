@@ -6,8 +6,9 @@ from dataclasses import dataclass
 from urllib.parse import parse_qs, urlsplit
 
 from .actions import Action
-from .listing_cards import RESULT_VIEW_HEIGHT, card_panel, inspect_card_receipt, listing_range, title_point
-from .qwen_grounding import ask_observation, read_reply
+from .listing_cards import (
+    RESULT_VIEW_HEIGHT, card_panel, inspect_card_receipt, listing_range, read_card_checks, title_point,
+)
 from .ranked_cards import BATCH_SIZE
 from .screen_text import empty_keyword_field, listing_detail, replace_keyword_search
 from .verification import pixel_hash
@@ -125,11 +126,8 @@ def _detail_price_box(rows):
 def first_ranked_match(reply, count):
     """Choose a match only after all earlier cards were explicitly rejected."""
     try:
-        decisions = read_reply(reply)
+        decisions = read_card_checks(reply, count)
     except (ValueError, RecursionError):
-        return None, False
-    if (not isinstance(decisions, list) or len(decisions) != count
-            or any(value is not None and type(value) is not bool for value in decisions)):
         return None, False
     for index, value in enumerate(decisions):
         if value is None:
@@ -150,6 +148,9 @@ class PriceDiscovery:
         self.destination = None
         self.offset = 0
         self.page_frame = None
+        self.first = 1
+        self.total = None
+        self.reviewed_destinations = set()
 
     def decide(self, observation, actor, screen_reader, capture):
         screen = observation.screenshot
@@ -160,7 +161,7 @@ class PriceDiscovery:
 
         def finish(status, action=None, box=None):
             if action is not None:
-                key = self.query, status
+                key = self.query, self.first, status
                 if key in self.visited:
                     status, action = "price_abstained", None
                 self.visited.add(key)
@@ -180,15 +181,16 @@ class PriceDiscovery:
         metrics.update(price_screen_text=rows, price_canvas_size=list(size))
         if self.destination is not None:
             box = _detail_price_box(rows) if active == self.destination else None
-            if box is None or (self.query, PRICE_REGION) in self.visited:
+            key = self.query, self.first, PRICE_REGION
+            if box is None or key in self.visited:
                 return finish("price_abstained")
-            self.visited.add((self.query, PRICE_REGION))
+            self.visited.add(key)
             return finish(PRICE_REGION, box=box)
         search = price_category_search(self.request, rows, size)
         if search is not None and not self.visited:
             return finish("price_search", search)
         scope = price_result_scope(rows, self.request, self.query, active)
-        if scope is None or scope[0] != 1:
+        if scope is None or scope[0] != self.first or (self.total is not None and scope[2] != self.total):
             return finish("price_abstained")
         if not _price_order(rows, self.request, active):
             menu = _unique(rows, lambda text: text.startswith("sort by:"))
@@ -202,22 +204,29 @@ class PriceDiscovery:
         cards = inspect_card_receipt(receipt, frame, screen.size, self.site)
         if receipt["scroll_top"] != 0:
             return finish("price_abstained")
-        if len(cards) != scope[1] or any(card["image"] is None for card in cards):
+        if len(cards) != scope[1] - scope[0] + 1 or any(card["image"] is None for card in cards):
             if screen.height < RESULT_VIEW_HEIGHT and receipt["grid"] is not None:
                 return finish("price_expand", Action("LISTING_GRID", position=tuple(receipt["grid"])))
             return finish("price_abstained")
         if self.offset and frame != self.page_frame:
             return finish("price_abstained")
+        if not self.offset:
+            destinations = {card["destination"] for card in cards}
+            if destinations & self.reviewed_destinations:
+                return finish("price_abstained")
+            self.reviewed_destinations.update(destinations)
+            self.total = scope[2]
         self.page_frame = frame
         batch = cards[self.offset:self.offset + BATCH_SIZE]
         panel = card_panel([(screen, card) for card in batch])
-        reply = ask_observation(actor, actor.prepare_image(panel), (
-            f"Find photos that visibly match this description: {self.request.visual_target}.\n"
-            "Inspect each numbered card independently. Write true if the photo shows the requested physical item "
-            "and the visual details match. Write false for a clear photo that lacks a requested visible feature "
-            "or shows another subject. Use null for an unreadable photo or a genuinely ambiguous case. "
-            f"Return only a JSON array with exactly {len(batch)} values in the numbered order."
-        ), observation)
+        reply = actor.ask(actor.prepare_image(panel), (
+            f"Visual criterion: {self.request.visual_target}.\n"
+            "Inspect each numbered listing photo. First identify a concrete visual cue in the photo. "
+            "Use that cue to decide whether the item visibly matches, recording false for a clearly unrelated photo. "
+            f'Return only one JSON object with keys "1" through "{len(batch)}". Each value is '
+            "[true or false, at most three words of visible evidence]. "
+            "Use null if a visible cue cannot resolve the question."
+        ))
         metrics.update(model_invocations=1, provider_output=reply, price_panel_pixels=pixel_hash(panel),
                        peak_cuda_allocated_bytes=actor.last_metrics.get("peak_cuda_allocated_bytes", 0))
         index, clear_miss = first_ranked_match(reply, len(batch))
@@ -228,10 +237,17 @@ class PriceDiscovery:
         if clear_miss and self.offset + len(batch) < len(cards):
             self.offset += len(batch)
             return finish("price_more_cards")
+        if clear_miss and scope[1] < scope[2] and receipt["next"] is not None:
+            self.first = scope[1] + 1
+            self.offset = 0
+            return finish("price_next_page", Action("CLICK", position=tuple(receipt["next"])))
         if clear_miss and self.request.alternate is not None and self.query != self.request.alternate:
             refinement = replace_keyword_search(self.query, self.request.alternate, rows, size)
             if refinement is not None:
                 self.query = self.request.alternate
                 self.offset = 0
+                self.first = 1
+                self.total = None
+                self.reviewed_destinations.clear()
                 return finish("price_refine", refinement)
         return finish("price_abstained")

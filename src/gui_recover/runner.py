@@ -36,7 +36,7 @@ def is_success(reward, terminated, truncated, task_info):
 def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict",
                 fault_kind="none", fault_seed=0, recovery="none", *,
                 submit_answer=False, success_check=is_success, invalid_action_retry="none",
-                answer_check=False, allow_observation_only=False):
+                answer_check=False, allow_observation_only=False, max_model_calls=None):
     """Run up to max_steps predictions, including answer checks and action retries."""
     if invalid_action_retry not in ("none", "retry", "feedback"):
         raise ValueError("Unknown invalid-action retry mode")
@@ -44,6 +44,8 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
         raise ValueError("Invalid-action feedback requires a policy with set_feedback")
     if answer_check and (not submit_answer or not callable(getattr(policy, "check_answer", None))):
         raise ValueError("Answer checks require a policy with check_answer and native answer submission")
+    if max_model_calls is not None and (type(max_model_calls) is not int or max_model_calls < 1):
+        raise ValueError("A model call budget must be a positive integer")
     directory = Path(out_dir)
     directory.mkdir(parents=True, exist_ok=False)
     trajectory = directory / "trajectory.jsonl"
@@ -103,6 +105,9 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
               "task_info": task_info, **frame})
         reason = "step_limit"
         for index in range(max_steps):
+            if max_model_calls is not None and model_calls >= max_model_calls:
+                reason = "model_call_limit"
+                break
             before = time.perf_counter()
             frame_digest = frame["sha256"]
             key = frame_key(frame_digest, obs.tabs, obs.active_tab)
@@ -116,6 +121,8 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
             latency = time.perf_counter() - before
             predictions += 1
             invocation_count = getattr(policy, "last_metrics", {}).get("model_invocations")
+            if max_model_calls is not None and (type(invocation_count) is not int or invocation_count not in (0, 1)):
+                raise RuntimeError("A budgeted policy must report zero or one model invocation per prediction")
             if invocation_count is None:
                 model_calls_known = False
             else:

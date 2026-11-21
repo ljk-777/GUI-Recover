@@ -31,7 +31,7 @@ from run_visualwebarena_live import (
     ANSWER_STUDIES, CONFIRM_MODES, EVIDENCE_STUDIES, HOLDOUT_PROTOCOL_SHA256, HOLDOUT_TASK_SET,
     FRESH_HOLDOUT_TASK_SET, INPUT_HOLDOUT_TASK_SET, INPUT_RETRIEVAL_TASK_SET, INPUT_TASK_SETS,
     LINK_MODES, NAVIGATION_CONTEXT_MODES, OCR_MODES, STUDY_MODES, SUPPLEMENTAL_TASK_ID, TASK_SETS,
-    PRICE_DEV_TASK_SET, category_search_code, exact_vwa_success, holdout_profile, input_fingerprints,
+    PRICE_DEV_MODEL_CALLS, PRICE_DEV_TASK_SET, category_search_code, exact_vwa_success, holdout_profile, input_fingerprints,
     replace_keyword_code, sort_listing_code, url_origin,
 )
 
@@ -483,6 +483,10 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
                 require(use_ranked_cards and len(reference_hashes) == 1 and "browser_tabs" not in metrics
                         and metrics.get("reference_pixels") == reference_hashes,
                         "Reference-only model inputs differ from the registered image")
+            elif metrics.get("evidence_stage") == PRICE_DISCOVERY:
+                require(use_ranked_cards and not reference_hashes and "browser_tabs" not in metrics
+                        and "price_panel_pixels" in metrics,
+                        "Ranked price judgments must inspect only the reconstructed visible photo panel")
             else:
                 require(metrics.get("browser_tabs") == tabs and metrics.get("reference_pixels", []) == reference_hashes,
                         "Model inputs differ from the task reference images or active tabs")
@@ -661,6 +665,7 @@ def audit(directory):
     task_set = summary["task_set"]
     task_ids = TASK_SETS[task_set]
     budget = summary["max_steps"]
+    model_budget = summary.get("max_model_calls")
     study = summary["study"]
     compact_navigation = summary["model"].get("compact_navigation_replies", task_set == "evidence-navigation-diagnostic")
     require(study in ("format", "scroll", *ANSWER_STUDIES) and summary["budget_unit"] == "predictions"
@@ -672,9 +677,13 @@ def audit(directory):
     use_inputs = task_set in INPUT_TASK_SETS
     if use_inputs:
         protocol_hash, media_hash = input_fingerprints(task_set)
+        if task_set == PRICE_DEV_TASK_SET:
+            require(model_budget == PRICE_DEV_MODEL_CALLS or (model_budget is None and budget == 8),
+                    "Unexpected ranked price development model call budget")
         require(summary.get("protocol_sha256") == protocol_hash
                 and summary.get("reference_files_sha256") == media_hash
-                and summary.get("browser_context") is True and holdout_profile(study, budget, summary["model"], "evidence-cards"),
+                and summary.get("browser_context") is True
+                and holdout_profile(study, model_budget or budget, summary["model"], "evidence-cards"),
                 "Run differs from the registered input holdout")
         require(set(summary["input_manifest"]) == {str(task_id) for task_id in task_ids},
                 "Input manifest differs from the registered task set")

@@ -35,6 +35,7 @@ INPUT_HOLDOUT_TASK_SET = "evidence-cards-input-holdout"
 INPUT_RETRIEVAL_TASK_SET = "evidence-cards-reference-dev"
 FRESH_HOLDOUT_TASK_SET = "evidence-cards-fresh-holdout"
 PRICE_DEV_TASK_SET = "evidence-cards-price-dev"
+PRICE_DEV_MODEL_CALLS = 8
 FRESH_INPUT_TASK_SETS = (FRESH_HOLDOUT_TASK_SET, PRICE_DEV_TASK_SET)
 STAGED_INPUT_TASK_SETS = (INPUT_HOLDOUT_TASK_SET, FRESH_HOLDOUT_TASK_SET)
 INPUT_TASK_SETS = (*STAGED_INPUT_TASK_SETS, INPUT_RETRIEVAL_TASK_SET, PRICE_DEV_TASK_SET)
@@ -471,9 +472,10 @@ def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None,
     if task_set == HOLDOUT_TASK_SET and not holdout_profile(study, max_steps, actor.config):
         raise ValueError("The locked cohort requires the registered 8-decision Qwen 7B NF4 comparison")
     use_inputs = task_set in INPUT_TASK_SETS
+    model_budget = PRICE_DEV_MODEL_CALLS if task_set == PRICE_DEV_TASK_SET else None
     if use_inputs and (reference_archive is None or input_manifest is None
-                       or not holdout_profile(study, max_steps, actor.config, "evidence-cards")):
-        raise ValueError("Reference-image studies require the media archive and registered 8-decision profile")
+                       or not holdout_profile(study, model_budget or max_steps, actor.config, "evidence-cards")):
+        raise ValueError("Reference-image studies require the media archive and registered Qwen profile")
     if use_inputs and input_phase != "classifieds":
         backend_origins = holdout_backend_origins(input_manifest)
     staged = input_phase != "all"
@@ -526,7 +528,7 @@ def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None,
                                   recovery=recovery, invalid_action_retry=invalid_retry,
                                   answer_check=mode == "answer-check",
                                   allow_observation_only=using_evidence,
-                                  submit_answer=True, success_check=exact_vwa_success)
+                                  submit_answer=True, success_check=exact_vwa_success, max_model_calls=model_budget)
                 render_replay(pending)
                 if staged:
                     if row["reason"] == "runtime_error":
@@ -553,6 +555,8 @@ def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None,
         "max_steps": max_steps, "model": actor.config, "strategies": {
             mode: {**aggregate(rows), **{key: sum(row[key] for row in rows) for key in counts}}
             for mode, rows in strategies.items()}}
+    if model_budget is not None:
+        summary["max_model_calls"] = model_budget
     if screen_reader is not None:
         summary["screen_reader"] = {**screen_reader.config, "guarded_ocr": True, "direct_navigation": True}
     if listing_site is not None:
@@ -603,9 +607,13 @@ def main():
     if args.task_set == HOLDOUT_TASK_SET and (args.study != "evidence-links" or args.max_steps != 8
                                                or not args.qwen_7b_4bit):
         parser.error("The locked cohort needs --study evidence-links --max-steps 8 --qwen-7b-4bit")
-    if args.task_set in INPUT_TASK_SETS and (args.cohort_dir is None or args.study != "evidence-cards"
-                                            or args.max_steps != 8 or not args.qwen_7b_4bit):
-        parser.error("Reference-image studies need --cohort-dir, --study evidence-cards, --max-steps 8, and --qwen-7b-4bit")
+    if args.task_set in INPUT_TASK_SETS:
+        if args.cohort_dir is None or args.study != "evidence-cards" or not args.qwen_7b_4bit:
+            parser.error("Reference-image studies need --cohort-dir, --study evidence-cards, and --qwen-7b-4bit")
+        if args.task_set != PRICE_DEV_TASK_SET and args.max_steps != 8:
+            parser.error("Registered input holdouts and reference replays require --max-steps 8")
+        if args.task_set == PRICE_DEV_TASK_SET and args.max_steps < PRICE_DEV_MODEL_CALLS:
+            parser.error("The price development replay permits 8–12 predictions with 8 model calls")
     if args.input_phase != "all" and args.task_set not in STAGED_INPUT_TASK_SETS:
         parser.error("--input-phase is only used by the registered image-and-tab holdout")
     if args.qwen_7b_4bit and (args.actor != "qwen" or args.device != "cuda"):
