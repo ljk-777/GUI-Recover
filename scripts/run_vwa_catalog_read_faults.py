@@ -13,7 +13,7 @@ import gui_recover
 from audit_visualwebarena_live import audit_episode
 from gui_recover.answer_evidence import EvidenceAnswerPolicy, REFERENCE_TITLE_HEADING
 from gui_recover.listing_cards import is_listing_breadcrumb
-from gui_recover.listing_facts import ListingFacts
+from gui_recover.listing_facts import LISTING_FACTS_REGION, ListingFacts, main_listing_price
 from gui_recover.qwen_grounding import QwenGroundingPolicy, read_reply
 from gui_recover.runner import render_replay, run_episode, write_json
 from gui_recover.screen_text import RapidScreenReader
@@ -28,7 +28,9 @@ FAULT_FAMILIES = {
     "shorten-city": ("detail-price-city",),
     "omit-breadcrumb": ("gallery-reference", "search-reference"),
     "change-title-letter": ("search-highest-price",),
+    "change-ocr-price-digit": ("detail-price-city",),
 }
+OCR_FAULT_TARGETS = {"omit-breadcrumb": REFERENCE_TITLE_HEADING, "change-ocr-price-digit": LISTING_FACTS_REGION}
 FORMAT = "gui-recover-catalog-read-faults-v1"
 
 
@@ -49,6 +51,33 @@ def changed_reply(fault, reply):
         replacement = "y" if letter[0].casefold() == "x" else "x"
         data[field] = value[:letter.start()] + replacement + value[letter.end():]
     return json.dumps(data, ensure_ascii=False)
+
+
+def changed_ocr(fault, rows):
+    if fault == "omit-breadcrumb":
+        matches = [row for row in rows if is_listing_breadcrumb(row)]
+        require(len(matches) == 1, "Clean OCR must show one listing breadcrumb")
+        crumb, = matches
+        return [row for row in rows if row is not crumb], {"fault": fault, "omitted_row": crumb}
+    require(fault == "change-ocr-price-digit", "Expected an OCR fault")
+    price = main_listing_price(rows)
+    require(price is not None, "Clean OCR must show one listing price")
+    (left, top, right, bottom), cents = price
+    indices = [index for index, row in enumerate(rows)
+               if left <= row["bounds"][0] < row["bounds"][2] <= right
+               and top <= row["bounds"][1] < row["bounds"][3] <= bottom
+               and re.search(r"[0-9]", row["text"])]
+    require(len(indices) == 1, "Price digit fault needs a single numeric OCR row")
+    index, = indices
+    original = rows[index]
+    text = re.sub(r"[0-9]", lambda match: "1" if match[0] == "9" else str(int(match[0]) + 1),
+                  original["text"], count=1)
+    mutated = {**original, "text": text}
+    altered = [*rows[:index], mutated, *rows[index + 1:]]
+    new_price = main_listing_price(altered)
+    require(new_price is not None and new_price[0] == price[0] and new_price[1] != cents,
+            "Price digit fault must change the amount within the same price box")
+    return altered, {"fault": fault, "original_row": original, "injected_row": mutated}
 
 
 def prediction_metrics(directory):
@@ -72,13 +101,12 @@ class FaultCase:
 
 def clean_target(directory, fault):
     metrics = list(prediction_metrics(directory))
-    if fault == "omit-breadcrumb":
-        candidates = [step for step in metrics if step["provider_format"] == REFERENCE_TITLE_HEADING
+    if fault in OCR_FAULT_TARGETS:
+        candidates = [step for step in metrics if step["provider_format"] == OCR_FAULT_TARGETS[fault]
                       and "reference_title_breadcrumb" not in step]
-        require(len(candidates) == 1, "Clean episode must have one full-page title verification")
+        require(len(candidates) == 1, "Clean episode must have one OCR read at the registered evidence stage")
         step, = candidates
-        require(sum(is_listing_breadcrumb(row) for row in step["screen_text"]) == 1,
-                "Clean OCR must show one listing breadcrumb")
+        changed_ocr(fault, step["screen_text"])
     else:
         step = next((step for step in metrics if step.get("evidence_stage") == "confirm"), None)
         require(step is not None and step["provider_format"] == "evidence_verify_agreed",
@@ -144,17 +172,16 @@ class FaultPolicy(EvidenceAnswerPolicy):
 
     def read_screen(self, screen, size):
         rows = self.reader(screen, size)
-        target = self.fault_case.target
-        if self.fault_case.kind != "omit-breadcrumb" or self.injected is not None or pixel_hash(screen) != target["evidence_frame"]:
+        fault, target = self.fault_case.kind, self.fault_case.target
+        if fault not in OCR_FAULT_TARGETS or self.injected is not None or pixel_hash(screen) != target["evidence_frame"]:
             return rows
         require(rows == target["screen_text"], "Full-page OCR differs from the clean read")
-        crumb, = (row for row in rows if is_listing_breadcrumb(row))
-        self.injected = {"fault": self.fault_case.kind, "omitted_row": crumb}
-        return [row for row in rows if row is not crumb]
+        altered, self.injected = changed_ocr(fault, rows)
+        return altered
 
     def verify(self, observation, frame, crop, bounds, candidate):
         fault = self.fault_case.kind
-        if (fault == "omit-breadcrumb" or self.injected is not None
+        if (fault in OCR_FAULT_TARGETS or self.injected is not None
                 or not isinstance(candidate, ListingFacts) or frame != self.fault_case.target["evidence_frame"]):
             return super().verify(observation, frame, crop, bounds, candidate)
         ask = self.actor.ask
@@ -184,12 +211,11 @@ def audit_fault(directory, case, plan):
     require(proof["fault"] == kind, "Recorded fault differs from the fault plan")
     metrics = list(prediction_metrics(directory))
     same_frame = [step for step in metrics if step.get("evidence_frame") == target["evidence_frame"]]
-    if kind == "omit-breadcrumb":
-        crumb, = (row for row in target["screen_text"] if is_listing_breadcrumb(row))
-        expected = [row for row in target["screen_text"] if row != crumb]
-        require(proof == {"fault": kind, "omitted_row": crumb}
+    if kind in OCR_FAULT_TARGETS:
+        expected, expected_proof = changed_ocr(kind, target["screen_text"])
+        require(proof == expected_proof
                 and sum(step.get("evidence_stage") == "locate" and step.get("screen_text") == expected for step in same_frame) == 1,
-                "Expected one removed breadcrumb and the rest of the original OCR rows")
+                "Expected one registered OCR change and the rest of the original rows")
     else:
         raw = proof["original_reply"]
         altered = proof["injected_reply"]

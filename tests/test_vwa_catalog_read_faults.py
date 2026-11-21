@@ -40,6 +40,26 @@ def test_ocr_fault_applies_once_at_the_registered_frame(faults):
     assert policy.read_screen(screen, screen.size) == rows
 
 
+def test_price_ocr_fault_changes_only_the_registered_amount(faults):
+    price = {"text": "90.00", "bounds": [791, 123, 884, 160]}
+    rows = [
+        price,
+        {"text": "$", "bounds": [883, 126, 909, 158]},
+        {"text": "Published date: yesterday", "bounds": [115, 187, 316, 203]},
+        {"text": "Location: Oak Park, Illinois, United States", "bounds": [116, 207, 452, 224]},
+        {"text": "120 $", "bounds": [791, 600, 884, 618]},
+    ]
+    screen = Image.new("RGB", (1000, 770), "white")
+    target = {"evidence_frame": pixel_hash(screen), "screen_text": rows}
+    case = faults.FaultCase({"task_id": 10401}, "change-ocr-price-digit", {}, target)
+    policy = faults.FaultPolicy(None, lambda *_: rows, case, confirm=True)
+    altered = policy.read_screen(screen, screen.size)
+    assert altered[0] == {**price, "text": "10.00"}
+    assert altered[1:] == rows[1:]
+    assert policy.injected == {"fault": case.kind, "original_row": price, "injected_row": altered[0]}
+    assert policy.read_screen(screen, screen.size) == rows
+
+
 def test_offline_audit_rejects_an_injected_change_to_the_price(faults, monkeypatch, tmp_path):
     original = '{"city":"Oak Park","dollars":30}'
     altered = faults.changed_reply("shorten-city", original)
