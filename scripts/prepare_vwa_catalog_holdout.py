@@ -25,8 +25,21 @@ PRICE = re.compile(r"([0-9][0-9,]*)\.00\s*\$")
 RANGE = re.compile(r"([\d,]+)\s*-\s*([\d,]+)\s+of\s+([\d,]+)\s+listings\b", re.I)
 SAFE_TITLE = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ,'.&/-]{5,55}")
 OWN_INDEX = re.compile(r"^/index\.php\?page=item&id=([1-9][0-9]*)$")
-CITY_WORD_COUNTS = {"gui-recover-catalog-holdout-v4": (2, 1)}
-CATALOG_POOL_PAGES = {"gui-recover-catalog-holdout-v4": 12}
+CITY_WORD_COUNTS = {"gui-recover-catalog-holdout-v4": (2, 1),
+                    "gui-recover-catalog-holdout-v5": (1, 2, 1, 2, 1, 2)}
+CATALOG_POOL_PAGES = {"gui-recover-catalog-holdout-v4": 12, "gui-recover-catalog-holdout-v5": 20}
+
+
+def catalog_families(key):
+    if key == "gui-recover-catalog-holdout-v5":
+        return FAMILIES[:1]
+    return FAMILIES
+
+
+def catalog_case_families(key):
+    families = catalog_families(key)
+    detail_count = len(CITY_WORD_COUNTS.get(key, (1, 1)))
+    return [families[0]] * detail_count + [family for family in families[1:] for _ in range(2)]
 
 
 def encoded(value):
@@ -171,6 +184,8 @@ def freeze(site, excluded, output, *, series=1):
     key = f"gui-recover-catalog-holdout-v{series}"
     ids = CATALOG_SERIES_IDS[key]
     city_word_counts = CITY_WORD_COUNTS.get(key)
+    families = catalog_families(key)
+    detail_count = catalog_case_families(key).count(FAMILIES[0])
     pages = CATALOG_POOL_PAGES.get(key, 4)
 
     def sample_key(value):
@@ -211,17 +226,17 @@ def freeze(site, excluded, output, *, series=1):
             record(FAMILIES[0], card.item, "What is the asking price in dollars and the city for the listing open in this tab?",
                    [str(card.dollars), city], card, {"detail_sha256": digest, "visible": {"dollars": card.dollars, "city": city}},
                    pin_item=True)
-        if len(specs) == 2:
+        if len(specs) == detail_count:
             break
-    if len(specs) != 2:
-        raise ValueError("Need two evidenced detail cases")
+    if len(specs) != detail_count:
+        raise ValueError(f"Need {detail_count} evidenced detail cases")
 
     phrases = set()
     for card in available:
         terms = re.findall(r"[a-z0-9]+", card.title.casefold())
         phrases.update(word for word in terms if len(word) >= 4)
         phrases.update(" ".join(pair) for pair in zip(terms, terms[1:]) if all(len(w) >= 3 for w in pair))
-    for family in FAMILIES[1:]:
+    for family in families[1:]:
         target_count = len(specs) + 2
         for phrase in sorted(phrases, key=sample_key):
             if phrase not in searched:
@@ -279,7 +294,7 @@ def freeze(site, excluded, output, *, series=1):
     media_record = {"files": manifest, "archive_sha256": fingerprint(archive.read_bytes())}
     protocol = {
         "scope": "independently sampled Classifieds tasks",
-        "sample_key": key, "task_ids": list(ids), "families": list(FAMILIES),
+        "sample_key": key, "task_ids": list(ids), "families": list(families),
         "seed": 0, "max_predictions": 12, "max_model_calls": 8,
         "strategies": ["answer-check", "evidence-cards"],
         "acceptance": {"minimum_successes": 2, "more_successes_than_control": True,

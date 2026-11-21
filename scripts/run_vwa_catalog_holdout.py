@@ -16,7 +16,9 @@ from gui_recover.runner import render_replay, run_episode, write_json
 from gui_recover.screen_text import RapidScreenReader
 from gui_recover.verification import pixel_hash
 from gui_recover.vwa_inputs import CATALOG_SERIES_IDS, LocalReferenceArchive
-from prepare_vwa_catalog_holdout import CATALOG_POOL_PAGES, CITY_WORD_COUNTS, FAMILIES, OWN_INDEX, encoded, fingerprint
+from prepare_vwa_catalog_holdout import (
+    CATALOG_POOL_PAGES, CITY_WORD_COUNTS, FAMILIES, OWN_INDEX, catalog_case_families, catalog_families, encoded, fingerprint,
+)
 from run_visualwebarena_live import VisualWebArenaEnvironment, exact_vwa_success, holdout_profile, probe_instance
 
 
@@ -65,8 +67,10 @@ def load_cohort(directory, digest, homepage):
     if fingerprint(raw) != digest:
         raise ValueError("Cohort digest differs from its registration")
     protocol = json.loads(raw)
-    ids = CATALOG_SERIES_IDS.get(protocol["sample_key"])
-    if ids is None or protocol.get("task_ids") != list(ids) or any(protocol.get(key) != value for key, value in PROFILE.items()):
+    sample_key = protocol["sample_key"]
+    ids = CATALOG_SERIES_IDS.get(sample_key)
+    expected_profile = {**PROFILE, "families": list(catalog_families(sample_key))}
+    if ids is None or protocol.get("task_ids") != list(ids) or any(protocol.get(key) != value for key, value in expected_profile.items()):
         raise ValueError("Unexpected independent evaluation profile")
     if protocol.get("catalog_pages_per_category") != CATALOG_POOL_PAGES.get(protocol["sample_key"]):
         raise ValueError("Unexpected catalog sampling depth")
@@ -80,13 +84,14 @@ def load_cohort(directory, digest, homepage):
             or fingerprint(encoded(evidence)) != protocol["evidence_sha256"]):
         raise ValueError("Independent task definitions or source evidence changed")
     if tuple(case["task_id"] for case in cases) != ids or tuple(row["task_id"] for row in evidence) != ids:
-        raise ValueError("Expected the eight preregistered case IDs")
-    if [row["family"] for row in evidence] != [family for family in FAMILIES for _ in range(2)]:
-        raise ValueError("Expected two cases in each preregistered family")
-    city_word_counts = CITY_WORD_COUNTS.get(protocol["sample_key"])
+        raise ValueError("Expected the preregistered case IDs")
+    if [row["family"] for row in evidence] != catalog_case_families(sample_key):
+        raise ValueError("Unexpected distribution of preregistered task families")
+    city_word_counts = CITY_WORD_COUNTS.get(sample_key)
     if city_word_counts and (
         protocol.get("detail_city_word_counts_capped_at_two") != list(city_word_counts)
-        or tuple(min(len(row["source"]["visible"]["city"].split()), 2) for row in evidence[:2]) != city_word_counts
+        or tuple(min(len(row["source"]["visible"]["city"].split()), 2)
+                 for row in evidence[:len(city_word_counts)]) != city_word_counts
     ):
         raise ValueError("Expected the registered mix of single-word and multiword city names")
     references = LocalReferenceArchive(directory, protocol["reference_files_sha256"], homepage=homepage)

@@ -1,0 +1,41 @@
+{
+  "scope": "Six new Classifieds price-and-city tasks on the pinned site. Each task has one clean and one fixed fault episode per strategy.",
+  "cohort": "gui-recover-catalog-holdout-v5",
+  "checkpoint": "Qwen2.5-VL-7B-Instruct, frozen NF4",
+  "policy_revisions": {
+    "prior": "9e0e980091d7a049d3d5a0e30355d8f00485c3ac",
+    "current": "8fd6cf8c3fa5e04aea9181b8b74e5486f3c6545f"
+  },
+  "policy_files": [
+    "src/gui_recover/answer_evidence.py",
+    "src/gui_recover/listing_facts.py"
+  ],
+  "seed": 0,
+  "max_predictions": 12,
+  "max_model_calls": 8,
+  "faults": {
+    "10501": "change-ocr-price-digit",
+    "10502": "change-ocr-price-digit",
+    "10503": "match-ocr-price-in-confirmation",
+    "10504": "match-ocr-price-in-confirmation",
+    "10505": "match-ocr-price-in-reread",
+    "10506": "match-ocr-price-in-reread"
+  },
+  "acceptance": {
+    "all_six_tasks_pass_native_preflight": true,
+    "all_clean_and_fault_pairs_audited_with_identical_start_frames": true,
+    "all_prior_clean_successes_preserved": true,
+    "clean_wrong_submissions_do_not_increase": true,
+    "more_native_successes_under_faults": true,
+    "fewer_wrong_submissions_under_faults": true,
+    "clean_model_calls_do_not_increase": true
+  },
+  "report": [
+    "native_successes",
+    "wrong_submissions",
+    "abstentions",
+    "model_calls",
+    "localized_ocr_reads",
+    "unexecuted_registered_cases"
+  ]
+}
