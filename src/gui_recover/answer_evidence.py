@@ -13,7 +13,7 @@ from .listing_cards import (
     ranked_photo_request, reference_result_action, reference_result_destination, reference_title_region,
     reference_title_request,
 )
-from .price_discovery import PriceDiscovery, price_request, same_origin
+from .price_discovery import SELFIE_PHOTO_REQUIREMENT, PriceDiscovery, price_request, same_origin
 from .qwen_grounding import ask_observation, native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
 from .ranked_cards import RankedCardEvidence
 from .screen_text import empty_keyword_field, exact_initial_search, from_readable_control, keyword_search, listing_detail
@@ -241,6 +241,18 @@ def answer_signature(answer):
         if amounts:
             return amounts
     return value
+
+
+def parse_selfie_price_confirmation(raw):
+    data = read_reply(raw)
+    if not isinstance(data, dict) or set(data) != {"answer", "selfie_cue"}:
+        raise ActionError("Expected the independently read price and a selfie cue")
+    cue = data["selfie_cue"]
+    if cue not in ("mirror_camera", "arms_length_portrait"):
+        if cue is not None:
+            raise ActionError("Unknown selfie cue")
+        return None
+    return parse_visible_answer(json.dumps({"answer": data["answer"]}), allow_numeric=True)
 
 
 def indexed_text(rows):
@@ -593,7 +605,7 @@ class EvidenceAnswerPolicy:
                 answer, status = address, "evidence_contact_candidate"
         self.last_metrics["provider_format"] = status
         if answer is not None:
-            if self.confirm:
+            if self.confirm or self.price_discovery is not None:
                 self.pending_answer = frame, crop, bounds, answer
                 return None
             return json.dumps(Action("ANSWER", answer).to_dict(), ensure_ascii=False)
@@ -617,7 +629,21 @@ class EvidenceAnswerPolicy:
             "If anything required is missing, return {\"answer\":null}. "
             "Otherwise return one JSON object with one key answer and a short string value."
         )
-        if self.price_discovery is not None:
+        selfie = self.price_discovery is not None and self.price_discovery.request.requires_selfie_cue
+        if selfie:
+            target = self.price_discovery.request.visual_target
+            prompt = (
+                f"Verify that the listing photo in the upper-left overview shows {target}. "
+                f"{SELFIE_PHOTO_REQUIREMENT} "
+                "Read the price independently from the enlargement on the right. "
+                'Return only JSON with keys "answer" and "selfie_cue". Use "mirror_camera" if you can see '
+                'the wearer holding their camera in the mirror, or "arms_length_portrait" for a visible '
+                "arm's-length self-portrait of the wearer. "
+                'If no cue is visible, return {"answer":null,"selfie_cue":null}. '
+                'Otherwise put the transcribed dollar amount as a string in "answer", '
+                "or null if the price is unreadable."
+            )
+        elif self.price_discovery is not None:
             target = self.price_discovery.request.visual_target
             prompt = (
                 f"Check the listing photo in the upper-left overview. It must visibly show {target}. "
@@ -644,7 +670,7 @@ class EvidenceAnswerPolicy:
             previous, position = self.navigation_context
             self.last_metrics.update(evidence_context_sha256=pixel_hash(previous), evidence_context_position=list(position))
         try:
-            answer = parse_visible_answer(raw, allow_numeric=True)
+            answer = parse_selfie_price_confirmation(raw) if selfie else parse_visible_answer(raw, allow_numeric=True)
         except (ValueError, RecursionError):
             return None
         if answer is None:

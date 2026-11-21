@@ -16,6 +16,10 @@ from .verification import pixel_hash
 
 PRICE_DISCOVERY = "price_discovery"
 PRICE_REGION = "price_region"
+SELFIE_PHOTO_REQUIREMENT = (
+    "Look for the wearer photographing themselves in a mirror or an arm's-length self-portrait. "
+    "A close-up of the item or of a hand wearing it does not establish a selfie."
+)
 _REQUEST = re.compile(
     r"^\s*find the (most expensive|cheapest|least expensive) ([^\n]{1,160}?),?\s+"
     r"and tell me how much it costs in dollars[.!?]?\s*$", re.IGNORECASE,
@@ -41,6 +45,10 @@ class PriceRequest:
     @property
     def order_label(self):
         return "higher price first" if self.descending else "lower price first"
+
+    @property
+    def requires_selfie_cue(self):
+        return re.search(r"\bselfie\b", self.visual_target, re.IGNORECASE) is not None
 
 
 def price_request(goal):
@@ -232,10 +240,15 @@ class PriceDiscovery:
         batch = cards[self.offset:self.offset + BATCH_SIZE]
         panel = card_panel([(screen, card) for card in batch])
         example = '{"1":[false,"wooden table"],"2":[true,"person wearing ring"]}'
+        condition = ""
+        if self.request.requires_selfie_cue:
+            condition = f"{SELFIE_PHOTO_REQUIREMENT}\n"
+            example = '{"1":[false,"hand close-up"],"2":[true,"mirror self-portrait"]}'
         if len(batch) == 1:
             example = '{"1":[false,"wooden table"]}'
         reply = actor.ask(actor.prepare_image(panel), (
             f"Visual criterion: {self.request.visual_target}.\n"
+            f"{condition}"
             "Inspect each numbered listing photo. First identify a concrete visual cue in the photo. "
             "Use that cue to decide whether the item visibly matches, recording false for a clearly unrelated photo. "
             f"Return only one JSON object with keys 1 through {len(batch)}. Every entry is "

@@ -12,7 +12,8 @@ from gui_recover.actions import ActionError, parse_action
 from gui_recover.answer_evidence import (
     REFERENCE_CONTACT_REGION, REFERENCE_NAVIGATION, REFERENCE_SEARCH, REFERENCE_SEARCH_ABSTAINED,
     answer_signature, confirmation_image, contact_from_evidence, evidence_answer, native_crop,
-    parse_evidence_location, reference_contact_box, reference_search_action, visible_contact_request,
+    parse_evidence_location, parse_selfie_price_confirmation, reference_contact_box, reference_search_action,
+    visible_contact_request,
 )
 from gui_recover.environment import VisualObservation, frame_key
 from gui_recover.listing_cards import (
@@ -403,8 +404,10 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                 panel = confirmation_image(screen, screen.crop(bounds), bounds, context)
             require(metrics["evidence_bounds"] == bounds and metrics["evidence_panel_sha256"] == pixel_hash(panel),
                     "Confirmation pixels differ from the recorded viewport and crop")
+            selfie = price_scan is not None and price_scan.request.requires_selfie_cue
             try:
-                independent = parse_visible_answer(reply, allow_numeric=True)
+                independent = (parse_selfie_price_confirmation(reply) if selfie
+                               else parse_visible_answer(reply, allow_numeric=True))
             except (ValueError, RecursionError):
                 pass
             else:

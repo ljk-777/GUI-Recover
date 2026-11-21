@@ -178,8 +178,12 @@ def test_policy_localizes_without_submitting_and_reads_only_the_cropped_frame(co
     assert policy.predict(obs, []) == "navigation"
 
 
-@pytest.mark.parametrize("confirmed", ["12", None, "21"])
-def test_ranked_price_reader_transcribes_before_independent_photo_confirmation(confirmed):
+@pytest.mark.parametrize(("confirmed", "cue", "expected"), [
+    ("12", "mirror_camera", True), ("12", "arms_length_portrait", True),
+    (None, None, False), ("12", None, False), ("12", "hand_closeup", False),
+    ("21", "mirror_camera", False),
+])
+def test_ranked_price_reader_transcribes_before_independent_photo_confirmation(confirmed, cue, expected):
     class Actor:
         def prepare_image(self, image):
             return image
@@ -196,7 +200,7 @@ def test_ranked_price_reader_transcribes_before_independent_photo_confirmation(c
     prompts = []
     replies = iter((
         '{"evidence":["12.00 $"],"answer":"12.00"}',
-        json.dumps({"answer": confirmed}),
+        json.dumps({"answer": confirmed, "selfie_cue": cue}),
     ))
     actor = Actor()
     policy = EvidenceAnswerPolicy(actor, confirm=True)
@@ -209,7 +213,7 @@ def test_ranked_price_reader_transcribes_before_independent_photo_confirmation(c
     assert target not in prompts[0]
     answer = policy.predict(obs, [])
     assert target in prompts[1] and "upper-left overview" in prompts[1]
-    if confirmed == "12":
+    if expected:
         assert parse_action(answer) == Action("ANSWER", "12.00")
     else:
         assert answer is None
