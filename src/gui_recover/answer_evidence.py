@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw
 from .actions import Action, ActionError
 from .environment import frame_key
 from .listing_cards import (
-    ReferenceTitleCrop, exact_reference_title_request, ranked_photo_request, reference_result_action, reference_result_destination,
+    ReferenceTitleCrop, exact_reference_title_request, listing_title_heading, ranked_photo_request, reference_result_action, reference_result_destination,
     reference_title_crop, reference_title_open_action, reference_title_region, reference_title_request,
 )
 from .listing_facts import LISTING_FACTS_ABSTAINED, ListingFacts, listing_fact_decision
@@ -397,6 +397,7 @@ class EvidenceAnswerPolicy:
         self.reference_query = None
         self.reference_refined = False
         self.reference_destination = None
+        self.reference_title_frame = None
         self.listing_fact_target = None
         self.checked_frames = set()
         self.pending_crop = None
@@ -420,6 +421,7 @@ class EvidenceAnswerPolicy:
         self.reference_query = None
         self.reference_refined = False
         self.reference_destination = None
+        self.reference_title_frame = None
         self.listing_fact_target = None
         if self.ranked_capture is not None:
             self.ranked_evidence = RankedCardEvidence(self.listing_site)
@@ -535,17 +537,26 @@ class EvidenceAnswerPolicy:
             if handled:
                 return raw
             if exact_title and self.reference_destination is not None and active_url == self.reference_destination:
-                title = reference_title_crop(rows, canvas.size)
-                if title is not None:
-                    crop, bounds = native_crop(observation.screenshot, canvas.size, title.bounds, pad=False)
+                heading = listing_title_heading(rows, canvas.size)
+                recovery = reference_title_crop(rows, canvas.size) if heading is None else None
+                if heading is not None or recovery is not None:
+                    if recovery is None:
+                        box, title = heading
+                        self.reference_title_frame = frame
+                        provider_format = REFERENCE_TITLE_HEADING
+                    else:
+                        box, title = recovery.bounds, recovery
+                        provider_format = REFERENCE_TITLE_CROP
+                    crop, bounds = native_crop(observation.screenshot, canvas.size, box, pad=recovery is None)
                     self.pending_answer = frame, crop, bounds, title
                     self.actor.last_metrics = {
-                        "model_invocations": 0, "provider_output": None, "provider_format": REFERENCE_TITLE_CROP,
+                        "model_invocations": 0, "provider_output": None, "provider_format": provider_format,
                         "evidence_stage": "locate", "evidence_frame": frame, "screen_text": rows,
                         "provider_image_size": list(canvas.size), "evidence_bounds": list(bounds),
-                        "reference_title_missing_number": title.missing_number,
                         "peak_cuda_allocated_bytes": 0,
                     }
+                    if recovery is not None:
+                        self.last_metrics["reference_title_missing_number"] = recovery.missing_number
                     return None
             if self.reference_destination is not None and active_url == self.reference_destination:
                 box = reference_contact_box(observation.goal, rows)
@@ -738,9 +749,8 @@ class EvidenceAnswerPolicy:
     def verify(self, observation, frame, crop, bounds, candidate):
         if isinstance(candidate, ReferenceTitleCrop):
             raw = self.actor.ask(self.actor.prepare_image(crop), (
-                "Read the text in this image from top to bottom. Join wrapped lines with one space. "
-                "Keep every word, number, and punctuation mark. "
-                'Return only JSON with the key "answer". Use {"answer":null} if the text is unreadable.'
+                "Transcribe the full listing heading in this crop. Include every word and number. "
+                'Return only JSON with the key "answer". Use {"answer":null} if any part is unreadable.'
             ))
             answer, status = confirmation_outcome(raw, candidate)
             self.last_metrics.update(evidence_stage="confirm", evidence_frame=frame, evidence_bounds=list(bounds),
@@ -771,6 +781,12 @@ class EvidenceAnswerPolicy:
         )
         if isinstance(candidate, ListingFacts):
             prompt = candidate.confirmation_prompt()
+        elif self.reference_title_frame == frame:
+            prompt = (
+                "Transcribe the opened listing's full heading exactly from the enlarged image on the right. "
+                'Keep every word even if the gallery card was shortened. Return only JSON with the key "answer". '
+                'Use {"answer":null} if any heading text is unreadable.'
+            )
         elif color is not None:
             shades = ", ".join(cover_color_labels(color))
             prompt = (
