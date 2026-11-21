@@ -1,16 +1,34 @@
-# GUI-Recover
+<h1 align="center">GUI-Recover</h1>
 
-**English** · [简体中文](README.zh-CN.md)
+<p align="center"><strong>Detect and recover from visual GUI agent errors</strong></p>
 
-**Fault injection, recovery, and replay for visual GUI agents.**
+<p align="center">
+  <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="#benchmarks">Benchmarks</a> · <a href="#quick-start">CPU quick start</a> ·
+  <a href="https://github.com/ljk-777/GUI-Recover/releases">Releases</a>
+</p>
 
 <a name="demo"></a>
 
 ![Animated comparison of an injected case error. Both policies receive lowercase cristin. The presence check submits it and fails. GUI-Recover restores Cristin and passes.](examples/readme-demo/input-recovery.en.gif)
 
-The MiniWoB++ task asks for `Cristin`. An injected fault changes the input to `cristin`. The presence-only baseline sees text in the field and submits. GUI-Recover compares the rendered letters with the intended input, then replaces the text before submitting. The animation uses cropped screenshots from the recorded pair. [Source frames and decision logs](examples/visual-text-content-pair/provenance.json)
+An injected fault changes `Cristin` to `cristin` in both runs. The baseline submits the corrupted value. GUI-Recover spots the mismatch in the screenshot and restores the target before submission. [Recorded frames and decisions](examples/visual-text-content-pair/provenance.json) · [Reproduce this demo](#reproduce-the-miniwob-gpu-comparison)
 
-[CPU quick start](#quick-start) · [Reproduce the demo](#reproduce-the-miniwob-gpu-comparison) · [Benchmarks](#benchmarks) · [Releases](https://github.com/ljk-777/GUI-Recover/releases)
+<a name="selected-results"></a>
+
+## Benchmarks
+
+### MiniWoB++ input recovery
+
+![MiniWoB++ exact success. Visible input errors: text-presence baseline 0/18 and glyph check 18/18. Native text variants: glyph check 20/24 with 12 rewrites, always rewrite 24/24 with 24 rewrites, active verification 24/24 with 16 rewrites.](examples/readme-demo/benchmark-miniwob.en.png)
+
+Active verification matched the success count of unconditional rewriting with eight fewer rewrites on the native text variants. In the visible-error study, the glyph check left all six clean inputs untouched. [Visible-error protocol and data](docs/VISUAL_TEXT_CONTENT.md#正式结果) · [Native variant protocol and data](docs/TAIL_PROBE_PORTABILITY.md#transfer-to-native-miniwob-task-variants)
+
+### VisualWebArena answer verification
+
+![VisualWebArena fresh Classifieds cohort. Both strategies scored full credit on 0/8 tasks. Wrong submissions occurred on 1/8 tasks with the answer baseline and 0/8 with evidence checking.](examples/readme-demo/benchmark-visualwebarena.en.png)
+
+Each dot represents one task, with up to eight model calls per policy. A filled dot marks the outcome named above its row. The evidence policy missed the fresh cohort's native-success gate. It scored 2/2 in the earlier development replays. [Fresh task scores](https://github.com/ljk-777/GUI-Recover/blob/cdc54ef4525f1ec2338ba0fdb521f167dc409b25/examples/vwa-fresh-heldout-results.json) · [Development scores](https://github.com/ljk-777/GUI-Recover/blob/cdc54ef4525f1ec2338ba0fdb521f167dc409b25/examples/vwa-reference-retrieval-development-results.json)
 
 <a name="安装与本地验收"></a>
 
@@ -45,16 +63,6 @@ To smoke-test the MiniWoB++ execution and trace pipeline, run `bash scripts/demo
 - **Input and action recovery in MiniWoB++.** Inject missed clicks, dropped input, or corrupted text. Compare a baseline with a visual check, a targeted retry, or a reversible probe. Model-backed runs use ShowUI for visual grounding.
 - **Answer verification research in VisualWebArena.** The Classifieds research branch asks Qwen to locate evidence, read a screenshot crop, and verify its answer before submission. The tasks keep native grading. [Research branch protocol](https://github.com/ljk-777/GUI-Recover/blob/cdc54ef4525f1ec2338ba0fdb521f167dc409b25/docs/MULTISTEP_RECOVERY.md)
 - **Auditable comparisons.** Match strategies by task, seed, and budget. Each run saves proposed and executed actions, screenshots, and rewards. To try an offline replay, open `examples/recovered/replay.html` locally after cloning. The CPU auditor can reconstruct supported decisions from recorded files. [More recorded examples](examples/README.md)
-
-<a name="selected-results"></a>
-
-## Benchmarks
-
-| Evaluation | Recorded outcome |
-| --- | --- |
-| MiniWoB++ input corruption across six layouts | The visual check recovered 18/18 visible errors and the presence-only baseline recovered 0/18. The checker rewrote none of the six clean inputs. [Paired outcomes](docs/VISUAL_TEXT_CONTENT.md#正式结果) |
-| Native MiniWoB++ text variants | Active verification scored 24/24, compared with 20/24 for glyph comparison. Unconditional replacement also scored 24/24 and performed eight more rewrites than active verification. [Protocol and trade-offs](docs/TAIL_PROBE_PORTABILITY.md#transfer-to-native-miniwob-task-variants) |
-| VisualWebArena Classifieds research branch | Two development replays scored 2/2 with evidence checking and 0/2 with the baseline. On the fresh eight-task evaluation, both scored 0/8, with zero wrong submissions for evidence checking and one for the baseline. [Development scores](https://github.com/ljk-777/GUI-Recover/blob/cdc54ef4525f1ec2338ba0fdb521f167dc409b25/examples/vwa-reference-retrieval-development-results.json) · [Fresh evaluation](https://github.com/ljk-777/GUI-Recover/blob/cdc54ef4525f1ec2338ba0fdb521f167dc409b25/examples/vwa-fresh-heldout-results.json) |
 
 <a name="gpu-最小恢复演示"></a>
 
