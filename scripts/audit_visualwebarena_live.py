@@ -4,6 +4,7 @@ import argparse
 import json
 from collections import Counter
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from PIL import Image
 
@@ -18,6 +19,7 @@ from gui_recover.listing_cards import (
     RESULT_VIEW_HEIGHT, ranked_photo_request, reference_result_action, reference_result_destination,
     reference_title_region, reference_title_request,
 )
+from gui_recover.price_discovery import PRICE_DISCOVERY, PriceDiscovery, price_request, same_origin
 from gui_recover.qwen_grounding import native_action_after_note, parse_visible_answer, read_reply
 from gui_recover.ranked_cards import RankedCardEvidence
 from gui_recover.runner import INVALID_ACTION_FEEDBACK, aggregate, write_json
@@ -29,7 +31,8 @@ from run_visualwebarena_live import (
     ANSWER_STUDIES, CONFIRM_MODES, EVIDENCE_STUDIES, HOLDOUT_PROTOCOL_SHA256, HOLDOUT_TASK_SET,
     FRESH_HOLDOUT_TASK_SET, INPUT_HOLDOUT_TASK_SET, INPUT_RETRIEVAL_TASK_SET, INPUT_TASK_SETS,
     LINK_MODES, NAVIGATION_CONTEXT_MODES, OCR_MODES, STUDY_MODES, SUPPLEMENTAL_TASK_ID, TASK_SETS,
-    exact_vwa_success, holdout_profile, input_fingerprints, replace_keyword_code, url_origin,
+    PRICE_DEV_TASK_SET, category_search_code, exact_vwa_success, holdout_profile, input_fingerprints,
+    replace_keyword_code, url_origin,
 )
 
 
@@ -97,6 +100,38 @@ def replay_ranked_decision(scan, request, screen, goal, prediction):
     return raw
 
 
+def replay_price_decision(discovery, screen, goal, tabs, prediction):
+    metrics = prediction["metrics"]
+
+    class RecordedActor:
+        last_metrics = {}
+
+        def prepare_image(self, image):
+            return image.resize(tuple(metrics["price_canvas_size"])) if image is screen else image
+
+        def ask(self, _image, _prompt, **_kwargs):
+            require(not self.last_metrics and isinstance(metrics["provider_output"], str),
+                    "Price discovery needs exactly one recorded provider reply")
+            self.last_metrics = {"peak_cuda_allocated_bytes": metrics["peak_cuda_allocated_bytes"]}
+            return metrics["provider_output"]
+
+    def ocr(_screen, size):
+        rows = metrics["price_screen_text"]
+        verify_ocr_rows(rows, size)
+        return rows
+
+    actor = RecordedActor()
+    observation = VisualObservation(goal, screen, tabs=tuple(map(tuple, tabs["tabs"])), active_tab=tabs["active_tab"])
+    raw, box = discovery.decide(observation, actor, ocr, lambda: metrics["price_card_receipt"])
+    require(raw == prediction["raw"], "Price discovery does not reproduce the recorded action")
+    keys = {key for key in metrics if key.startswith("price_") or key in (
+        "model_invocations", "provider_output", "provider_format", "stop_after_evidence", "evidence_stage", "evidence_frame")}
+    require({key: metrics[key] for key in keys} == {key: value for key, value in actor.last_metrics.items()
+                                                   if key != "peak_cuda_allocated_bytes"},
+            "Price discovery differs from the recorded scope, panel, or decision")
+    return box
+
+
 def audit_evidence(directory, predictions, frame_before_prediction, frames, goal, *,
                    confirm=False, click_origins=None, compact_navigation=False, use_screen_text=False,
                    guarded_ocr=False, direct_navigation=False, listing_site=None, use_ranked_cards=False,
@@ -113,6 +148,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
     reference_refined = False
     reference_destination = None
     scan = None
+    price_scan = None
     for prediction in predictions:
         step = prediction["step"]
         index = frame_before_prediction[step]
@@ -129,6 +165,26 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
             stages[metrics["provider_format"]] += 1
             if reconstructed is not None and parse_action(reconstructed).action == "ANSWER":
                 answers.add(step)
+            continue
+        if metrics.get("evidence_stage") == PRICE_DISCOVERY:
+            require(use_ranked_cards and use_screen_text and direct_navigation and tabs and not reference_images
+                    and metrics["evidence_frame"] == frame and pending is None and pending_confirmation is None,
+                    "Price discovery requires a registered visible Classifieds context")
+            if price_scan is None:
+                request = price_request(goal)
+                start = tabs["tabs"][tabs["active_tab"]][1]
+                require(step == 0 and len(tabs["tabs"]) == 1 and request is not None
+                        and same_origin(start, listing_site) and not urlsplit(start).query,
+                        "Price discovery must begin from the task's local Classifieds home page")
+                price_scan = PriceDiscovery(request, listing_site)
+            with Image.open(directory / f"{index:04d}.png") as picture:
+                screen = picture.convert("RGB")
+            box = replay_price_decision(price_scan, screen, goal, tabs, prediction)
+            if box is not None:
+                crop, bounds = native_crop(screen, metrics["price_canvas_size"], box)
+                require(list(bounds) == metrics["evidence_bounds"], "Price evidence crop differs from the visible field")
+                pending = frame, list(bounds), pixel_hash(crop), False
+            stages[metrics["provider_format"]] += 1
             continue
         if pending_links is not None and frame == pending_links[0]:
             stage = "link_confirm"
@@ -416,7 +472,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         reference_region = use_browser_context and use_ranked_cards and provider_format in (
             "evidence_reference_region", REFERENCE_CONTACT_REGION, *REFERENCE_NAVIGATION.values(),
         )
-        ranked = use_ranked_cards and metrics.get("evidence_stage") == "ranked_cards"
+        ranked = use_ranked_cards and metrics.get("evidence_stage") in ("ranked_cards", PRICE_DISCOVERY)
         require(metrics["model_invocations"] in ((0, 1) if ranked else (0 if is_shortcut or reference_region else 1,)),
                 "Unexpected model invocation count for the decision")
         digest = observation["sha256"]
@@ -474,10 +530,16 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         if action["action"] == "SEARCH_REPLACE":
             before = frame_before_prediction[event["step"]]
             require(use_ranked_cards and use_browser_context
-                    and predictions[event["step"]]["metrics"]["provider_format"] == REFERENCE_NAVIGATION["SEARCH_REPLACE"]
+                    and predictions[event["step"]]["metrics"]["provider_format"] in (
+                        REFERENCE_NAVIGATION["SEARCH_REPLACE"], "price_refine")
                     and event["executed_code"] == replace_keyword_code(parse_action(predictions[event["step"]]["raw"]),
                                                                        [events[0], *transitions][before]["size"]),
                     "Search replacement did not execute the recorded keyword action")
+        if action["action"] == "SEARCH_CATEGORY":
+            require(use_ranked_cards and use_browser_context
+                    and predictions[event["step"]]["metrics"]["provider_format"] == "price_search"
+                    and event["executed_code"] == category_search_code(parse_action(predictions[event["step"]]["raw"])),
+                    "Category search differs from the recorded on-screen action")
         if action["action"] == "TAB_FOCUS":
             before = frame_before_prediction[event["step"]]
             target = int(action["value"]) - 1
@@ -706,7 +768,7 @@ def audit(directory):
                                    if entry["source"] == source) for mode in modes}
                 for source in ("official", "independent")
             }
-        if task_set == INPUT_RETRIEVAL_TASK_SET:
+        if task_set in (INPUT_RETRIEVAL_TASK_SET, PRICE_DEV_TASK_SET):
             peak_calls = max(record["counts"]["model_calls"] for records in studies.values() for record in records)
             require(peak_calls <= 8, "Development replay exceeded the model call budget")
             report.update(scope="previously observed development tasks", max_observed_model_calls=peak_calls)

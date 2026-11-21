@@ -13,6 +13,7 @@ from .listing_cards import (
     ranked_photo_request, reference_result_action, reference_result_destination, reference_title_region,
     reference_title_request,
 )
+from .price_discovery import PriceDiscovery, price_request, same_origin
 from .qwen_grounding import ask_observation, native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
 from .ranked_cards import RankedCardEvidence
 from .screen_text import empty_keyword_field, exact_initial_search, from_readable_control, keyword_search, listing_detail
@@ -324,6 +325,7 @@ class EvidenceAnswerPolicy:
         self.ranked_capture = ranked_capture
         self.ranked_evidence = RankedCardEvidence(listing_site) if ranked_capture is not None else None
         self.ranked_request = None
+        self.price_discovery = None
         self.reference_query = None
         self.reference_refined = False
         self.reference_destination = None
@@ -345,6 +347,7 @@ class EvidenceAnswerPolicy:
         self.pending_links = None
         self.navigation_context = None
         self.ranked_request = None
+        self.price_discovery = None
         self.reference_query = None
         self.reference_refined = False
         self.reference_destination = None
@@ -684,6 +687,19 @@ class EvidenceAnswerPolicy:
             self.pending_crop = None
             if frame == pending_frame:
                 return self.read(observation, frame, crop, bounds, publisher_region=publisher_region)
+        if (self.price_discovery is None and not history and self.ranked_capture is not None
+                and len(observation.tabs) == 1 and not observation.reference_images):
+            active = observation.tabs[0][1]
+            request = price_request(observation.goal)
+            if request is not None and same_origin(active, self.listing_site) and not urlsplit(active).query:
+                self.price_discovery = PriceDiscovery(request, self.listing_site)
+        if self.price_discovery is not None:
+            raw, box = self.price_discovery.decide(observation, self.actor, self.screen_reader, self.ranked_capture)
+            if box is not None:
+                crop, bounds = native_crop(observation.screenshot, self.last_metrics["price_canvas_size"], box)
+                self.last_metrics["evidence_bounds"] = list(bounds)
+                self.pending_crop = frame, crop, bounds, False
+            return raw
         key = frame_key(frame, observation.tabs, observation.active_tab)
         if key not in self.checked_frames:
             self.checked_frames.add(key)

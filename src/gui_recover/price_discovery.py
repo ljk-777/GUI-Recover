@@ -1,0 +1,225 @@
+"""Find a candidate for an explicitly price-ranked Classifieds answer."""
+
+import json
+import re
+from dataclasses import dataclass
+from urllib.parse import parse_qs, urlsplit
+
+from .actions import Action
+from .listing_cards import RESULT_VIEW_HEIGHT, card_panel, inspect_card_receipt, listing_range, title_point
+from .qwen_grounding import ask_observation, read_reply
+from .screen_text import empty_keyword_field, listing_detail, replace_keyword_search
+from .verification import pixel_hash
+
+
+PRICE_DISCOVERY = "price_discovery"
+PRICE_REGION = "price_region"
+_REQUEST = re.compile(
+    r"^\s*find the (most expensive|cheapest|least expensive) ([^\n]{1,160}?),?\s+"
+    r"and tell me how much it costs in dollars[.!?]?\s*$", re.IGNORECASE,
+)
+_QUALIFIER = re.compile(r"\s+(?:that|which|whose|with)\s+", re.IGNORECASE)
+_COLORS = {"black", "blue", "brown", "green", "orange", "pink", "purple", "red", "white", "yellow"}
+_CATEGORIES = {
+    "Books": {"book", "books", "textbook", "textbooks"},
+    "Jewelry": {"ring", "rings", "bracelet", "bracelets", "necklace", "necklaces", "earrings"},
+    "Beauty + health": {"wheelchair", "wheelchairs", "walker", "walkers"},
+}
+_DOLLAR_PRICE = re.compile(r"(?:\$\s*[\d,.]+|[\d,.]+\s*\$)")
+
+
+@dataclass(frozen=True)
+class PriceRequest:
+    category: str
+    query: str
+    alternate: str | None
+    descending: bool
+
+    @property
+    def order_label(self):
+        return "higher price first" if self.descending else "lower price first"
+
+
+def price_request(goal):
+    """Parse a supported goal without inspecting catalog labels or grading references."""
+    match = _REQUEST.fullmatch(goal)
+    if match is None:
+        return None
+    nouns = set(re.findall(r"[a-z]+", _QUALIFIER.split(match[2], maxsplit=1)[0].casefold()))
+    categories = [(category, nouns & examples) for category, examples in _CATEGORIES.items() if nouns & examples]
+    if len(categories) != 1 or len(categories[0][1]) != 1 or "or" in nouns:
+        return None
+    category, terms = categories[0]
+    noun = next(iter(terms))
+    qualifier = sorted(nouns & _COLORS)
+    if category == "Books" and len(qualifier) == 1:
+        query, alternate = qualifier[0], noun
+    elif category == "Beauty + health" and "lift" in nouns:
+        query, alternate = "lift", noun
+    else:
+        query, alternate = noun, None
+    return PriceRequest(category, query, alternate, match[1].casefold() == "most expensive")
+
+
+def same_origin(url, site):
+    if url is None or site is None:
+        return False
+    current, registered = urlsplit(url), urlsplit(site)
+    return (current.scheme, current.netloc) == (registered.scheme, registered.netloc)
+
+
+def _point(row, size, *, toward_right=False):
+    left, top, right, bottom = row["bounds"]
+    width, height = size
+    return ((left + (0.75 if toward_right else 0.5) * (right - left)) / width, (top + bottom) / (2 * height))
+
+
+def _unique(rows, predicate):
+    matches = [row for row in rows if predicate(row["text"].casefold())]
+    return matches[0] if len(matches) == 1 else None
+
+
+def price_category_search(request, rows, size):
+    if empty_keyword_field(rows) is None:
+        return None
+    field = _unique(rows, lambda text: text == "select a category")
+    if field is None:
+        return None
+    value = json.dumps({"category": request.category, "query": request.query}, ensure_ascii=False)
+    return Action("SEARCH_CATEGORY", value, _point(field, size))
+
+
+def price_result_scope(rows, request, query, active_url):
+    params = parse_qs(urlsplit(active_url).query)
+    if params.get("page") != ["search"] or params.get("sPattern") != [query] or not params.get("sCategory"):
+        return None
+    prefix = f"classifieds > {request.category.casefold()} > search results: {query.casefold()}"
+    if _unique(rows, lambda text: text == prefix) is None:
+        return None
+    return listing_range(rows)
+
+
+def _price_order(rows, request, active_url):
+    params = parse_qs(urlsplit(active_url).query)
+    return (params.get("sOrder") == ["i_price"]
+            and params.get("iOrderType") == ["desc" if request.descending else "asc"]
+            and _unique(rows, lambda text: text == f"sort by: {request.order_label}") is not None)
+
+
+def _detail_price_box(rows):
+    if not listing_detail(rows):
+        return None
+    published = _unique(rows, lambda text: text.startswith("published date:"))
+    if published is None:
+        return None
+    price = [row["bounds"] for row in rows if _DOLLAR_PRICE.fullmatch(row["text"])
+             and row["bounds"][1] < published["bounds"][1]
+             and row["bounds"][0] > published["bounds"][2]]
+    return price[0] if len(price) == 1 else None
+
+
+def first_ranked_match(reply, count):
+    """Choose a match only after all earlier cards were explicitly rejected."""
+    try:
+        decisions = read_reply(reply)
+    except (ValueError, RecursionError):
+        return None, False
+    if (not isinstance(decisions, list) or len(decisions) != count
+            or any(value is not None and type(value) is not bool for value in decisions)):
+        return None, False
+    for index, value in enumerate(decisions):
+        if value is None:
+            return None, False
+        if value:
+            return index, False
+    return None, True
+
+
+class PriceDiscovery:
+    """Navigate a bounded search and pass a grounded price crop to the ordinary reader."""
+
+    def __init__(self, request, site):
+        self.request = request
+        self.site = site
+        self.query = request.query
+        self.visited = set()
+        self.destination = None
+
+    def decide(self, observation, actor, screen_reader, capture):
+        screen = observation.screenshot
+        frame = pixel_hash(screen)
+        active = observation.tabs[observation.active_tab][1] if observation.tabs else None
+        metrics = {"evidence_stage": PRICE_DISCOVERY, "evidence_frame": frame, "provider_output": None,
+                   "model_invocations": 0, "peak_cuda_allocated_bytes": 0}
+
+        def finish(status, action=None, box=None):
+            if action is not None:
+                key = self.query, status
+                if key in self.visited:
+                    status, action = "price_abstained", None
+                self.visited.add(key)
+            if status == "price_abstained":
+                metrics["stop_after_evidence"] = True
+            metrics["provider_format"] = status
+            if metrics["model_invocations"]:
+                actor.last_metrics.update(metrics)
+            else:
+                actor.last_metrics = metrics
+            return json.dumps(action.to_dict(), ensure_ascii=False) if action is not None else None, box
+
+        if not same_origin(active, self.site):
+            return finish("price_abstained")
+        size = actor.prepare_image(screen).size
+        rows = screen_reader(screen, size)
+        metrics.update(price_screen_text=rows, price_canvas_size=list(size))
+        if self.destination is not None:
+            box = _detail_price_box(rows) if active == self.destination else None
+            if box is None or (self.query, PRICE_REGION) in self.visited:
+                return finish("price_abstained")
+            self.visited.add((self.query, PRICE_REGION))
+            return finish(PRICE_REGION, box=box)
+        search = price_category_search(self.request, rows, size)
+        if search is not None and not self.visited:
+            return finish("price_search", search)
+        scope = price_result_scope(rows, self.request, self.query, active)
+        if scope is None or scope[0] != 1:
+            return finish("price_abstained")
+        if not _price_order(rows, self.request, active):
+            option = _unique(rows, lambda text: text == self.request.order_label)
+            if option is not None:
+                return finish("price_sort", Action("CLICK", position=_point(option, size)))
+            menu = _unique(rows, lambda text: text.startswith("sort by:"))
+            if menu is not None:
+                return finish("price_sort_menu", Action("CLICK", position=_point(menu, size, toward_right=True)))
+            return finish("price_abstained")
+        receipt = capture()
+        metrics["price_card_receipt"] = receipt
+        cards = inspect_card_receipt(receipt, frame, screen.size, self.site)
+        if receipt["scroll_top"] != 0:
+            return finish("price_abstained")
+        if len(cards) != scope[1] or any(card["image"] is None for card in cards):
+            if screen.height < RESULT_VIEW_HEIGHT and receipt["grid"] is not None:
+                return finish("price_expand", Action("LISTING_GRID", position=tuple(receipt["grid"])))
+            return finish("price_abstained")
+        panel = card_panel([(screen, card) for card in cards])
+        reply = ask_observation(actor, actor.prepare_image(panel), (
+            f"Task: {observation.goal}\n"
+            "The numbered cards are in the required price order. Judge whether each pictured listing is "
+            "the requested kind of item and meets every visual condition. Check the photo and title together. "
+            "Reject clearly unrelated items. Use null if the photo does not resolve a condition. "
+            f"Return only a JSON array of exactly {len(cards)} values in card order, each true, false, or null. "
+            "Do not answer the task or give a price."
+        ), observation)
+        metrics.update(model_invocations=1, provider_output=reply, price_panel_pixels=pixel_hash(panel),
+                       peak_cuda_allocated_bytes=actor.last_metrics.get("peak_cuda_allocated_bytes", 0))
+        index, clear_miss = first_ranked_match(reply, len(cards))
+        if index is not None:
+            selected = cards[index]
+            self.destination = selected["destination"]
+            return finish("price_open", Action("CLICK", position=title_point(selected, screen.size)))
+        if clear_miss and self.request.alternate is not None and self.query != self.request.alternate:
+            refinement = replace_keyword_search(self.query, self.request.alternate, rows, size)
+            if refinement is not None:
+                self.query = self.request.alternate
+                return finish("price_refine", refinement)
+        return finish("price_abstained")

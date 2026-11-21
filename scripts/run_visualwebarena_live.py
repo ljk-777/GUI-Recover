@@ -12,7 +12,7 @@ from unittest.mock import patch
 from urllib.parse import urlsplit
 from urllib.request import urlopen
 
-from gui_recover.actions import Action, compile_action, parse_action
+from gui_recover.actions import Action, category_search_terms, compile_action, parse_action
 from gui_recover.answer_evidence import EvidenceAnswerPolicy
 from gui_recover.environment import MiniwobEnvironment
 from gui_recover.listing_cards import capture_listing_cards
@@ -34,8 +34,10 @@ HOLDOUT_PROTOCOL_SHA256 = "df60ebc2e7cb257d63b22a1d6eac4322e5ea53eed75f695850efc
 INPUT_HOLDOUT_TASK_SET = "evidence-cards-input-holdout"
 INPUT_RETRIEVAL_TASK_SET = "evidence-cards-reference-dev"
 FRESH_HOLDOUT_TASK_SET = "evidence-cards-fresh-holdout"
+PRICE_DEV_TASK_SET = "evidence-cards-price-dev"
+FRESH_INPUT_TASK_SETS = (FRESH_HOLDOUT_TASK_SET, PRICE_DEV_TASK_SET)
 STAGED_INPUT_TASK_SETS = (INPUT_HOLDOUT_TASK_SET, FRESH_HOLDOUT_TASK_SET)
-INPUT_TASK_SETS = (*STAGED_INPUT_TASK_SETS, INPUT_RETRIEVAL_TASK_SET)
+INPUT_TASK_SETS = (*STAGED_INPUT_TASK_SETS, INPUT_RETRIEVAL_TASK_SET, PRICE_DEV_TASK_SET)
 INPUT_PROTOCOL_SHA256 = "d97cc17118a061eb822879c109bdd6202431f60a41ad4dc0d1970e45ca2087fe"
 INPUT_MEDIA_SHA256 = "88a7fcad2505d581b266427896265c71367cbc067ed1da461eba127a45b20f58"
 FRESH_PROTOCOL_SHA256 = "c62ac0397ef9a40d718f32194696362691800a95dadf072593a2163aca39e4fe"
@@ -65,6 +67,7 @@ TASK_SETS = {
     INPUT_HOLDOUT_TASK_SET: (36, 102, 136, 137, 138, 140, 142, 233),
     INPUT_RETRIEVAL_TASK_SET: (137, 140),
     FRESH_HOLDOUT_TASK_SET: (37, 82, 84, 85, 96, 99, 122, SUPPLEMENTAL_TASK_ID),
+    PRICE_DEV_TASK_SET: (82, 84, 99),
 }
 STUDY_MODES = {
     "visual": ("none", "feedback"),
@@ -136,7 +139,7 @@ def registered_start_sites(start_url):
 
 
 def input_fingerprints(task_set):
-    if task_set == FRESH_HOLDOUT_TASK_SET:
+    if task_set in FRESH_INPUT_TASK_SETS:
         return FRESH_PROTOCOL_SHA256, FRESH_MEDIA_SHA256
     return INPUT_PROTOCOL_SHA256, INPUT_MEDIA_SHA256
 
@@ -160,7 +163,7 @@ def input_holdout_archive(directory, task_set=INPUT_HOLDOUT_TASK_SET, *, supplem
         raise ValueError("Input holdout protocol differs from the registered cohort")
     protocol = json.loads(protocol_bytes)
     native_table = json.loads(files("visualwebarena").joinpath("test_raw.json").read_text())
-    fresh = task_set == FRESH_HOLDOUT_TASK_SET
+    fresh = task_set in FRESH_INPUT_TASK_SETS
     task_ids = TASK_SETS[FRESH_HOLDOUT_TASK_SET if fresh else INPUT_HOLDOUT_TASK_SET]
     if fresh:
         if (supplemental is None or supplemental.get("task_id") != SUPPLEMENTAL_TASK_ID
@@ -215,6 +218,24 @@ def expand_listing_view():
         expand_listing_view()
     """
     page.set_viewport_size({"width": page.viewport_size["width"], "height": 1800})
+
+
+def search_listing_category(category: str, query: str):
+    """Select an available option in the visible Classifieds search form and submit it.
+
+    Examples:
+        search_listing_category("Books", "purple")
+    """
+    selector = page.locator('select[name="sCategory"]:visible:enabled')
+    keyword = selector.locator("xpath=ancestor::form[1]").locator('input[name="sPattern"]:visible:enabled')
+    selector.select_option(label=category, timeout=2000)
+    keyword.fill(query, timeout=2000)
+    keyword.press("Enter", timeout=2000)
+
+
+def category_search_code(action):
+    category, query = category_search_terms(action.value)
+    return f"search_listing_category({category!r}, {query!r})"
 
 
 def replace_keyword_code(action, size):
@@ -307,7 +328,8 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
         if enable_browser_context:
             subsets.append("tab")
         actions = HighLevelActionSet(subsets=subsets, strict=True, multiaction=True,
-                                     custom_actions=[expand_listing_view] if enable_card_view else None)
+                                     custom_actions=[expand_listing_view, search_listing_category]
+                                     if enable_card_view else None)
         self.env = BrowserEnv(LocalAnswerTask, task_kwargs={"task_id": task_id}, headless=True,
                               action_mapping=actions.to_python_code)
 
@@ -349,6 +371,16 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
             if not field:
                 raise ValueError("Search replacement must point to a visible Classifieds keyword field")
             code = replace_keyword_code(checked, self.obs.screenshot.size)
+        elif checked.action == "SEARCH_CATEGORY":
+            page = self.env.unwrapped.page
+            if (not self.enable_card_view or self.obs is None
+                    or url_origin(page.url) != url_origin(os.environ["VWA_CLASSIFIEDS"])
+                    or not page.evaluate("""([x, y]) =>
+                        document.elementFromPoint(x * innerWidth, y * innerHeight)
+                            ?.matches('select[name="sCategory"]:enabled') ?? false
+                    """, list(checked.position))):
+                raise ValueError("Category search must point to the visible Classifieds selector")
+            code = category_search_code(checked)
         else:
             code = compile_action(checked, *self.obs.screenshot.size)
         return self._step_code(code)
@@ -560,7 +592,7 @@ def main():
         parser.error("The Qwen 7B 4-bit profile requires --actor qwen --device cuda")
     probe_instance()
     supplemental = (json.loads((args.cohort_dir / "supplemental-task.json").read_bytes())
-                    if args.task_set == FRESH_HOLDOUT_TASK_SET else None)
+                    if args.task_set in FRESH_INPUT_TASK_SETS else None)
     reference_archive, input_manifest = (input_holdout_archive(args.cohort_dir, args.task_set, supplemental=supplemental)
                                          if args.task_set in INPUT_TASK_SETS else (None, None))
     if args.task_set == INPUT_HOLDOUT_TASK_SET and args.input_phase != "classifieds":

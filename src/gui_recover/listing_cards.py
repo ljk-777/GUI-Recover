@@ -85,7 +85,11 @@ def visible_result_range(rows, query):
     if (not any(label.endswith(f"search results: {query.casefold()}") for label in labels)
             or not any("sort by:" in label and label.endswith("newly listed") for label in labels)):
         return None
-    ranges = [match for label in labels if (match := _RANGE.search(label))]
+    return listing_range(rows)
+
+
+def listing_range(rows):
+    ranges = [match for row in rows if (match := _RANGE.search(row["text"]))]
     if len(ranges) != 1:
         return None
     first, last, total = (int(value.replace(",", "")) for value in ranges[0].groups())
@@ -145,14 +149,14 @@ def reference_title_request(goal):
     return bool(_TITLE.search(goal))
 
 
-def _title_point(card, size):
+def title_point(card, size):
     left, top, right, bottom = card["title"]
     return ((left + right) / (2 * size[0]), (top + bottom) / (2 * size[1]))
 
 
 def reference_result_destination(receipt, size, action):
     """Bind the selected visible title to its recorded destination."""
-    matches = [card["destination"] for card in receipt["cards"] if _title_point(card, size) == action.position]
+    matches = [card["destination"] for card in receipt["cards"] if title_point(card, size) == action.position]
     return matches[0] if len(matches) == 1 else None
 
 
@@ -185,7 +189,7 @@ def reference_result_action(screen, reference, receipt, site, rows, query, goal,
         return narrow_keyword_search(query, rows, refinement_size) if refinement_size is not None else None
     if len(matches) > 1 and _RECENT.search(goal) is None:
         return None
-    return Action("CLICK", position=_title_point(cards[matches[0]], screen.size))
+    return Action("CLICK", position=title_point(cards[matches[0]], screen.size))
 
 
 def reference_title_region(screen, reference, receipt, site):

@@ -109,13 +109,18 @@ def narrow_keyword_search(query, rows, size):
     words = query.split()
     if len(words) < 2 or re.fullmatch(r"[^\W_]{4,30}", words[0]) is None:
         return None
+    return replace_keyword_search(query, words[0], rows, size)
+
+
+def replace_keyword_search(query, replacement, rows, size):
+    """Replace a verified filled keyword field in the sidebar."""
     labels = {row["text"].casefold() for row in rows}
     fields = [row["bounds"] for row in rows if row["text"].casefold() == query.casefold()]
     if len(fields) != 1 or not {"your search", "apply"} <= labels:
         return None
     left, top, right, bottom = fields[0]
     width, height = size
-    return Action("SEARCH_REPLACE", words[0], ((left + right) / (2 * width), (top + bottom) / (2 * height)))
+    return Action("SEARCH_REPLACE", replacement, ((left + right) / (2 * width), (top + bottom) / (2 * height)))
 
 
 def exact_initial_search(goal, rows, size):
