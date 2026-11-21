@@ -554,6 +554,36 @@
     "resume_with_model_files_unavailable": {
       "reused_episodes": 3,
       "identical_audit": true
+    },
+    "live_gpu_run": {
+      "source_revision": "d022a1ce3df4837994b16e2cc6ac0ff13e0ccc37",
+      "gpu": "NVIDIA GeForce RTX 4090 D",
+      "visible_gpu_memory_mib": 12032,
+      "peak_cuda_allocated_bytes": 7613882880,
+      "native_successes": 3,
+      "task_count": 3,
+      "wrong_submissions": 0,
+      "live_model_calls": 5,
+      "offline_audit_matches": true,
+      "finished_run_resumes_without_model_files": true,
+      "archive_sha256": "907ffbd1086eb8b6724bcf5ca6e3fa45e8a75252684ddcf68bdd12ae2bfac64d"
+    },
+    "partial_browser_resume": {
+      "source_revision": "d022a1ce3df4837994b16e2cc6ac0ff13e0ccc37",
+      "provider": "archived replies",
+      "responses_replayed": 5,
+      "live_model_calls": 0,
+      "recovered_truncated_plan": true,
+      "reused_task_id": 10401,
+      "reused_trajectory_sha256": "018ef237a54c87c8b15c27c484c2db160b06a61cdd8635bad06270eb2a4b1eb5",
+      "resumed_task_ids": [
+        10403,
+        10407
+      ],
+      "native_successes": 3,
+      "task_count": 3,
+      "wrong_submissions": 0,
+      "archive_sha256": "10d4229ad1fccc9db42f257a0ded3846f97d720bee908b86a045f963dcce941a"
     }
   }
 }

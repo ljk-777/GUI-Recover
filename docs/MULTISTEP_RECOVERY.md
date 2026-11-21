@@ -614,9 +614,13 @@ python scripts/run_vwa_catalog_read_faults.py audit "${fault_args[@]}" --out "$f
 
 For a comparison, pass `compare` with the same arguments as `audit` and add `--prior-run` with the earlier fault-run directory. The audit reconstructs each injection from the clean evidence, verifies matching start screenshots and observed frames, and checks the native reward and model-call budget. Both audit commands run on CPU from the saved files.
 
-The run stores a plan, the episode trajectories and screenshots, one injection receipt per task, and an aggregate audit. To resume after interruption, use the same command and output path. The runner audits finished episodes before reusing them and stages new episodes in temporary subdirectories before finalizing them.
+The run stores a plan, the episode trajectories and screenshots, one injection receipt per task, and an aggregate audit. To resume after interruption, use the same command, source revision, and output path. The runner audits finished episodes before reusing them and stages new episodes in temporary subdirectories before finalizing them. If the initial plan write was interrupted, the runner recreates it when the directory contains only its startup files. Only one runner can write to an output directory at a time.
 
 An integration smoke test ran this entry point in native BrowserGym with five archived model replies and passed all three tasks. It exercised fault injection, real browser actions, scoring, and archive writing. A subsequent invocation reused the three finished episodes with the model files unavailable and produced the same audit.
+
+A fresh run of the public command on a 12,032 MiB RTX 4090 D slice passed all three tasks with five Qwen calls and zero wrong submissions. The highest PyTorch allocation recorded by the policy was 7.09 GiB. A separate CPU audit reproduced the native scores and matched the three injected inputs to the earlier comparison. Resuming the completed live run with an empty model directory reproduced its audit.
+
+A second BrowserGym test started with a truncated plan and interrupted execution after task 10401 was finalized. On restart, the first trajectory retained its hash and modification time, and the runner executed only tasks 10403 and 10407. The three tasks passed with five archived replies across the two invocations. This test made zero fresh model calls.
 
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
