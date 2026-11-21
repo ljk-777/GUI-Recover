@@ -536,7 +536,16 @@ During a visual title task, two distinct listings with identical strong matches 
 
 The third cohort excludes 228 previously recorded listing paths. The four reference cases have 25 recorded target-to-candidate comparisons. The smallest distance was 0.194. A fresh download reproduced the comparisons and source hashes.
 
+| Strategy | Native success | Wrong submissions | Model calls |
+| --- | ---: | ---: | ---: |
+| Answer check | 2/8 | 3 | 35 |
+| Evidence cards | 5/8 | 0 | 10 |
+
+All eight cases passed native preflight, all paired resets had identical screenshots, and the replay auditor reproduced all three acceptance checks. The evidence policy passed three of the four reference-photo cases. Its unsuccessful episodes were a shortened city name, a matched item whose breadcrumb was absent from the OCR output, and an automatic spelling correction of a displayed title.
+
 [Third frozen catalog registration](../examples/vwa-catalog-holdout-protocol-003.json)
+
+[Third paired results and archive checksums](../examples/vwa-catalog-holdout-results-003.json)
 
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 

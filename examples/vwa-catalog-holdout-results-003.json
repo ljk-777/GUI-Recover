@@ -1,0 +1,277 @@
+{
+  "scope": "independently sampled Classifieds tasks",
+  "cohort_sha256": "ad6dd9d6a0345385c2869000ebaa12a4aa050a405f1ecddb4934cfaeaa3b29fd",
+  "task_count": 8,
+  "max_model_calls": 8,
+  "strategies": {
+    "answer-check": {
+      "native_successes": 2,
+      "wrong_submissions": 3
+    },
+    "evidence-cards": {
+      "native_successes": 5,
+      "wrong_submissions": 0
+    }
+  },
+  "by_task": {
+    "10301": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "invalid_action",
+          "answers_submitted": 0,
+          "model_calls": 7,
+          "predictions": 7,
+          "screenshots": 5,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": false,
+          "reason": "evidence_abstained",
+          "answers_submitted": 0,
+          "model_calls": 1,
+          "predictions": 2,
+          "screenshots": 1,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1
+          }
+        }
+      },
+      "family": "detail-price-city",
+      "failure_analysis": "The confirmer shortened the displayed two-word city name."
+    },
+    "10302": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "task_failure",
+          "answers_submitted": 1,
+          "model_calls": 2,
+          "predictions": 2,
+          "screenshots": 2,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 2,
+          "screenshots": 2,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1
+          }
+        }
+      },
+      "family": "detail-price-city"
+    },
+    "10303": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 1,
+          "screenshots": 2,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": false,
+          "reason": "invalid_action",
+          "answers_submitted": 0,
+          "model_calls": 3,
+          "predictions": 4,
+          "screenshots": 2,
+          "evidence_stages": {
+            "locate": 2,
+            "reference_title_open": 1
+          }
+        }
+      },
+      "family": "gallery-reference",
+      "failure_analysis": "The policy opened the sampled item. The OCR output lacked its breadcrumb, so the title check never completed."
+    },
+    "10304": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 1,
+          "screenshots": 2,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 3,
+          "screenshots": 3,
+          "evidence_stages": {
+            "locate": 2,
+            "reference_title_open": 1,
+            "reference_title_heading": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          }
+        }
+      },
+      "family": "gallery-reference"
+    },
+    "10305": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "task_failure",
+          "answers_submitted": 1,
+          "model_calls": 7,
+          "predictions": 7,
+          "screenshots": 5,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 4,
+          "screenshots": 4,
+          "evidence_stages": {
+            "locate": 3,
+            "grounded_search": 1,
+            "reference_title_open": 1,
+            "reference_title_heading": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          }
+        }
+      },
+      "family": "search-reference"
+    },
+    "10306": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "invalid_action",
+          "answers_submitted": 0,
+          "model_calls": 5,
+          "predictions": 5,
+          "screenshots": 2,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 4,
+          "screenshots": 4,
+          "evidence_stages": {
+            "locate": 3,
+            "grounded_search": 1,
+            "reference_title_open": 1,
+            "reference_title_heading": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          }
+        }
+      },
+      "family": "search-reference"
+    },
+    "10307": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "task_failure",
+          "answers_submitted": 1,
+          "model_calls": 5,
+          "predictions": 5,
+          "screenshots": 4,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": false,
+          "reason": "evidence_abstained",
+          "answers_submitted": 0,
+          "model_calls": 1,
+          "predictions": 6,
+          "screenshots": 5,
+          "evidence_stages": {
+            "locate": 5,
+            "grounded_search": 1,
+            "search_price_navigation": 3,
+            "listing_facts_region": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          }
+        }
+      },
+      "family": "search-highest-price",
+      "failure_analysis": "The confirmer preserved the price and corrected the spelling of the displayed title. The exact title check withheld submission."
+    },
+    "10308": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "invalid_action",
+          "answers_submitted": 0,
+          "model_calls": 7,
+          "predictions": 7,
+          "screenshots": 3,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 6,
+          "screenshots": 6,
+          "evidence_stages": {
+            "locate": 5,
+            "grounded_search": 1,
+            "search_price_navigation": 3,
+            "listing_facts_region": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          }
+        }
+      },
+      "family": "search-highest-price"
+    }
+  },
+  "pairs_with_identical_reset_pixels": 8,
+  "acceptance_checks": {
+    "at_least_two_native_successes": true,
+    "more_native_successes_than_control": true,
+    "fewer_wrong_submissions_than_control": true
+  },
+  "target_met": true,
+  "model_calls_by_strategy": {
+    "answer-check": 35,
+    "evidence-cards": 10
+  },
+  "reference_photo_screening": {
+    "comparison_count": 25,
+    "minimum_observed_distance": 0.19359737634658813,
+    "minimum_required_distance": 0.105
+  },
+  "source_revision": "ce6fcc0911b42909e3757373e83d6ee9d0ed2575",
+  "cohort_archive_sha256": "dece4d64b93fb2f2850e41a4650c5a5823c7a1c52a77fc9bac3c01e0f08924ef",
+  "archive_sha256": "82a8f9782c02f1f68531f1e48813e7c2507befd1b635d4a80475dc7b035eb6ed"
+}
