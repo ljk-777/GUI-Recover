@@ -495,6 +495,12 @@ python scripts/run_vwa_catalog_holdout.py audit --cohort runs/catalog-cohort --s
 
 [Frozen independent catalog registration](../examples/vwa-catalog-holdout-protocol.json)
 
+The frozen run completed all eight pairs with identical reset screenshots for both arms. Both scored 0/8. Wrong submissions fell from four to one. The evidence policy reached a crop read on three reference-photo tasks and confirmed one shortened gallery title. Both price-and-city detail tasks and both highest-price search tasks exhausted inference without reaching a crop read. The run missed the success thresholds. The CPU auditor reproduced the result from the archived browser traces.
+
+The title repair opens the item selected from its reference photo, checks the full detail heading against the visible breadcrumb, and independently transcribes the heading from a screenshot crop. A separate development replay of the three exposed title cases scored 3/3 with one model call per case. The frozen eight-task result remains recorded above.
+
+[Independent catalog results and archive checksums](../examples/vwa-catalog-holdout-results.json)
+
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)

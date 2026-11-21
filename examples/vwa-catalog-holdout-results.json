@@ -1,0 +1,534 @@
+{
+  "scope": "independently sampled Classifieds tasks",
+  "cohort_sha256": "8d914b4723cb405692846469fa3f955c09b1867a9b7181067818b72499ff8d9f",
+  "task_count": 8,
+  "max_model_calls": 8,
+  "strategies": {
+    "answer-check": {
+      "native_successes": 0,
+      "wrong_submissions": 4
+    },
+    "evidence-cards": {
+      "native_successes": 0,
+      "wrong_submissions": 1
+    }
+  },
+  "by_task": {
+    "10101": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "task_failure",
+          "answers_submitted": 1,
+          "model_calls": 2,
+          "predictions": 2,
+          "screenshots": 2,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": false,
+          "reason": "model_call_limit",
+          "answers_submitted": 0,
+          "model_calls": 8,
+          "predictions": 8,
+          "screenshots": 5,
+          "evidence_stages": {
+            "locate": 4
+          }
+        }
+      },
+      "family": "detail-price-city"
+    },
+    "10102": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "task_failure",
+          "answers_submitted": 1,
+          "model_calls": 2,
+          "predictions": 2,
+          "screenshots": 2,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": false,
+          "reason": "model_call_limit",
+          "answers_submitted": 0,
+          "model_calls": 8,
+          "predictions": 8,
+          "screenshots": 5,
+          "evidence_stages": {
+            "locate": 4
+          }
+        }
+      },
+      "family": "detail-price-city"
+    },
+    "10103": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "task_failure",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 1,
+          "screenshots": 2,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": false,
+          "reason": "model_call_limit",
+          "answers_submitted": 0,
+          "model_calls": 8,
+          "predictions": 9,
+          "screenshots": 6,
+          "evidence_stages": {
+            "locate": 2,
+            "reference_region": 1,
+            "read": 1,
+            "confirm": 1
+          }
+        }
+      },
+      "family": "gallery-reference"
+    },
+    "10104": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "task_failure",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 1,
+          "screenshots": 2,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": false,
+          "reason": "task_failure",
+          "answers_submitted": 1,
+          "model_calls": 2,
+          "predictions": 3,
+          "screenshots": 2,
+          "evidence_stages": {
+            "locate": 1,
+            "reference_region": 1,
+            "read": 1,
+            "confirm": 1
+          }
+        }
+      },
+      "family": "gallery-reference"
+    },
+    "10105": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "invalid_action",
+          "answers_submitted": 0,
+          "model_calls": 7,
+          "predictions": 7,
+          "screenshots": 3,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": false,
+          "reason": "model_call_limit",
+          "answers_submitted": 0,
+          "model_calls": 8,
+          "predictions": 9,
+          "screenshots": 8,
+          "evidence_stages": {
+            "locate": 4,
+            "grounded_search": 1
+          }
+        }
+      },
+      "family": "search-reference"
+    },
+    "10106": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "invalid_action",
+          "answers_submitted": 0,
+          "model_calls": 5,
+          "predictions": 5,
+          "screenshots": 2,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": false,
+          "reason": "model_call_limit",
+          "answers_submitted": 0,
+          "model_calls": 8,
+          "predictions": 10,
+          "screenshots": 8,
+          "evidence_stages": {
+            "locate": 3,
+            "grounded_search": 1,
+            "reference_region": 1,
+            "read": 1
+          }
+        }
+      },
+      "family": "search-reference"
+    },
+    "10107": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "model_call_limit",
+          "answers_submitted": 0,
+          "model_calls": 8,
+          "predictions": 8,
+          "screenshots": 5,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": false,
+          "reason": "model_call_limit",
+          "answers_submitted": 0,
+          "model_calls": 8,
+          "predictions": 9,
+          "screenshots": 8,
+          "evidence_stages": {
+            "locate": 3,
+            "grounded_search": 1
+          }
+        }
+      },
+      "family": "search-highest-price"
+    },
+    "10108": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "invalid_action",
+          "answers_submitted": 0,
+          "model_calls": 8,
+          "predictions": 8,
+          "screenshots": 4,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": false,
+          "reason": "model_call_limit",
+          "answers_submitted": 0,
+          "model_calls": 8,
+          "predictions": 9,
+          "screenshots": 7,
+          "evidence_stages": {
+            "locate": 6,
+            "grounded_search": 1
+          }
+        }
+      },
+      "family": "search-highest-price"
+    }
+  },
+  "pairs_with_identical_reset_pixels": 8,
+  "acceptance_checks": {
+    "at_least_two_native_successes": false,
+    "more_native_successes_than_control": false,
+    "fewer_wrong_submissions_than_control": true
+  },
+  "target_met": false,
+  "model": {
+    "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+    "revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+    "dtype": "bfloat16",
+    "device": "cuda",
+    "min_pixels": 3136,
+    "max_pixels": 614656,
+    "max_new_tokens": 128,
+    "do_sample": false,
+    "coordinate_format": "integer pixels in the resized image",
+    "quantization": "bitsandbytes NF4 double quantization",
+    "asset_provenance": {
+      "repository": "Qwen/Qwen2.5-VL-7B-Instruct",
+      "source": "ModelScope",
+      "weight_revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+      "files": [
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "chat_template.json",
+          "Path": "chat_template.json",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "ad60d90252ed0b0705ba14e2d0ad0fec0beac1ea955642b54059b36052d8bc96",
+          "Size": 1050,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "config.json",
+          "Path": "config.json",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+          "Size": 1374,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Update generation_config.json",
+          "CommittedDate": 1742731506,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "generation_config.json",
+          "Path": "generation_config.json",
+          "Revision": "595c93811c6f7b0cb81c5efdbcb7e6ca19f6566f",
+          "Sha256": "0a3aea82869fe29f20dc95ccf3e2bcff380eca1f5ad6447a4a4b37110b08e43e",
+          "Size": 216,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "merges.txt",
+          "Path": "merges.txt",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3",
+          "Size": 1671839,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": true,
+          "Mode": "33188",
+          "Name": "model-00001-of-00005.safetensors",
+          "Path": "model-00001-of-00005.safetensors",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "e97b877e47fde53a6c6e77aafb36e58e91ee9d95c4a3eeac6f1b5c0e6a1c986e",
+          "Size": 3900233256,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": true,
+          "Mode": "33188",
+          "Name": "model-00002-of-00005.safetensors",
+          "Path": "model-00002-of-00005.safetensors",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "a9a300a43b4724eee2abe7c18ceb26768d0ab011eb0cad19d9bfd2476a24d024",
+          "Size": 3864726320,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": true,
+          "Mode": "33188",
+          "Name": "model-00003-of-00005.safetensors",
+          "Path": "model-00003-of-00005.safetensors",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "111223d173e00bbee81cba1216fad28668df3476706b7fd26f4d5b50f8b3a507",
+          "Size": 3864726424,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": true,
+          "Mode": "33188",
+          "Name": "model-00004-of-00005.safetensors",
+          "Path": "model-00004-of-00005.safetensors",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "ef47f634fa57d46ee134edcc09f34085a47da1e16c12a2abe0d67118be6d72ed",
+          "Size": 3864733680,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": true,
+          "Mode": "33188",
+          "Name": "model-00005-of-00005.safetensors",
+          "Path": "model-00005-of-00005.safetensors",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "0c859795ad3a627a9b95bcb762e059d5b768a4a36fdd4affeff269d93fdecc67",
+          "Size": 1089994880,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "model.safetensors.index.json",
+          "Path": "model.safetensors.index.json",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "73b333b0b16e5286ddba615d2caebcd495cf7e616f52eb217a81781393d79de9",
+          "Size": 57619,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Update preprocessor_config.json",
+          "CommittedDate": 1739621177,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "preprocessor_config.json",
+          "Path": "preprocessor_config.json",
+          "Revision": "78d6bca5309f4e513181315c9ad3e68db4243a73",
+          "Sha256": "f2058c716eef96ccaed1cc1e2d0c08306b62586d535b28d9d08e691b2fab7ca0",
+          "Size": 350,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "tokenizer.json",
+          "Path": "tokenizer.json",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "Size": 7031645,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Update tokenizer_config.json",
+          "CommittedDate": 1743977800,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "tokenizer_config.json",
+          "Path": "tokenizer_config.json",
+          "Revision": "643fa78f70fc5f7c445f6deedf27338629e464ea",
+          "Sha256": "4abd3520120e266da84c0864fee064d1fb10806f02225911a47253dd38dc5f56",
+          "Size": 5702,
+          "Type": "blob"
+        },
+        {
+          "CommitMessage": "Upload folder using huggingface_hub",
+          "CommittedDate": 1737890004,
+          "CommitterName": "ai-modelscope",
+          "InCheck": false,
+          "IsLFS": false,
+          "Mode": "33188",
+          "Name": "vocab.json",
+          "Path": "vocab.json",
+          "Revision": "c03ef5ea2cb88c1aaf8c1231f58dcd8b4a80374f",
+          "Sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+          "Size": 2776833,
+          "Type": "blob"
+        }
+      ]
+    },
+    "native_navigation": true,
+    "compact_navigation_replies": true
+  },
+  "policy_source_revision": "2271db5",
+  "runner_source_revision": "1310127",
+  "catalog_archive_sha256": "f66201c8cf45b53cf97b1ffd11ef0f5d152631ac38a80158d73a113263c2b38c",
+  "run_archive_sha256": "29a9380f131370c83361bf357823002998a75de409a062f1b2d086fe63a3f452",
+  "native_preflight_passes": 8,
+  "screenshots": 71,
+  "failure_diagnosis": {
+    "truncated_title_submission_task": 10104,
+    "detail_price_city_tasks_without_read": [
+      10101,
+      10102
+    ],
+    "highest_price_search_tasks_without_read": [
+      10107,
+      10108
+    ]
+  },
+  "exposed_title_replay": {
+    "scope": "exposed title-case development replay",
+    "task_ids": [
+      "10103",
+      "10104",
+      "10106"
+    ],
+    "by_task": {
+      "10103": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 3,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 2,
+          "reference_title_open": 1,
+          "reference_title_heading": 1,
+          "confirm": 1,
+          "navigation_context": 1
+        }
+      },
+      "10104": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 3,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 2,
+          "reference_title_open": 1,
+          "reference_title_heading": 1,
+          "confirm": 1,
+          "navigation_context": 1
+        }
+      },
+      "10106": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 4,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 3,
+          "grounded_search": 1,
+          "reference_title_open": 1,
+          "reference_title_heading": 1,
+          "confirm": 1,
+          "navigation_context": 1
+        }
+      }
+    },
+    "source_revision": "75c1161",
+    "archive_sha256": "0e2e350a0647d49bb8c779dbd36077e50d75e13047e8ae507a6e15f75a06e51c"
+  }
+}
