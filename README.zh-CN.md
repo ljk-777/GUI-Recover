@@ -46,7 +46,7 @@ gui-recover demo-tail-probe --out runs/tail-demo
 | --- | --- |
 | MiniWoB++ 六个布局的输入出错测试 | 18 个可见错误中，字形核验修复了 18 个，只检查有无文字的基线修复了 0 个。字形核验没有重写 6 个正常输入。 [配对结果](docs/VISUAL_TEXT_CONTENT.md#正式结果) |
 | MiniWoB++ 原生文本任务变体 | 主动核验通过 24/24，字形对照通过 20/24。无条件重写也通过 24/24，比主动核验多重写 8 次。 [实验方案和开销](docs/TAIL_PROBE_PORTABILITY.md#transfer-to-native-miniwob-task-variants) |
-| VisualWebArena Classifieds | 两道开发旧题的证据策略得分为 2/2，基线为 0/2。八道新题上双方均为 0/8，证据策略错误提交 0 次，基线错误提交 1 次。 [开发复跑](examples/vwa-reference-retrieval-development-results.json) · [新题评测](examples/vwa-fresh-heldout-results.json) |
+| VisualWebArena Classifieds | 第四批无注入新题上，证据策略通过 **8/8**，直接作答通过 **2/8**。在三种受控读屏错误下，新版证据策略通过 **3/3**，上一版通过 **0/3**。[审计结果](examples/vwa-catalog-holdout-results-004.json) · [复现故障评测](docs/MULTISTEP_RECOVERY.md#run-and-audit-catalog-read-faults) |
 
 ## 单卡复现 MiniWoB++ 对照
 

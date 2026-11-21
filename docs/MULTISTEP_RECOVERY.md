@@ -582,6 +582,40 @@ The localized breadcrumb read recovered the title with one model call after the 
 
 [Fourth paired results and archive checksums](../examples/vwa-catalog-holdout-results-004.json)
 
+### Run and audit catalog read faults
+
+Start with a sealed catalog directory and its SHA-256, a successful clean evidence run on the planned cases, and the same local Qwen 7B NF4 checkpoint. Use the native Classifieds setup above for browser execution. The [cohort 004 fault plan](../examples/vwa-catalog-read-faults-004.json) registers three cases from the fourth cohort. For another sealed cohort, set its SHA-256 and select case IDs from the matching families in its source evidence. A city truncation requires a multiword city in the original reply.
+
+The fourth cohort's [exclusion list](../examples/vwa-catalog-exclusions-004.json) contains the listing paths used by the sampler. To sample again on the pinned site, run the following command. Use the printed digest in the fault plan and produce a clean run for that seal. The registration includes source page hashes, so a new seal can differ even when the task definitions and reference images match. To audit the archived comparison, use its original sealed directory.
+
+~~~bash
+python scripts/prepare_vwa_catalog_holdout.py --site "$VWA_CLASSIFIEDS" --series 4 \
+  --exclude examples/vwa-catalog-exclusions-004.json --out runs/cohort-rebuilt-004
+~~~
+
+Run these commands from the source checkout with the files from cohort 004. Run the clean comparison first if its trajectories are unavailable.
+
+~~~bash
+cohort_dir=runs/cohort-004
+cohort_digest=6f53c7889915133c6171206695cc851c42a2d99d4cb2b08cfaae0c2504e269bc
+clean_run=runs/catalog-clean-004
+model_dir=models/Qwen2.5-VL-7B-Instruct
+fault_run=runs/catalog-read-faults-004
+catalog_args=(--cohort "$cohort_dir" --sha256 "$cohort_digest")
+fault_args=("${catalog_args[@]}" --fault-plan examples/vwa-catalog-read-faults-004.json
+  --clean-run "$clean_run")
+
+python scripts/run_vwa_catalog_holdout.py run "${catalog_args[@]}" \
+  --model "$model_dir" --out "$clean_run"
+python scripts/run_vwa_catalog_read_faults.py run "${fault_args[@]}" \
+  --model "$model_dir" --out "$fault_run"
+python scripts/run_vwa_catalog_read_faults.py audit "${fault_args[@]}" --out "$fault_run"
+~~~
+
+For a comparison, pass `compare` with the same arguments as `audit` and add `--prior-run` with the earlier fault-run directory. The audit reconstructs each injection from the clean evidence, verifies matching start screenshots and observed frames, and checks the native reward and model-call budget. Both audit commands run on CPU from the saved files.
+
+The run stores a plan, the episode trajectories and screenshots, one injection receipt per task, and an aggregate audit. To resume after interruption, use the same command and output path. The runner audits finished episodes before reusing them and stages new episodes in temporary subdirectories before finalizing them.
+
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)

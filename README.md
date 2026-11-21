@@ -52,7 +52,7 @@ The clean field and the field with a trailing space start with identical pixels.
 | --- | --- |
 | MiniWoB++ input corruption across six layouts | The visual check recovered 18/18 visible errors and the presence-only baseline recovered 0/18. The checker rewrote none of the six clean inputs. [Paired outcomes](docs/VISUAL_TEXT_CONTENT.md#正式结果) |
 | Native MiniWoB++ text variants | Active verification scored 24/24, compared with 20/24 for glyph comparison. Unconditional replacement also scored 24/24 and performed eight more rewrites than active verification. [Protocol and trade-offs](docs/TAIL_PROBE_PORTABILITY.md#transfer-to-native-miniwob-task-variants) |
-| VisualWebArena Classifieds | Two development replays scored 2/2 with evidence checking and 0/2 with the baseline. On the fresh eight-task evaluation, both scored 0/8, with zero wrong submissions for evidence checking and one for the baseline. [Development scores](examples/vwa-reference-retrieval-development-results.json) · [Fresh evaluation](examples/vwa-fresh-heldout-results.json) |
+| VisualWebArena Classifieds | In the fourth catalog cohort, evidence checking passed **8/8** clean tasks and direct answer checking passed **2/8**. Under three controlled read faults the current evidence policy passed **3/3**, and the prior policy passed **0/3**. [Audited results](examples/vwa-catalog-holdout-results-004.json) · [Reproduce the read faults](docs/MULTISTEP_RECOVERY.md#run-and-audit-catalog-read-faults) |
 
 <a name="gpu-最小恢复演示"></a>
 
