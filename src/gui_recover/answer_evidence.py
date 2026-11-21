@@ -10,7 +10,8 @@ from PIL import Image, ImageDraw
 from .actions import Action, ActionError
 from .environment import frame_key
 from .listing_cards import (
-    ReferenceTitleCrop, exact_reference_title_request, listing_title_heading, ranked_photo_request, reference_result_action, reference_result_destination,
+    ReferenceTitleCrop, ambiguous_reference_title, exact_reference_title_request, listing_title_heading, ranked_photo_request,
+    reference_result_action, reference_result_destination,
     reference_title_crop, reference_title_open_action, reference_title_region, reference_title_request,
 )
 from .listing_facts import LISTING_FACTS_ABSTAINED, ListingFacts, listing_fact_decision
@@ -37,6 +38,7 @@ REFERENCE_RESULTS_OPEN = "evidence_reference_results_open"
 REFERENCE_RESULTS_REFINE = "evidence_reference_results_refine"
 REFERENCE_CONTACT_REGION = "evidence_reference_contact_region"
 REFERENCE_TITLE_OPEN = "evidence_reference_title_open"
+REFERENCE_TITLE_AMBIGUOUS = "evidence_reference_title_ambiguous"
 REFERENCE_TITLE_HEADING = "evidence_reference_title_heading"
 REFERENCE_TITLE_CROP = "evidence_reference_title_crop"
 REFERENCE_NAVIGATION = {
@@ -482,6 +484,13 @@ class EvidenceAnswerPolicy:
         if exact_title and self.reference_destination is None:
             receipt = self.ranked_capture()
             screen = observation.screenshot
+            if ambiguous_reference_title(screen, reference, receipt, self.listing_site, observation.goal):
+                self.actor.last_metrics = {
+                    "model_invocations": 0, "provider_output": None, "provider_format": REFERENCE_TITLE_AMBIGUOUS,
+                    "evidence_stage": "locate", "evidence_frame": frame, "reference_card_receipt": receipt,
+                    "peak_cuda_allocated_bytes": 0, "stop_after_evidence": True,
+                }
+                return None
             action = reference_title_open_action(screen, reference, receipt, self.listing_site)
             if action is not None:
                 self.reference_destination = reference_result_destination(receipt, screen.size, action)

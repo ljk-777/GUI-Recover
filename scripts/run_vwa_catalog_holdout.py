@@ -3,12 +3,14 @@
 import argparse
 import json
 import os
+import re
 import tempfile
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from audit_visualwebarena_live import audit_episode
 from gui_recover.answer_evidence import EvidenceAnswerPolicy
+from gui_recover.listing_cards import REFERENCE_PHOTO_CLEAR_DISTANCE
 from gui_recover.qwen_grounding import QwenGroundingPolicy
 from gui_recover.runner import render_replay, run_episode, write_json
 from gui_recover.screen_text import RapidScreenReader
@@ -41,6 +43,23 @@ def registered_url(value, *, search_allowed):
             and query["sShowAs"] == ["gallery"] and len(query["sPattern"]) == 1)
 
 
+def validate_reference_photo_evidence(proof):
+    reference = proof["source"]["reference_photo"]
+    digest = reference["source_sha256"]
+    comparisons = reference["comparisons"]
+    paths = [card["item"] for card in proof["source"]["cards"]]
+    target = proof["listing_path"]
+    if (type(digest) is not str or re.fullmatch(r"[0-9a-f]{64}", digest) is None
+            or len(paths) != len(set(paths)) or target not in paths or len(paths) < 2
+            or [row["item"] for row in comparisons] != [path for path in paths if path != target]
+            or any(type(row["distance"]) not in (int, float)
+                   or not REFERENCE_PHOTO_CLEAR_DISTANCE <= row["distance"] <= 1
+                   or type(row["source_sha256"]) is not str
+                   or re.fullmatch(r"[0-9a-f]{64}", row["source_sha256"]) is None
+                   or row["source_sha256"] == digest for row in comparisons)):
+        raise ValueError("Reference photo screening does not cover distinct photos across the result set")
+
+
 def load_cohort(directory, digest, homepage):
     raw = (directory / "cohort.json").read_bytes()
     if fingerprint(raw) != digest:
@@ -49,6 +68,10 @@ def load_cohort(directory, digest, homepage):
     ids = CATALOG_SERIES_IDS.get(protocol["sample_key"])
     if ids is None or protocol.get("task_ids") != list(ids) or any(protocol.get(key) != value for key, value in PROFILE.items()):
         raise ValueError("Unexpected independent evaluation profile")
+    minimum_photo_distance = protocol.get("minimum_reference_photo_distance")
+    if ((protocol["sample_key"] == "gui-recover-catalog-holdout-v3" or minimum_photo_distance is not None)
+            and minimum_photo_distance != REFERENCE_PHOTO_CLEAR_DISTANCE):
+        raise ValueError("Unexpected reference photo screening threshold")
     cases = json.loads((directory / "tasks.json").read_bytes())
     evidence = json.loads((directory / "source-evidence.json").read_bytes())
     if (fingerprint(encoded(cases)) != protocol["tasks_sha256"]
@@ -83,6 +106,8 @@ def load_cohort(directory, digest, homepage):
                        for value in expected["must_include"])):
             raise ValueError("Unexpected independent case scope or native rules")
         if image:
+            if minimum_photo_distance is not None:
+                validate_reference_photo_evidence(proof)
             used_images.add(image)
     if used_images != set(references.images):
         raise ValueError("Reference archive does not match the registered questions")

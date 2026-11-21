@@ -16,6 +16,8 @@ from .visible_links import link_answer_count, listing_destination
 
 MAX_VISIBLE_CARDS = 12
 RESULT_VIEW_HEIGHT = 1800
+REFERENCE_PHOTO_MATCH = 0.055
+REFERENCE_PHOTO_CLEAR_DISTANCE = 0.105
 _SEARCH = re.compile(r'^\s*search for\s+"([^"\n]{1,80})"\s+and\b', re.IGNORECASE)
 _RECENT = re.compile(r"\b(?:most recent|most recently|newest|latest)\b", re.IGNORECASE)
 _APPEARANCE = re.compile(r"\bthat\s+(?:feature|depict|show)\s+([^.!?]{1,100})[.!?]?\s*$", re.IGNORECASE)
@@ -235,6 +237,20 @@ def reference_result_destination(receipt, size, action):
     return matches[0] if len(matches) == 1 else None
 
 
+def reference_thumbnail_pixels(image, *, stretch=False):
+    rgb = image.convert("RGB")
+    size = (48, 48)
+    if stretch:
+        thumbnail = rgb.resize(size, Image.Resampling.LANCZOS)
+    else:
+        thumbnail = ImageOps.fit(rgb, size, method=Image.Resampling.LANCZOS)
+    return np.asarray(thumbnail, dtype=np.float32) / 255
+
+
+def reference_photo_distance(first, second):
+    return float(np.abs(first - second).mean())
+
+
 def reference_result_action(screen, reference, receipt, site, rows, query, goal, *, refinement_size=None):
     """Expand, inspect or refine a verified first page of visible results."""
     if _EXACT_ITEM.search(goal) is None or _MULTIPLE_ITEMS.search(goal) is not None:
@@ -248,17 +264,16 @@ def reference_result_action(screen, reference, receipt, site, rows, query, goal,
             return Action("LISTING_GRID", position=tuple(receipt["grid"]))
         return None
 
-    def pixels(image):
-        # Classifieds thumbnails can stretch an entire photo to their fixed card aspect ratio.
-        scaled = image.convert("RGB").resize((48, 48), Image.Resampling.LANCZOS)
-        return np.asarray(scaled, dtype=np.float32) / 255
-
-    wanted = pixels(reference)
+    # List thumbnails can stretch an entire photo to their fixed card aspect ratio.
+    wanted = reference_thumbnail_pixels(reference, stretch=True)
     if float(wanted.std()) < 0.04:
         return None
-    distances = [float(np.abs(wanted - pixels(screen.crop(card["image"]))).mean()) for card in cards]
-    matches = [index for index, distance in enumerate(distances) if distance <= 0.055]
-    if any(0.055 < distance < 0.105 for distance in distances):
+    distances = [
+        reference_photo_distance(wanted, reference_thumbnail_pixels(screen.crop(card["image"]), stretch=True))
+        for card in cards
+    ]
+    matches = [index for index, distance in enumerate(distances) if distance <= REFERENCE_PHOTO_MATCH]
+    if any(REFERENCE_PHOTO_MATCH < distance < REFERENCE_PHOTO_CLEAR_DISTANCE for distance in distances):
         return None
     if not matches:
         return narrow_keyword_search(query, rows, refinement_size) if refinement_size is not None else None
@@ -268,24 +283,41 @@ def reference_result_action(screen, reference, receipt, site, rows, query, goal,
 
 
 def _isolated_reference_card(screen, reference, receipt, site):
-    def pixels(image):
-        return np.asarray(ImageOps.fit(image.convert("RGB"), (48, 48), method=Image.Resampling.LANCZOS),
-                          dtype=np.float32) / 255
-
-    wanted = pixels(reference)
+    wanted = reference_thumbnail_pixels(reference)
     if float(wanted.std()) < 0.04:
         return None
     cards = inspect_card_receipt(receipt, pixel_hash(screen), screen.size, site)
-    distances = [(float(np.abs(wanted - pixels(screen.crop(card["image"]))).mean()), index)
+    distances = [(reference_photo_distance(wanted, reference_thumbnail_pixels(screen.crop(card["image"]))), index)
                  for index, card in enumerate(cards) if card["image"] is not None]
     distances.sort()
-    if len(distances) < 2 or distances[0][0] > 0.055 or distances[1][0] - distances[0][0] < 0.05:
+    if len(distances) < 2 or distances[0][0] > REFERENCE_PHOTO_MATCH or distances[1][0] - distances[0][0] < 0.05:
         return None
     return cards[distances[0][1]]
 
 
 def exact_reference_title_request(goal):
     return reference_title_request(goal) and _EXACT_ITEM.search(goal) is not None and _MULTIPLE_ITEMS.search(goal) is None
+
+
+def ambiguous_reference_title(screen, reference, receipt, site, goal):
+    """Detect distinct listings that show the same strongly matching photo pixels."""
+    if not exact_reference_title_request(goal) or _RECENT.search(goal) is not None:
+        return False
+    wanted = reference_thumbnail_pixels(reference, stretch=True)
+    if float(wanted.std()) < 0.04:
+        return False
+    seen = set()
+    for card in inspect_card_receipt(receipt, pixel_hash(screen), screen.size, site):
+        if card["image"] is None:
+            continue
+        crop = screen.crop(card["image"])
+        if reference_photo_distance(wanted, reference_thumbnail_pixels(crop, stretch=True)) > REFERENCE_PHOTO_MATCH:
+            continue
+        signature = pixel_hash(crop)
+        if signature in seen:
+            return True
+        seen.add(signature)
+    return False
 
 
 def reference_title_open_action(screen, reference, receipt, site):

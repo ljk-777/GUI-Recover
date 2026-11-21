@@ -7,6 +7,7 @@ import json
 import re
 import tarfile
 from dataclasses import asdict, dataclass
+from functools import lru_cache
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import urlencode, urljoin, urlsplit
@@ -15,6 +16,7 @@ from urllib.request import HTTPRedirectHandler, build_opener
 from bs4 import BeautifulSoup
 from PIL import Image
 
+from gui_recover.listing_cards import REFERENCE_PHOTO_CLEAR_DISTANCE, reference_photo_distance, reference_thumbnail_pixels
 from gui_recover.vwa_inputs import CATALOG_SERIES_IDS
 
 CATEGORIES = (9, 19, 6)
@@ -110,6 +112,49 @@ class Catalog:
                              location.get_text(" ", strip=True))
         return (match[1], digest) if match is not None else None
 
+    @lru_cache(maxsize=64)
+    def reference_photo(self, path):
+        if path is None:
+            return None
+        try:
+            blob = self.read(path)
+        except HTTPError as error:
+            if error.code != 404:
+                raise
+            return None
+        try:
+            with Image.open(io.BytesIO(blob)) as image:
+                image.thumbnail((800, 800))
+                return image.convert("RGB"), fingerprint(blob)
+        except OSError:
+            return None
+
+
+def reference_photo_evidence(catalog, target, cards):
+    """Compare a proposed reference photo with every other card in its result set."""
+    photo = catalog.reference_photo(target.photo)
+    if photo is None:
+        return None
+    image, digest = photo
+    fitted = reference_thumbnail_pixels(image)
+    stretched = reference_thumbnail_pixels(image, stretch=True)
+    if min(float(fitted.std()), float(stretched.std())) < 0.04:
+        return None
+    comparisons = []
+    for card in cards:
+        if card.item == target.item:
+            continue
+        other = catalog.reference_photo(card.photo)
+        if other is None or other[1] == digest:
+            return None
+        photo, other_digest = other
+        distance = min(reference_photo_distance(fitted, reference_thumbnail_pixels(photo)),
+                       reference_photo_distance(stretched, reference_thumbnail_pixels(photo, stretch=True)))
+        if distance < REFERENCE_PHOTO_CLEAR_DISTANCE:
+            return None
+        comparisons.append({"item": card.item, "source_sha256": other_digest, "distance": distance})
+    return {"source_sha256": digest, "comparisons": comparisons}
+
 
 def task(task_id, goal, start, expected, *, item=None, image=None):
     rule = {"eval_types": (["url_match"] if item else []) + ["string_match"],
@@ -145,11 +190,10 @@ def freeze(site, excluded, output, *, series=1):
         case_id = ids[len(specs)]
         name = f"catalog-references/{case_id}.png" if reference else None
         if name:
-            with Image.open(io.BytesIO(catalog.read(card.photo))) as photo:
-                photo.thumbnail((800, 800))
-                stream = io.BytesIO()
-                photo.convert("RGB").save(stream, format="PNG")
-                media[name] = stream.getvalue()
+            photo, _ = catalog.reference_photo(card.photo)
+            stream = io.BytesIO()
+            photo.save(stream, format="PNG")
+            media[name] = stream.getvalue()
         specs.append(task(case_id, goal, start, expected, item=card.item if pin_item else None, image=name))
         evidence.append({"task_id": case_id, "family": family, "listing_path": card.item, "source": source})
         used.add(card.item)
@@ -195,11 +239,13 @@ def freeze(site, excluded, output, *, series=1):
             else:
                 candidates = [row for row in cards[1:3] if row.item not in used and row.photo
                               and 8 <= len(row.title) <= 40 and SAFE_TITLE.fullmatch(row.title)
-                              and row.title.casefold() != phrase
-                              and sum(other.photo == row.photo for other in cards) == 1]
-                if not candidates:
+                              and row.title.casefold() != phrase]
+                for card in sorted(candidates, key=lambda row: sample_key(row.item)):
+                    photo_evidence = reference_photo_evidence(catalog, card, cards)
+                    if photo_evidence is not None:
+                        break
+                else:
                     continue
-                card = min(candidates, key=lambda row: sample_key(row.item))
                 if family == FAMILIES[1]:
                     start = path
                     goal = "Find the exact item shown in the reference photo. What is its listing title?"
@@ -207,7 +253,8 @@ def freeze(site, excluded, output, *, series=1):
                     start = "/"
                     goal = f'Search for "{phrase}" and find the exact item in the reference photo. What is its listing title?'
                 record(family, start, goal, [card.title], card,
-                       {"search_url": path, "search_sha256": digest, "cards": [asdict(row) for row in cards]},
+                       {"search_url": path, "search_sha256": digest, "cards": [asdict(row) for row in cards],
+                        "reference_photo": photo_evidence},
                        reference=True)
             phrases.remove(phrase)
             if len(specs) == target_count:
@@ -233,6 +280,7 @@ def freeze(site, excluded, output, *, series=1):
                        "fewer_wrong_submissions_than_control": True},
         "tasks_sha256": fingerprint(encoded(specs)), "evidence_sha256": fingerprint(encoded(evidence)),
         "reference_files_sha256": fingerprint(encoded(manifest)),
+        "minimum_reference_photo_distance": REFERENCE_PHOTO_CLEAR_DISTANCE,
         "catalog_pool_sha256": fingerprint(encoded(pool_digests)),
         "exclusion_list_sha256": fingerprint(encoded(sorted(excluded))),
     }
@@ -247,7 +295,7 @@ if __name__ == "__main__":
     parser.add_argument("--site", required=True)
     parser.add_argument("--exclude", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument("--series", type=int, choices=(1, 2), default=1)
+    parser.add_argument("--series", type=int, choices=tuple(range(1, len(CATALOG_SERIES_IDS) + 1)), default=1)
     args = parser.parse_args()
     excluded = set(json.loads(args.exclude.read_text()))
     if any(not isinstance(item, str) or not OWN_INDEX.fullmatch(item) for item in excluded):

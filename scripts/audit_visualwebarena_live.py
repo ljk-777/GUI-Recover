@@ -11,14 +11,14 @@ from PIL import Image
 from gui_recover.actions import ActionError, parse_action
 from gui_recover.answer_evidence import (
     REFERENCE_CONTACT_REGION, REFERENCE_NAVIGATION, REFERENCE_SEARCH, REFERENCE_SEARCH_ABSTAINED,
-    REFERENCE_TITLE_CROP, REFERENCE_TITLE_HEADING, REFERENCE_TITLE_OPEN,
+    REFERENCE_TITLE_AMBIGUOUS, REFERENCE_TITLE_CROP, REFERENCE_TITLE_HEADING, REFERENCE_TITLE_OPEN,
     confirmation_image, confirmation_outcome, contact_from_evidence, evidence_answer, native_crop,
     parse_evidence_location, reference_contact_box, reference_search_action,
     visible_contact_request,
 )
 from gui_recover.environment import VisualObservation, frame_key
 from gui_recover.listing_cards import (
-    RESULT_VIEW_HEIGHT, ReferenceTitleCrop, exact_reference_title_request, listing_title_heading, ranked_photo_request,
+    RESULT_VIEW_HEIGHT, ReferenceTitleCrop, ambiguous_reference_title, exact_reference_title_request, listing_title_heading, ranked_photo_request,
     reference_result_action, reference_result_destination, reference_title_crop, reference_title_open_action,
     reference_title_region, reference_title_request,
 )
@@ -257,16 +257,21 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                         "Compound listing evidence stop disagrees with the reconstructed decision")
                 stages[decision.status.removeprefix("evidence_")] += 1
                 continue
-            if metrics["provider_format"] == REFERENCE_TITLE_OPEN:
+            if metrics["provider_format"] in (REFERENCE_TITLE_OPEN, REFERENCE_TITLE_AMBIGUOUS):
                 require(use_ranked_cards and use_screen_text and exact_reference_title_request(goal)
                         and len(reference_images) == 1 and reference_destination is None and tabs
                         and url_origin(tabs["tabs"][tabs["active_tab"]][1]) == listing_site
-                        and reply is None and raw is not None,
-                        "Opening a reference title requires a single exact item and its registered site")
+                        and reply is None, "Reference title matching requires a reference photo and the registered site")
                 receipt = metrics["reference_card_receipt"]
                 with Image.open(directory / f"{index:04d}.png") as screen:
+                    if metrics["provider_format"] == REFERENCE_TITLE_AMBIGUOUS:
+                        require(raw is None and metrics.get("stop_after_evidence") is True
+                                and ambiguous_reference_title(screen, reference_images[0], receipt, listing_site, goal),
+                                "Title abstention requires duplicate matching photo pixels")
+                        stages["reference_title_ambiguous"] += 1
+                        continue
                     action = reference_title_open_action(screen, reference_images[0], receipt, listing_site)
-                    require(action is not None and parse_action(raw) == action,
+                    require(raw is not None and action is not None and parse_action(raw) == action,
                             "Title navigation differs from the visible photo match")
                     reference_destination = reference_result_destination(receipt, screen.size, action)
                 stages["reference_title_open"] += 1
@@ -576,7 +581,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         is_shortcut = direct_navigation and use_screen_text and provider_format == "evidence_exact_search" and step == 0
         reference_region = use_browser_context and use_ranked_cards and provider_format in (
             "evidence_reference_region", REFERENCE_CONTACT_REGION, REFERENCE_TITLE_OPEN, REFERENCE_TITLE_HEADING,
-            REFERENCE_TITLE_CROP, *REFERENCE_NAVIGATION.values(), *LISTING_FACTS_STAGES,
+            REFERENCE_TITLE_AMBIGUOUS, REFERENCE_TITLE_CROP, *REFERENCE_NAVIGATION.values(), *LISTING_FACTS_STAGES,
         )
         ranked = use_ranked_cards and metrics.get("evidence_stage") in ("ranked_cards", PRICE_DISCOVERY)
         require(metrics["model_invocations"] in ((0, 1) if ranked else (0 if is_shortcut or reference_region else 1,)),

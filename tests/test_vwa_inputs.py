@@ -49,6 +49,35 @@ def test_catalog_title_uses_rendered_whitespace_instead_of_source_spacing(monkey
     assert cards[0].title == "Silver ring size 6"
 
 
+def test_catalog_rejects_a_reference_with_a_reencoded_photo_on_another_card(monkeypatch):
+    pytest.importorskip("bs4")
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1] / "scripts"))
+    from prepare_vwa_catalog_holdout import Card, Catalog, reference_photo_evidence
+    from run_vwa_catalog_holdout import validate_reference_photo_evidence
+
+    image = Image.new("RGB", (100, 64), "navy")
+    ImageDraw.Draw(image).rectangle((18, 10, 77, 51), fill="orange")
+    different = Image.new("RGB", (100, 64), "green")
+    photos = {}
+    for name, picture, encoding in (("ring.png", image, "PNG"), ("alias.jpg", image, "JPEG"),
+                                     ("different.png", different, "PNG")):
+        stream = io.BytesIO()
+        picture.save(stream, format=encoding)
+        photos["/" + name] = stream.getvalue()
+    catalog = Catalog("http://localhost:19980")
+    monkeypatch.setattr(catalog, "read", photos.__getitem__)
+    target, alias, other = [Card(f"/index.php?page=item&id={index}", "Ring", 20, path)
+                            for index, path in enumerate(photos, 1)]
+    assert photos[target.photo] != photos[alias.photo]
+    assert reference_photo_evidence(catalog, target, [target, other, alias]) is None
+    proof = {"listing_path": target.item, "source": {"cards": [{"item": card.item} for card in (target, other)],
+              "reference_photo": reference_photo_evidence(catalog, target, [target, other])}}
+    validate_reference_photo_evidence(proof)
+    proof["source"]["reference_photo"]["comparisons"] = []
+    with pytest.raises(ValueError, match="does not cover"):
+        validate_reference_photo_evidence(proof)
+
+
 def test_exact_archive_resolves_registered_asset_and_rejects_a_missing_reference(tmp_path):
     name = "images/fixture.png"
     data = reference_png()
@@ -250,6 +279,31 @@ def test_reference_result_navigation_requires_complete_scope_and_only_breaks_tie
     assert reference_result_action(screen, reference, receipt, site, rows, "jacket",
                                    "Find the lister of this exact item.") is None
     assert reference_result_action(screen, reference, receipt, site, rows, "boots", latest) is None
+
+
+def test_exact_photo_title_stops_on_duplicate_matching_pixels_without_invoking_the_model():
+    site = "http://localhost:19980"
+    screen = Image.new("RGB", (300, 160), "white")
+    reference = Image.new("RGB", (80, 67), "navy")
+    ImageDraw.Draw(reference).rectangle((13, 8, 48, 37), fill="orange")
+    screen.paste(reference, (5, 20))
+    screen.paste(reference, (105, 20))
+    cards = [
+        {"destination": f"{site}/index.php?page=item&id={index + 1}", "image": [x, 20, x + 80, 87],
+         "title": [x, 90, x + 80, 100]}
+        for index, x in enumerate((5, 105))
+    ]
+    receipt = {"source_pixels": pixel_hash(screen), "scroll_top": 0, "next": None, "grid": None, "cards": cards}
+    goal = "Find the exact item shown in the reference photo. What is its listing title?"
+    observation = VisualObservation(goal, screen, tabs=(("Search", site + "/index.php?page=search"),),
+                                    reference_images=(reference,))
+    actor = SimpleNamespace(prepare_image=lambda image: pytest.fail("No model needed"))
+    policy = EvidenceAnswerPolicy(actor, confirm=True, screen_reader=lambda *_: pytest.fail("No OCR needed"),
+                                  listing_site=site, ranked_capture=lambda: receipt)
+    assert policy.predict(observation, []) is None
+    assert policy.last_metrics["provider_format"] == "evidence_reference_title_ambiguous"
+    assert policy.last_metrics["stop_after_evidence"] is True
+    assert policy.last_metrics["model_invocations"] == 0
 
 
 def test_reference_result_refines_only_a_complete_clear_miss_with_a_visible_keyword_field():
