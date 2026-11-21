@@ -1,0 +1,43 @@
+{
+  "cohort_sha256": "7b5acac02ea6a57b572b71b3bb91129b106446d7663c83a9e6827df702ce8760",
+  "policy_revision": "7a0aacfa8c57fa08627437d0954f7a3d53c8b032",
+  "harness_revision": "82f3472942892340808a4551a56e330a93f7ab5f",
+  "excluded_listing_paths": 198,
+  "registration": {
+    "acceptance": {
+      "fewer_wrong_submissions_than_control": true,
+      "minimum_successes": 2,
+      "more_successes_than_control": true
+    },
+    "catalog_pool_sha256": "42e880b8331d46de10b6591d0b8aeed9e25cf2288001b3652e7e52b70aeaca89",
+    "evidence_sha256": "c575383251d8d241bc4b634427941ebd530377e5f9829934d4a4eaf03ceadcd8",
+    "exclusion_list_sha256": "d3eafefddce2748015806e7bb7dfa8469b616ac97e1b8f588d0ef9a526854705",
+    "families": [
+      "detail-price-city",
+      "gallery-reference",
+      "search-reference",
+      "search-highest-price"
+    ],
+    "max_model_calls": 8,
+    "max_predictions": 12,
+    "reference_files_sha256": "1b34fb82d32b4bcf80d1b2f2ee579659a35c430ce1623306e16e4d8202d98e7a",
+    "sample_key": "gui-recover-catalog-holdout-v2",
+    "scope": "independently sampled Classifieds tasks",
+    "seed": 0,
+    "strategies": [
+      "answer-check",
+      "evidence-cards"
+    ],
+    "task_ids": [
+      10201,
+      10202,
+      10203,
+      10204,
+      10205,
+      10206,
+      10207,
+      10208
+    ],
+    "tasks_sha256": "3f6a3c403c074ee50e50963dfe4b5324ee22ff86755b9805b1678147ea59592c"
+  }
+}
