@@ -192,8 +192,7 @@ def reference_result_action(screen, reference, receipt, site, rows, query, goal,
     return Action("CLICK", position=title_point(cards[matches[0]], screen.size))
 
 
-def reference_title_region(screen, reference, receipt, site):
-    """Localize a title only when the image has a strong, isolated visible match."""
+def _isolated_reference_card(screen, reference, receipt, site):
     def pixels(image):
         return np.asarray(ImageOps.fit(image.convert("RGB"), (48, 48), method=Image.Resampling.LANCZOS),
                           dtype=np.float32) / 255
@@ -207,7 +206,23 @@ def reference_title_region(screen, reference, receipt, site):
     distances.sort()
     if len(distances) < 2 or distances[0][0] > 0.055 or distances[1][0] - distances[0][0] < 0.05:
         return None
-    card = cards[distances[0][1]]
+    return cards[distances[0][1]]
+
+
+def exact_reference_title_request(goal):
+    return reference_title_request(goal) and _EXACT_ITEM.search(goal) is not None and _MULTIPLE_ITEMS.search(goal) is None
+
+
+def reference_title_open_action(screen, reference, receipt, site):
+    card = _isolated_reference_card(screen, reference, receipt, site)
+    return Action("CLICK", position=title_point(card, screen.size)) if card is not None else None
+
+
+def reference_title_region(screen, reference, receipt, site):
+    """Localize a title only when the image has a strong, isolated visible match."""
+    card = _isolated_reference_card(screen, reference, receipt, site)
+    if card is None:
+        return None
     photo, title = card["image"], card["title"]
     # Keep the matched photo alongside its title so the independent reader can confirm identity.
     return (max(0, min(photo[0], title[0]) - 6), max(0, min(photo[1], title[1]) - 6),

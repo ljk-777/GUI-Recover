@@ -6,7 +6,7 @@ from PIL import Image
 from gui_recover.actions import Action, ActionError, parse_action
 from gui_recover.answer_evidence import (EvidenceAnswerPolicy, answer_signature, evidence_answer, evidence_box,
                                          confirmation_image, confirmed_evidence_answer, evidence_clipped,
-                                         evidence_navigation, native_crop, parse_independent_confirmation)
+                                         evidence_navigation, listing_title_heading, native_crop, parse_independent_confirmation)
 from gui_recover.environment import VisualObservation
 from gui_recover.price_discovery import PriceDiscovery, price_request
 from gui_recover.qwen_grounding import QwenGroundingPolicy, normalize_qwen_action, parse_visible_answer
@@ -88,6 +88,19 @@ def test_hardcover_confirmation_requires_a_visible_matching_color_and_rigid_bind
     ) is None
     with pytest.raises(ActionError):
         parse_independent_confirmation('{"answer":"1100.00"}', request)
+
+
+def test_listing_title_requires_all_heading_lines_to_agree_with_the_breadcrumb():
+    rows = [
+        {"text": "Classifieds > Jewelry > Vintage silver stone bracelet", "bounds": [112, 85, 480, 103]},
+        {"text": "Vintage silver stone", "bounds": [107, 115, 480, 161]},
+        {"text": "bracelet", "bounds": [106, 157, 260, 203]},
+        {"text": "100.00 $", "bounds": [777, 124, 890, 157]},
+        {"text": "Published date: 2023/11/16", "bounds": [115, 225, 276, 245]},
+    ]
+    assert listing_title_heading(rows, (1036, 588)) == ((106, 115, 480, 203), "Vintage silver stone bracelet")
+    assert listing_title_heading([rows[0], *rows[2:]], (1036, 588)) is None
+    assert listing_title_heading([dict(rows[0], text="Classifieds > Jewelry > Vintage silver..."), *rows[1:]], (1036, 588)) is None
 
 
 def test_independent_reader_accepts_finite_numeric_json_answers():

@@ -10,8 +10,8 @@ from PIL import Image, ImageDraw
 from .actions import Action, ActionError
 from .environment import frame_key
 from .listing_cards import (
-    ranked_photo_request, reference_result_action, reference_result_destination, reference_title_region,
-    reference_title_request,
+    exact_reference_title_request, ranked_photo_request, reference_result_action, reference_result_destination,
+    reference_title_open_action, reference_title_region, reference_title_request,
 )
 from .price_discovery import SELFIE_PHOTO_REQUIREMENT, PriceDiscovery, cover_color_labels, price_request, same_origin
 from .qwen_grounding import ask_observation, native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
@@ -35,6 +35,8 @@ REFERENCE_RESULTS_EXPAND = "evidence_reference_results_expand"
 REFERENCE_RESULTS_OPEN = "evidence_reference_results_open"
 REFERENCE_RESULTS_REFINE = "evidence_reference_results_refine"
 REFERENCE_CONTACT_REGION = "evidence_reference_contact_region"
+REFERENCE_TITLE_OPEN = "evidence_reference_title_open"
+REFERENCE_TITLE_HEADING = "evidence_reference_title_heading"
 REFERENCE_NAVIGATION = {
     "LISTING_GRID": REFERENCE_RESULTS_EXPAND,
     "CLICK": REFERENCE_RESULTS_OPEN,
@@ -290,6 +292,31 @@ def parse_independent_confirmation(raw, request=None):
     return parse_visible_answer(json.dumps({"answer": data["answer"]}), allow_numeric=True)
 
 
+def listing_title_heading(rows, size):
+    """Use the full detail heading only when it agrees with the visible breadcrumb."""
+    crumbs = [row for row in rows if row["text"].casefold().startswith("classifieds > ")
+              and row["text"].count(" > ") >= 2]
+    dates = [row for row in rows if row["text"].casefold().startswith("published date:")]
+    if len(crumbs) != 1 or len(dates) != 1:
+        return None
+    crumb, date = crumbs[0], dates[0]
+    lines = [
+        row for row in rows
+        if crumb["bounds"][3] <= row["bounds"][1] < row["bounds"][3] <= date["bounds"][1]
+        and abs(row["bounds"][0] - date["bounds"][0]) <= max(8, size[0] // 30)
+    ]
+    lines.sort(key=lambda row: (row["bounds"][1], row["bounds"][0]))
+    heading = " ".join(" ".join(row["text"].split()) for row in lines)
+    title = crumb["text"].rsplit(" > ", 1)[1].strip()
+    if (not 1 <= len(heading) <= 200 or heading.casefold() != " ".join(title.casefold().split())
+            or heading.endswith(("…", "..."))):
+        return None
+    boxes = [row["bounds"] for row in lines]
+    bounds = (min(box[0] for box in boxes), min(box[1] for box in boxes),
+              max(box[2] for box in boxes), max(box[3] for box in boxes))
+    return bounds, heading
+
+
 def indexed_text(rows):
     return "\n".join(f"{index}: {json.dumps(row['text'], ensure_ascii=False)} at {row['bounds']}"
                      for index, row in enumerate(rows))
@@ -376,6 +403,7 @@ class EvidenceAnswerPolicy:
         self.reference_query = None
         self.reference_refined = False
         self.reference_destination = None
+        self.reference_title_frame = None
         self.checked_frames = set()
         self.pending_crop = None
         self.pending_answer = None
@@ -398,6 +426,7 @@ class EvidenceAnswerPolicy:
         self.reference_query = None
         self.reference_refined = False
         self.reference_destination = None
+        self.reference_title_frame = None
         if self.ranked_capture is not None:
             self.ranked_evidence = RankedCardEvidence(self.listing_site)
 
@@ -420,7 +449,20 @@ class EvidenceAnswerPolicy:
             site = urlsplit(self.listing_site)
             if (here.scheme, here.netloc) == (site.scheme, site.netloc):
                 reference = observation.reference_images[0]
-        if reference is not None and reference_title_request(observation.goal):
+        exact_title = reference is not None and self.screen_reader is not None and exact_reference_title_request(observation.goal)
+        if exact_title and self.reference_destination is None:
+            receipt = self.ranked_capture()
+            screen = observation.screenshot
+            action = reference_title_open_action(screen, reference, receipt, self.listing_site)
+            if action is not None:
+                self.reference_destination = reference_result_destination(receipt, screen.size, action)
+                self.actor.last_metrics = {
+                    "model_invocations": 0, "provider_output": None, "provider_format": REFERENCE_TITLE_OPEN,
+                    "evidence_stage": "locate", "evidence_frame": frame, "reference_card_receipt": receipt,
+                    "peak_cuda_allocated_bytes": 0,
+                }
+                return json.dumps(action.to_dict(), ensure_ascii=False)
+        if reference is not None and not exact_title and reference_title_request(observation.goal):
             receipt = self.ranked_capture()
             screen = observation.screenshot
             bounds = reference_title_region(screen, reference, receipt, self.listing_site)
@@ -462,6 +504,20 @@ class EvidenceAnswerPolicy:
         link_count = link_answer_count(observation.goal) if self.listing_preview is not None else None
         if self.screen_reader is not None:
             rows = self.screen_reader(observation.screenshot, canvas.size)
+            if exact_title and self.reference_destination is not None and active_url == self.reference_destination:
+                heading = listing_title_heading(rows, canvas.size)
+                if heading is not None:
+                    box, title = heading
+                    crop, bounds = native_crop(observation.screenshot, canvas.size, box)
+                    self.pending_answer = frame, crop, bounds, title
+                    self.reference_title_frame = frame
+                    self.actor.last_metrics = {
+                        "model_invocations": 0, "provider_output": None, "provider_format": REFERENCE_TITLE_HEADING,
+                        "evidence_stage": "locate", "evidence_frame": frame, "screen_text": rows,
+                        "provider_image_size": list(canvas.size), "evidence_bounds": list(bounds),
+                        "peak_cuda_allocated_bytes": 0,
+                    }
+                    return None
             if self.reference_destination is not None and active_url == self.reference_destination:
                 box = reference_contact_box(observation.goal, rows)
                 if box is not None:
@@ -668,7 +724,13 @@ class EvidenceAnswerPolicy:
             "If anything required is missing, return {\"answer\":null}. "
             "Otherwise return one JSON object with one key answer and a short string value."
         )
-        if color is not None:
+        if self.reference_title_frame == frame:
+            prompt = (
+                "Transcribe the opened listing's full heading exactly from the enlarged image on the right. "
+                'Keep every word even if the gallery card was shortened. Return only JSON with the key "answer". '
+                'Use {"answer":null} if any heading text is unreadable.'
+            )
+        elif color is not None:
             shades = ", ".join(cover_color_labels(color))
             prompt = (
                 "Inspect the current listing photo in the enlarged upper-left overview. Check the color of "

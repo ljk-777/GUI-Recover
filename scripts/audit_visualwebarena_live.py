@@ -11,14 +11,15 @@ from PIL import Image
 from gui_recover.actions import ActionError, parse_action
 from gui_recover.answer_evidence import (
     REFERENCE_CONTACT_REGION, REFERENCE_NAVIGATION, REFERENCE_SEARCH, REFERENCE_SEARCH_ABSTAINED,
-    confirmation_image, confirmed_evidence_answer, contact_from_evidence, evidence_answer, native_crop,
+    REFERENCE_TITLE_HEADING, REFERENCE_TITLE_OPEN,
+    confirmation_image, confirmed_evidence_answer, contact_from_evidence, evidence_answer, listing_title_heading, native_crop,
     parse_evidence_location, parse_independent_confirmation, reference_contact_box, reference_search_action,
     visible_contact_request,
 )
 from gui_recover.environment import VisualObservation, frame_key
 from gui_recover.listing_cards import (
-    RESULT_VIEW_HEIGHT, ranked_photo_request, reference_result_action, reference_result_destination,
-    reference_title_region, reference_title_request,
+    RESULT_VIEW_HEIGHT, exact_reference_title_request, ranked_photo_request, reference_result_action,
+    reference_result_destination, reference_title_open_action, reference_title_region, reference_title_request,
 )
 from gui_recover.price_discovery import PRICE_DISCOVERY, PriceDiscovery, price_request, same_origin
 from gui_recover.qwen_grounding import native_action_after_note, parse_visible_answer, read_reply
@@ -219,6 +220,37 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         if stage == "locate":
             visited.add(key)
             pending = None
+            if metrics["provider_format"] == REFERENCE_TITLE_OPEN:
+                require(use_ranked_cards and use_screen_text and exact_reference_title_request(goal)
+                        and len(reference_images) == 1 and reference_destination is None and tabs
+                        and url_origin(tabs["tabs"][tabs["active_tab"]][1]) == listing_site
+                        and reply is None and raw is not None,
+                        "Opening a reference title requires a single exact item and its registered site")
+                receipt = metrics["reference_card_receipt"]
+                with Image.open(directory / f"{index:04d}.png") as screen:
+                    action = reference_title_open_action(screen, reference_images[0], receipt, listing_site)
+                    require(action is not None and parse_action(raw) == action,
+                            "Title navigation differs from the visible photo match")
+                    reference_destination = reference_result_destination(receipt, screen.size, action)
+                stages["reference_title_open"] += 1
+                continue
+            if metrics["provider_format"] == REFERENCE_TITLE_HEADING:
+                require(use_ranked_cards and use_screen_text and exact_reference_title_request(goal)
+                        and reference_destination is not None and tabs
+                        and tabs["tabs"][tabs["active_tab"]][1] == reference_destination
+                        and raw is None and reply is None,
+                        "Full title evidence requires the matched listing detail")
+                rows, size = metrics["screen_text"], metrics["provider_image_size"]
+                verify_ocr_rows(rows, size)
+                heading = listing_title_heading(rows, size)
+                require(heading is not None, "Full heading no longer matches the visible breadcrumb")
+                box, title = heading
+                with Image.open(directory / f"{index:04d}.png") as screen:
+                    _, bounds = native_crop(screen, size, box)
+                require(list(bounds) == metrics["evidence_bounds"], "Unexpected title heading crop")
+                pending_confirmation = frame, list(bounds), title
+                stages["reference_title_heading"] += 1
+                continue
             if metrics["provider_format"] == "evidence_reference_region":
                 require(use_ranked_cards and reference_title_request(goal) and len(reference_images) == 1
                         and raw is None and reply is None, "Invalid reference-title evidence step")
@@ -483,7 +515,8 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         formats[provider_format] += 1
         is_shortcut = direct_navigation and use_screen_text and provider_format == "evidence_exact_search" and step == 0
         reference_region = use_browser_context and use_ranked_cards and provider_format in (
-            "evidence_reference_region", REFERENCE_CONTACT_REGION, *REFERENCE_NAVIGATION.values(),
+            "evidence_reference_region", REFERENCE_CONTACT_REGION, REFERENCE_TITLE_OPEN, REFERENCE_TITLE_HEADING,
+            *REFERENCE_NAVIGATION.values(),
         )
         ranked = use_ranked_cards and metrics.get("evidence_stage") in ("ranked_cards", PRICE_DISCOVERY)
         require(metrics["model_invocations"] in ((0, 1) if ranked else (0 if is_shortcut or reference_region else 1,)),
