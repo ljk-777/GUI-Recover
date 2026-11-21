@@ -1,0 +1,257 @@
+{
+  "task_set": "evidence-cards-fresh-holdout",
+  "protocol_sha256": "c62ac0397ef9a40d718f32194696362691800a95dadf072593a2163aca39e4fe",
+  "source_commit": "784494c356105137f6d04c6b7f133abed544c5e8",
+  "evidence_archive_sha256": "70bb2c214480e84b9bc1a5eb15bde13f05d02766212f3ac51d81ab812af05f34",
+  "prediction_budget": 8,
+  "max_observed_model_calls": 8,
+  "screenshots": 95,
+  "paired_reset_pixel_differences": {
+    "37": 1
+  },
+  "hardware": "NVIDIA GeForce RTX 4090 D",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct (NF4)",
+  "target_met": false,
+  "acceptance_checks": {
+    "at_least_two_native_successes": false,
+    "more_native_successes_than_control": false,
+    "fewer_wrong_submissions_than_control": true
+  },
+  "native_successes_by_source": {
+    "official": {
+      "answer-check": 0,
+      "evidence-cards": 0
+    },
+    "independent": {
+      "answer-check": 0,
+      "evidence-cards": 0
+    }
+  },
+  "wrong_submissions": {
+    "answer-check": 1,
+    "evidence-cards": 0
+  },
+  "by_task": {
+    "37": {
+      "source": "official",
+      "identical_reset_pixels": false,
+      "initial_tabs": 2,
+      "reference_images": 1,
+      "answer_outcome": {
+        "answer-check": null,
+        "evidence-cards": null
+      },
+      "evidence_calls": {
+        "locate": 5
+      },
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "model_calls": 8,
+          "answers_submitted": 0,
+          "reason": "step_limit"
+        },
+        "evidence-cards": {
+          "success": false,
+          "model_calls": 8,
+          "answers_submitted": 0,
+          "reason": "step_limit"
+        }
+      }
+    },
+    "82": {
+      "source": "official",
+      "identical_reset_pixels": true,
+      "initial_tabs": 1,
+      "reference_images": 0,
+      "answer_outcome": {
+        "answer-check": null,
+        "evidence-cards": null
+      },
+      "evidence_calls": {
+        "locate": 5
+      },
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "model_calls": 8,
+          "answers_submitted": 0,
+          "reason": "step_limit"
+        },
+        "evidence-cards": {
+          "success": false,
+          "model_calls": 8,
+          "answers_submitted": 0,
+          "reason": "step_limit"
+        }
+      }
+    },
+    "84": {
+      "source": "official",
+      "identical_reset_pixels": true,
+      "initial_tabs": 1,
+      "reference_images": 0,
+      "answer_outcome": {
+        "answer-check": null,
+        "evidence-cards": null
+      },
+      "evidence_calls": {
+        "locate": 5
+      },
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "model_calls": 8,
+          "answers_submitted": 0,
+          "reason": "step_limit"
+        },
+        "evidence-cards": {
+          "success": false,
+          "model_calls": 8,
+          "answers_submitted": 0,
+          "reason": "step_limit"
+        }
+      }
+    },
+    "85": {
+      "source": "official",
+      "identical_reset_pixels": true,
+      "initial_tabs": 1,
+      "reference_images": 0,
+      "answer_outcome": {
+        "answer-check": null,
+        "evidence-cards": null
+      },
+      "evidence_calls": {
+        "locate": 3
+      },
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "model_calls": 8,
+          "answers_submitted": 0,
+          "reason": "step_limit"
+        },
+        "evidence-cards": {
+          "success": false,
+          "model_calls": 8,
+          "answers_submitted": 0,
+          "reason": "step_limit"
+        }
+      }
+    },
+    "96": {
+      "source": "official",
+      "identical_reset_pixels": true,
+      "initial_tabs": 1,
+      "reference_images": 1,
+      "answer_outcome": {
+        "answer-check": {
+          "source": "answer-check",
+          "prediction": 1,
+          "native_reward": 0.0
+        },
+        "evidence-cards": null
+      },
+      "evidence_calls": {
+        "locate": 2
+      },
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "model_calls": 1,
+          "answers_submitted": 1,
+          "reason": "task_failure"
+        },
+        "evidence-cards": {
+          "success": false,
+          "model_calls": 8,
+          "answers_submitted": 0,
+          "reason": "step_limit"
+        }
+      }
+    },
+    "99": {
+      "source": "official",
+      "identical_reset_pixels": true,
+      "initial_tabs": 1,
+      "reference_images": 0,
+      "answer_outcome": {
+        "answer-check": null,
+        "evidence-cards": null
+      },
+      "evidence_calls": {
+        "locate": 6
+      },
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "model_calls": 8,
+          "answers_submitted": 0,
+          "reason": "step_limit"
+        },
+        "evidence-cards": {
+          "success": false,
+          "model_calls": 8,
+          "answers_submitted": 0,
+          "reason": "step_limit"
+        }
+      }
+    },
+    "122": {
+      "source": "official",
+      "identical_reset_pixels": true,
+      "initial_tabs": 1,
+      "reference_images": 0,
+      "answer_outcome": {
+        "answer-check": null,
+        "evidence-cards": null
+      },
+      "evidence_calls": {
+        "locate": 4
+      },
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "model_calls": 8,
+          "answers_submitted": 0,
+          "reason": "step_limit"
+        },
+        "evidence-cards": {
+          "success": false,
+          "model_calls": 8,
+          "answers_submitted": 0,
+          "reason": "step_limit"
+        }
+      }
+    },
+    "10001": {
+      "source": "independent",
+      "identical_reset_pixels": true,
+      "initial_tabs": 1,
+      "reference_images": 0,
+      "answer_outcome": {
+        "answer-check": null,
+        "evidence-cards": null
+      },
+      "evidence_calls": {
+        "locate": 5,
+        "grounded_search": 1
+      },
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "model_calls": 8,
+          "answers_submitted": 0,
+          "reason": "step_limit"
+        },
+        "evidence-cards": {
+          "success": false,
+          "model_calls": 7,
+          "answers_submitted": 0,
+          "reason": "step_limit"
+        }
+      }
+    }
+  }
+}
