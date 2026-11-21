@@ -621,5 +621,47 @@
       "local_price_ocr_reads": 0,
       "archive_sha256": "441b8ad17c5dc3da7610ed5dff78ae3070fe81c87d1e3c37a6ffab4ae7c4010d"
     }
+  },
+  "correlated_price_followup": {
+    "fault_plan": "vwa-catalog-correlated-price-faults-004.json",
+    "task_count": 2,
+    "identical_injections": true,
+    "cpu_audit_matches": true,
+    "cpu_crop_ocr_matches": true,
+    "tampered_crop_hash_rejected": true,
+    "tampered_injection_stage_rejected": true,
+    "prior": {
+      "source_revision": "940107de64edd126e04e673f5a5a62cc8ae62739",
+      "native_successes": 0,
+      "wrong_submissions": 2,
+      "abstentions": 0,
+      "live_model_calls": 3,
+      "archive_sha256": "4f4d1369c3fd8ecec9c65cc1a0be51dd9ecf3b7c572184588ed24c5426e028b0"
+    },
+    "current": {
+      "source_revision": "8fd6cf8c3fa5e04aea9181b8b74e5486f3c6545f",
+      "native_successes": 1,
+      "wrong_submissions": 0,
+      "abstentions": 1,
+      "live_model_calls": 4,
+      "recovered_task_id": 10401,
+      "abstained_task_id": 10402,
+      "archive_sha256": "97b10db14abc857489c27a44bdcfcc25fb94ad51a185951c1a08cc4c14ec0efa"
+    },
+    "single_fault_regression": {
+      "source_revision": "8fd6cf8c3fa5e04aea9181b8b74e5486f3c6545f",
+      "native_successes": 2,
+      "wrong_submissions": 0,
+      "live_model_calls": 4,
+      "archive_sha256": "088364216cbd2ecdfd831c7fbadc1f3871eca32554edd615e2bba9a8c8ef0bf1"
+    },
+    "clean_controls": {
+      "source_revision": "8fd6cf8c3fa5e04aea9181b8b74e5486f3c6545f",
+      "native_successes": 2,
+      "wrong_submissions": 0,
+      "live_model_calls": 2,
+      "local_price_checks": 2,
+      "archive_sha256": "de5c956ca4999e32ad5d9d47ed1e98cab8b5f8b4a5d1ac51a6c8f033119369e5"
+    }
   }
 }

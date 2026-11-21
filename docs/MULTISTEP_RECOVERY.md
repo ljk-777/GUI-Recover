@@ -624,7 +624,7 @@ A second BrowserGym test started with a truncated plan and interrupted execution
 
 ### Recover a wrong price from full-page OCR
 
-For a price-and-city question on an open listing, the policy can crop and enlarge the price box if the isolated model reread still disagrees with the original OCR. It accepts the cropped OCR amount only when it agrees with the isolated model read and the city still matches. The CPU auditor reconstructs the crop from the recorded viewport and checks its bounds, pixel hash, and effect on the submitted answer.
+For a price-and-city question on an open listing, this comparison used a policy that cropped and enlarged the price box when the isolated model reread still disagreed with the original OCR. It accepted the cropped OCR amount when it agreed with the isolated model read and the city still matched. The CPU auditor reconstructs the crop from the recorded viewport and checks its bounds, pixel hash, and effect on the submitted answer.
 
 The [price OCR fault plan](../examples/vwa-catalog-price-ocr-faults-004.json) reuses the two price-and-city cases from cohort 004. It edits the leading digit in the first OCR amount while retaining the currency symbol, row bounds, and remaining rows. Use this file as `--fault-plan` in the commands above. Compare runs from revisions `4a1c36a` and `9e0e980` with separate output directories and the original clean run.
 
@@ -636,6 +636,21 @@ The [price OCR fault plan](../examples/vwa-catalog-price-ocr-faults-004.json) re
 The paired runs used fresh Qwen inference and identical injections on both arms. The first amount changed from $25 to $35 and the second from $10 to $20. Local CPU OCR recovered both prices from the archived crops. The aggregate CPU audit reproduced both native scores and rejected a modified crop hash. These two cases measure recovery from one OCR digit error on previously seen tasks.
 
 Fresh clean controls with the new policy also passed both cases. The clean runs made one Qwen call per task and zero local price OCR reads.
+
+### Check agreement on a wrong price
+
+The [correlated price fault plan](../examples/vwa-catalog-correlated-price-faults-004.json) reuses the two price-and-city tasks. It gives the first model confirmation the same wrong amount as full-page OCR on task 10401. On task 10402, it changes the isolated model reread instead. Each intervention keeps the city, price-box bounds, and browser pixels intact. The audit checks both substitutions at their recorded stages.
+
+The guarded policy reads the enlarged price box once during first confirmation. Direct submission requires agreement between the full-page OCR, the model, and the cropped OCR. A disagreement allows the existing isolated model reread, which must agree with the cached crop amount and the city. An unreadable crop ends the episode without submission. Use the same public runner with the correlated fault plan to compare revisions `940107d` and `8fd6cf8`.
+
+| Strategy | Native success | Wrong submissions | Abstentions | Qwen calls |
+| --- | ---: | ---: | ---: | ---: |
+| Prior policy | 0/2 | 2 | 0 | 3 |
+| Guarded policy | 1/2 | 0 | 1 | 4 |
+
+Both runs used fresh Qwen inference and recorded identical substitutions. Task 10401 recovered when the isolated model reread agreed with local OCR. Task 10402 abstained after the injected isolated reread contradicted local OCR. Both single-fault regressions still passed with four Qwen calls total. The CPU auditor reproduced the native results and rejected altered crop hashes and an injection receipt with the wrong stage.
+
+Fresh clean controls passed both tasks with one Qwen call and one local price OCR check each. These experiments reuse the two known tasks and cover the two registered fault timings.
 
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
