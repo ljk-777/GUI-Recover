@@ -9,9 +9,10 @@ from types import SimpleNamespace
 import pytest
 from PIL import Image, ImageDraw
 
-from gui_recover.actions import ActionError, compile_action
+from gui_recover.actions import ActionError, compile_action, parse_action
+from gui_recover.answer_evidence import EvidenceAnswerPolicy, contact_from_evidence, reference_contact_box
 from gui_recover.environment import VisualObservation, frame_key
-from gui_recover.listing_cards import reference_title_region
+from gui_recover.listing_cards import reference_result_action, reference_title_region
 from gui_recover.qwen_grounding import QwenGroundingPolicy, normalize_qwen_action
 from gui_recover.verification import pixel_hash
 from gui_recover.vwa_inputs import LocalReferenceArchive, contextual_observation, reference_name
@@ -174,3 +175,109 @@ def test_registered_start_pages_reveal_sites_missing_from_login_metadata(monkeyp
         live.holdout_backend_origins(manifest)
     monkeypatch.setenv("VWA_REDDIT", "http://localhost:19982")
     assert live.holdout_backend_origins(manifest)["reddit"] == "http://localhost:19982"
+
+
+def test_reference_search_sends_only_reference_to_model_and_grounds_action_on_screen():
+    site = "http://localhost:19980"
+    screen = Image.new("RGB", (200, 100), "blue")
+    reference = Image.new("RGB", (64, 48), "red")
+    rows = [
+        {"text": "Keyword", "bounds": [5, 3, 40, 20]},
+        {"text": "e.g., a blue used car", "bounds": [10, 24, 90, 36]},
+        {"text": "Search", "bounds": [110, 24, 147, 37]},
+    ]
+    observation = VisualObservation("Find this exact item and tell me the price.", screen,
+                                    reference_images=(reference,), tabs=(("Classifieds", site),))
+    actor = SimpleNamespace(prepare_image=lambda image: image, last_metrics={})
+
+    def ask(image, prompt):
+        assert image is reference
+        assert "only image is the task reference" in prompt
+        actor.last_metrics = {"provider_output": '{"query":"red jacket"}', "model_invocations": 1}
+        return actor.last_metrics["provider_output"]
+
+    actor.ask = ask
+    policy = EvidenceAnswerPolicy(actor, confirm=True, screen_reader=lambda image, size: rows,
+                                  listing_site=site, ranked_capture=lambda: None)
+    action = parse_action(policy.predict(observation, []))
+    assert action.action == "SEARCH" and action.value == "red jacket"
+    assert action.position == (50.5 / 200, 30.5 / 100)
+    assert policy.last_metrics["reference_pixels"] == [pixel_hash(reference)]
+    assert policy.last_metrics["evidence_frame"] == pixel_hash(screen)
+    assert "browser_tabs" not in policy.last_metrics
+
+
+def test_reference_result_navigation_requires_complete_scope_and_only_breaks_ties_for_latest():
+    site = "http://localhost:19980"
+    screen = Image.new("RGB", (300, 160), "white")
+    reference = Image.new("RGB", (64, 45), "navy")
+    ImageDraw.Draw(reference).rectangle((13, 8, 48, 37), fill="orange")
+    thumbnail = reference.resize((80, 67))
+    screen.paste(thumbnail, (5, 20))
+    screen.paste(thumbnail, (105, 20))
+    screen.paste(Image.new("RGB", (80, 67), "green"), (205, 20))
+    cards = [
+        {"destination": f"{site}/index.php?page=item&id={index + 1}", "image": [x, 20, x + 80, 87],
+         "title": [x, 90, x + 80, 100]}
+        for index, x in enumerate((5, 105, 205))
+    ]
+    receipt = {"source_pixels": pixel_hash(screen), "scroll_top": 0, "next": None, "grid": [0.9, 0.1],
+               "cards": cards[:2]}
+    rows = [{"text": text} for text in ("Search results: jacket", "Sort by: Newly listed", "1 - 3 of 5 listings")]
+    latest = "Find the most recent lister of this exact item."
+    action = reference_result_action(screen, reference, receipt, site, rows, "jacket", latest)
+    assert action.action == "LISTING_GRID"
+    receipt["cards"] = cards
+    action = reference_result_action(screen, reference, receipt, site, rows, "jacket", latest)
+    assert action.action == "CLICK" and action.position == (45 / 300, 95 / 160)
+    assert reference_result_action(screen, reference, receipt, site, rows, "jacket",
+                                   "Find the lister of this exact item.") is None
+    assert reference_result_action(screen, reference, receipt, site, rows, "boots", latest) is None
+
+
+def test_reference_result_refines_only_a_complete_clear_miss_with_a_visible_keyword_field():
+    site = "http://localhost:19980"
+    screen = Image.new("RGB", (300, 160), "white")
+    reference = Image.new("RGB", (64, 45), "navy")
+    ImageDraw.Draw(reference).rectangle((13, 8, 48, 37), fill="orange")
+    screen.paste(Image.new("RGB", (80, 67), "green"), (205, 20))
+    rows = [{"text": text, "bounds": [10, 10 + index * 15, 100, 20 + index * 15]}
+            for index, text in enumerate(("Search results: brand model type", "Sort by: Newly listed",
+                                          "1 - 1 of 30 listings", "Your search", "brand model type", "Apply"))]
+    receipt = {"source_pixels": pixel_hash(screen), "scroll_top": 0, "next": None, "grid": None,
+               "cards": [{"destination": f"{site}/index.php?page=item&id=1", "title": [205, 90, 285, 100],
+                          "image": [205, 20, 285, 87]}]}
+    goal = "Find the most recent lister of this exact item."
+    args = screen, reference, receipt, site, rows, "brand model type", goal
+    assert reference_result_action(*args) is None
+    action = reference_result_action(*args, refinement_size=screen.size)
+    assert (action.action, action.value, action.position) == ("SEARCH_REPLACE", "brand", (55 / 300, 75 / 160))
+    assert parse_action(json.dumps(action.to_dict())) == action
+    with pytest.raises(ActionError, match="Classifieds adapter"):
+        compile_action(action, *screen.size)
+    rows.pop()
+    assert reference_result_action(*args, refinement_size=screen.size) is None
+
+
+def test_reference_contact_localization_requires_one_aligned_publisher_email():
+    heading = {"text": "Contact publisher", "bounds": [30, 10, 60, 20]}
+    email = {"text": "E-mail: demo@example.com", "bounds": [30, 75, 85, 85]}
+    goal = "Tell me the email of the lister of this exact item."
+    assert reference_contact_box(goal, [heading, email]) == email["bounds"]
+    assert reference_contact_box(goal, [email]) is None
+    assert reference_contact_box(goal, [heading, email, email]) is None
+    assert reference_contact_box(goal, [heading, {**email, "bounds": [2, 75, 25, 85]}]) is None
+    label = {"text": "E-mail:", "bounds": [30, 75, 50, 85]}
+    address = {"text": "demo@example.com", "bounds": [30, 84, 85, 94]}
+    assert reference_contact_box(goal, [heading, label, address]) == [30, 75, 85, 94]
+    assert reference_contact_box(goal, [heading, label, {**address, "bounds": [30, 105, 85, 115]}]) is None
+
+
+def test_contact_candidate_uses_one_labeled_email_only_after_publisher_crop():
+    goal = "Tell me the email of the lister of this exact item."
+    facts = ["Name: Sample Publisher", "E-mail: demo@example.com", "$20"]
+    raw = json.dumps({"answer": "null", "evidence": facts})
+    assert contact_from_evidence(raw, goal) is None
+    assert contact_from_evidence(raw, goal, publisher_region=True) == "demo@example.com"
+    ambiguous = json.dumps({"answer": "null", "evidence": [*facts, "Email: second@example.com"]})
+    assert contact_from_evidence(ambiguous, goal, publisher_region=True) is None

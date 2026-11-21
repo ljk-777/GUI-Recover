@@ -365,4 +365,27 @@ On a synthetic development fixture derived from an already used Classifieds task
 
 [Audited development smoke results](../examples/vwa-input-context-smoke-results.json)
 
+### Replay reference-image retrieval failures
+
+For a task with one reference image, `evidence-cards` can ask Qwen for a short query from the reference alone. The policy grounds the query in the visible keyword field, verifies the rendered query and newest-first ordering, and compares the reference against every visible thumbnail on the first result page. If all comparisons clearly miss, the policy can replace a multiword query with its first term once. Multiple strong matches can be resolved by their visible order when the task explicitly asks for the most recent listing.
+
+On the detail page of the matched listing, the policy locates the visible publisher email field, including an address that wraps onto the next line. The localization supplies a screenshot crop. Qwen reads it, then independently checks the proposed answer against the crop and the context of the listing click. The audit checks the search refinement, selected card, detail URL, crop coordinates, and both model replies.
+
+Use the reference archive prepared above. The development pair needs only a running Classifieds backend. Run both strategies with the registered Qwen 7B NF4 settings and eight predictions per episode.
+
+~~~bash
+python scripts/run_visualwebarena_live.py --actor qwen --qwen-7b-4bit \
+  --model models/Qwen2.5-VL-7B-Instruct --study evidence-cards \
+  --task-set evidence-cards-reference-dev --cohort-dir runs/vwa-input-cohort \
+  --max-steps 8 --out runs/visualwebarena-reference-dev
+python scripts/audit_visualwebarena_live.py runs/visualwebarena-reference-dev \
+  --out runs/visualwebarena-reference-dev-audit.json
+~~~
+
+This command replays previously observed tasks 137 and 140 for development. Keep fresh acceptance tasks separate from this replay.
+
+On an RTX 4090 D, the evidence policy received native full credit on both development tasks with three model calls per episode. The control scored zero on both. Neither strategy submitted a wrong answer. All paired resets started from identical screenshots, and the audit was reproduced from the archived trajectories on CPU.
+
+[Development scores, decision counts and archive checksum](../examples/vwa-reference-retrieval-development-results.json)
+
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
