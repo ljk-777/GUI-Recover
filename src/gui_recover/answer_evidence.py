@@ -25,6 +25,7 @@ _PRICE_QUESTION = re.compile(r"\b(?:cheapest|costliest|expensive|prices?|priced|
 _CONTACT = re.compile(r"\b(?:seller|lister|publisher)\b", re.IGNORECASE)
 _PHOTO = re.compile(r"\b(?:image|photo|picture)\b", re.IGNORECASE)
 _EMAIL_REQUEST = re.compile(r"\be-?mail\b", re.IGNORECASE)
+_EMAIL_FIELD = re.compile(r"^e-?mail\s*:\s*", re.IGNORECASE)
 _EMAIL = re.compile(r"[\w.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 _REFERENCE_QUERY = re.compile(r"[\w .&'-]{1,70}")
 REFERENCE_SEARCH = "evidence_reference_search"
@@ -266,7 +267,7 @@ def reference_contact_box(goal, rows):
     if not (_CONTACT.search(goal) and _EMAIL_REQUEST.search(goal)):
         return None
     headings = [row["bounds"] for row in rows if row["text"].casefold() == "contact publisher"]
-    fields = [row for row in rows if re.match(r"^e-?mail\s*:", row["text"], re.IGNORECASE)]
+    fields = [row for row in rows if _EMAIL_FIELD.match(row["text"])]
     if len(headings) != 1 or len(fields) != 1:
         return None
     heading, field = headings[0], fields[0]
@@ -284,11 +285,21 @@ def reference_contact_box(goal, rows):
     return [min(left, address[0]), top, max(right, address[2]), max(bottom, address[3])]
 
 
-def contact_from_evidence(raw, goal):
+def contact_from_evidence(raw, goal, *, publisher_region=False):
     """Recover one literal contact fact from a validated evidence reply."""
     if not (_CONTACT.search(goal) and _EMAIL_REQUEST.search(goal)):
         return None
     data = read_reply(raw)
+    if publisher_region and (data["answer"] is None or data["answer"].strip().casefold() == "null"):
+        addresses = set()
+        for fact in data["evidence"]:
+            label = _EMAIL_FIELD.match(fact.strip())
+            if label is not None:
+                address = fact.strip()[label.end():]
+                if _EMAIL.fullmatch(address):
+                    addresses.add(address)
+        if len(addresses) == 1:
+            return addresses.pop()
     if data["answer"] is not None or len(data["evidence"]) != 1:
         return None
     address = data["evidence"][0].strip()
@@ -364,7 +375,7 @@ class EvidenceAnswerPolicy:
             screen = observation.screenshot
             bounds = reference_title_region(screen, reference, receipt, self.listing_site)
             if bounds is not None:
-                self.pending_crop = frame, screen.crop(bounds), bounds
+                self.pending_crop = frame, screen.crop(bounds), bounds, False
                 self.actor.last_metrics = {
                     "model_invocations": 0, "provider_output": None, "provider_format": "evidence_reference_region",
                     "evidence_stage": "locate", "evidence_frame": frame, "evidence_bounds": list(bounds),
@@ -405,7 +416,7 @@ class EvidenceAnswerPolicy:
                 box = reference_contact_box(observation.goal, rows)
                 if box is not None:
                     crop, bounds = native_crop(observation.screenshot, canvas.size, box)
-                    self.pending_crop = frame, crop, bounds
+                    self.pending_crop = frame, crop, bounds, True
                     self.actor.last_metrics = {
                         "model_invocations": 0, "provider_output": None, "provider_format": REFERENCE_CONTACT_REGION,
                         "evidence_stage": "locate", "evidence_frame": frame, "screen_text": rows,
@@ -541,10 +552,10 @@ class EvidenceAnswerPolicy:
             if candidate is not None:
                 self.pending_answer = frame, crop, bounds, candidate
             else:
-                self.pending_crop = frame, crop, bounds
+                self.pending_crop = frame, crop, bounds, False
         return None
 
-    def read(self, observation, frame, crop, bounds):
+    def read(self, observation, frame, crop, bounds, *, publisher_region=False):
         canvas = self.actor.prepare_image(crop)
         visibility_check = ("If the requested details cannot be read, use null for answer. "
                             "A separate visual check will confirm that this is the correct item. "
@@ -567,7 +578,7 @@ class EvidenceAnswerPolicy:
         except (ValueError, RecursionError):
             return None
         if status == "evidence_abstained" and self.ranked_capture is not None and self.navigation_context is not None:
-            address = contact_from_evidence(raw, observation.goal)
+            address = contact_from_evidence(raw, observation.goal, publisher_region=publisher_region)
             if address is not None:
                 answer, status = address, "evidence_contact_candidate"
         self.last_metrics["provider_format"] = status
@@ -669,10 +680,10 @@ class EvidenceAnswerPolicy:
             if frame == pending_frame:
                 return self.verify(observation, frame, crop, bounds, candidate)
         if self.pending_crop is not None:
-            pending_frame, crop, bounds = self.pending_crop
+            pending_frame, crop, bounds, publisher_region = self.pending_crop
             self.pending_crop = None
             if frame == pending_frame:
-                return self.read(observation, frame, crop, bounds)
+                return self.read(observation, frame, crop, bounds, publisher_region=publisher_region)
         key = frame_key(frame, observation.tabs, observation.active_tab)
         if key not in self.checked_frames:
             self.checked_frames.add(key)

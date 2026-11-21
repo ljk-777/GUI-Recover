@@ -169,7 +169,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                     bounds = reference_title_region(screen, reference_images[0], metrics["reference_card_receipt"], listing_site)
                     require(bounds is not None and list(bounds) == metrics["evidence_bounds"],
                             "Reference crop differs from the visible image match")
-                    pending = frame, list(bounds), pixel_hash(screen.crop(bounds))
+                    pending = frame, list(bounds), pixel_hash(screen.crop(bounds)), False
                 stages["reference_region"] += 1
                 continue
             if metrics["provider_format"] in (REFERENCE_SEARCH, REFERENCE_SEARCH_ABSTAINED):
@@ -204,7 +204,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                 with Image.open(directory / f"{index:04d}.png") as screen:
                     crop, bounds = native_crop(screen, size, box)
                     require(list(bounds) == metrics["evidence_bounds"], "Contact crop differs from the visible email row")
-                    pending = frame, list(bounds), pixel_hash(crop)
+                    pending = frame, list(bounds), pixel_hash(crop), True
                 stages["reference_contact_region"] += 1
                 continue
             if metrics["provider_format"] in REFERENCE_NAVIGATION.values():
@@ -288,9 +288,9 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                         if candidate is not None:
                             pending_confirmation = frame, list(bounds), candidate
                         else:
-                            pending = frame, list(bounds), pixel_hash(crop)
+                            pending = frame, list(bounds), pixel_hash(crop), False
         elif stage == "read":
-            _, bounds, crop_digest = pending
+            _, bounds, crop_digest, publisher_region = pending
             pending = None
             require(metrics["evidence_bounds"] == bounds and metrics["evidence_crop_sha256"] == crop_digest,
                     "Evidence-read pixels differ from the recorded screenshot crop")
@@ -301,7 +301,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                 pass
             if (status == "evidence_abstained" and use_ranked_cards and click_origins is not None
                     and click_origins.get(index) is not None):
-                address = contact_from_evidence(reply, goal)
+                address = contact_from_evidence(reply, goal, publisher_region=publisher_region)
                 if address is not None:
                     candidate, status = address, "evidence_contact_candidate"
             if candidate is None:

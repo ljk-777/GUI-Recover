@@ -10,7 +10,7 @@ import pytest
 from PIL import Image, ImageDraw
 
 from gui_recover.actions import ActionError, compile_action, parse_action
-from gui_recover.answer_evidence import EvidenceAnswerPolicy, reference_contact_box
+from gui_recover.answer_evidence import EvidenceAnswerPolicy, contact_from_evidence, reference_contact_box
 from gui_recover.environment import VisualObservation, frame_key
 from gui_recover.listing_cards import reference_result_action, reference_title_region
 from gui_recover.qwen_grounding import QwenGroundingPolicy, normalize_qwen_action
@@ -271,3 +271,13 @@ def test_reference_contact_localization_requires_one_aligned_publisher_email():
     address = {"text": "demo@example.com", "bounds": [30, 84, 85, 94]}
     assert reference_contact_box(goal, [heading, label, address]) == [30, 75, 85, 94]
     assert reference_contact_box(goal, [heading, label, {**address, "bounds": [30, 105, 85, 115]}]) is None
+
+
+def test_contact_candidate_uses_one_labeled_email_only_after_publisher_crop():
+    goal = "Tell me the email of the lister of this exact item."
+    facts = ["Name: Sample Publisher", "E-mail: demo@example.com", "$20"]
+    raw = json.dumps({"answer": "null", "evidence": facts})
+    assert contact_from_evidence(raw, goal) is None
+    assert contact_from_evidence(raw, goal, publisher_region=True) == "demo@example.com"
+    ambiguous = json.dumps({"answer": "null", "evidence": [*facts, "Email: second@example.com"]})
+    assert contact_from_evidence(ambiguous, goal, publisher_region=True) is None
