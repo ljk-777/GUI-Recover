@@ -90,12 +90,20 @@ def listing_detail(rows):
                 and any(text.startswith("location:") for text in labels)))
 
 
+def empty_keyword_field(rows):
+    fields = [index for index, row in enumerate(rows) if row["text"].casefold().startswith(("e.g.", "eg,"))]
+    labels = {row["text"].casefold() for row in rows}
+    return fields[0] if len(fields) == 1 and {"keyword", "search"} <= labels else None
+
+
+def keyword_search(query, rows, size):
+    field = empty_keyword_field(rows)
+    if field is None:
+        return None
+    raw = json.dumps({"action": "SEARCH", "value": query, "control": field})
+    return from_readable_control(raw, rows, size, guarded=True)
+
+
 def exact_initial_search(goal, rows, size):
     match = re.match(r'^\s*search for\s+"([^"\n]{1,80})"', goal, re.IGNORECASE)
-    if match is None or not any(row["text"].casefold() == "search" for row in rows):
-        return None
-    fields = [index for index, row in enumerate(rows) if row["text"].casefold().startswith(("e.g.", "eg,"))]
-    if len(fields) != 1 or not any(row["text"].casefold() == "keyword" for row in rows):
-        return None
-    raw = json.dumps({"action": "SEARCH", "value": match[1], "control": fields[0]})
-    return from_readable_control(raw, rows, size, guarded=True)
+    return keyword_search(match[1], rows, size) if match is not None else None

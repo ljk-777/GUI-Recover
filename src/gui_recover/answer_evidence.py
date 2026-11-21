@@ -9,10 +9,10 @@ from PIL import Image, ImageDraw
 
 from .actions import Action, ActionError
 from .environment import frame_key
-from .listing_cards import ranked_photo_request, reference_title_region, reference_title_request
+from .listing_cards import ranked_photo_request, reference_result_action, reference_title_region, reference_title_request
 from .qwen_grounding import ask_observation, native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
 from .ranked_cards import RankedCardEvidence
-from .screen_text import exact_initial_search, from_readable_control, listing_detail
+from .screen_text import empty_keyword_field, exact_initial_search, from_readable_control, keyword_search, listing_detail
 from .verification import pixel_hash
 from .visible_links import agreed_listing_answer, link_answer_count, listing_selection, preview_destinations, priced_titles
 
@@ -23,6 +23,36 @@ _CONTACT = re.compile(r"\b(?:seller|lister|publisher)\b", re.IGNORECASE)
 _PHOTO = re.compile(r"\b(?:image|photo|picture)\b", re.IGNORECASE)
 _EMAIL_REQUEST = re.compile(r"\be-?mail\b", re.IGNORECASE)
 _EMAIL = re.compile(r"[\w.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+_REFERENCE_QUERY = re.compile(r"[\w .&'-]{1,70}")
+REFERENCE_SEARCH = "evidence_reference_search"
+REFERENCE_SEARCH_ABSTAINED = "evidence_reference_search_abstained"
+REFERENCE_RESULTS_EXPAND = "evidence_reference_results_expand"
+REFERENCE_RESULTS_OPEN = "evidence_reference_results_open"
+
+
+def reference_search_prompt(goal):
+    return (
+        f"Task: {goal}\nThe only image is the task reference. "
+        "Give a short Classifieds search query for the requested subject or item. "
+        "Use the most distinctive search term in the task's item description when given. "
+        "Otherwise prefer an identifying brand or name visible on the item, then its object type. "
+        "When asked about a person or character portrayed, use the subject's name. "
+        "Multiple common words can broaden these search results. Use one distinctive word when possible, "
+        "or a short recognizable name. Omit prices, dates, and background details. "
+        'Return exactly {"query":"keywords"} or {"query":null} if unclear.'
+    )
+
+
+def reference_search_action(reply, rows, size):
+    """Turn a reference-image query into an action on an observed empty field."""
+    try:
+        data = read_reply(reply)
+        query = data["query"] if isinstance(data, dict) and set(data) == {"query"} else None
+        if isinstance(query, str) and query.strip() and _REFERENCE_QUERY.fullmatch(query):
+            return keyword_search(query.strip(), rows, size)
+    except (ValueError, RecursionError):
+        pass
+    return None
 
 
 def evidence_box(raw, size):
@@ -250,6 +280,7 @@ class EvidenceAnswerPolicy:
         self.ranked_capture = ranked_capture
         self.ranked_evidence = RankedCardEvidence(listing_site) if ranked_capture is not None else None
         self.ranked_request = None
+        self.reference_query = None
         self.checked_frames = set()
         self.pending_crop = None
         self.pending_answer = None
@@ -268,6 +299,7 @@ class EvidenceAnswerPolicy:
         self.pending_links = None
         self.navigation_context = None
         self.ranked_request = None
+        self.reference_query = None
         if self.ranked_capture is not None:
             self.ranked_evidence = RankedCardEvidence(self.listing_site)
 
@@ -282,22 +314,24 @@ class EvidenceAnswerPolicy:
             self.navigation_context = before.screenshot.copy(), action.position
 
     def locate(self, observation, frame, history):
-        if (self.ranked_capture is not None and len(observation.reference_images) == 1
-                and observation.tabs and reference_title_request(observation.goal)):
+        reference = None
+        if self.ranked_capture is not None and len(observation.reference_images) == 1 and observation.tabs:
             here = urlsplit(observation.tabs[observation.active_tab][1])
             site = urlsplit(self.listing_site)
             if (here.scheme, here.netloc) == (site.scheme, site.netloc):
-                receipt = self.ranked_capture()
-                screen = observation.screenshot
-                bounds = reference_title_region(screen, observation.reference_images[0], receipt, self.listing_site)
-                if bounds is not None:
-                    self.pending_crop = frame, screen.crop(bounds), bounds
-                    self.actor.last_metrics = {
-                        "model_invocations": 0, "provider_output": None, "provider_format": "evidence_reference_region",
-                        "evidence_stage": "locate", "evidence_frame": frame, "evidence_bounds": list(bounds),
-                        "reference_card_receipt": receipt, "peak_cuda_allocated_bytes": 0,
-                    }
-                    return None
+                reference = observation.reference_images[0]
+        if reference is not None and reference_title_request(observation.goal):
+            receipt = self.ranked_capture()
+            screen = observation.screenshot
+            bounds = reference_title_region(screen, reference, receipt, self.listing_site)
+            if bounds is not None:
+                self.pending_crop = frame, screen.crop(bounds), bounds
+                self.actor.last_metrics = {
+                    "model_invocations": 0, "provider_output": None, "provider_format": "evidence_reference_region",
+                    "evidence_stage": "locate", "evidence_frame": frame, "evidence_bounds": list(bounds),
+                    "reference_card_receipt": receipt, "peak_cuda_allocated_bytes": 0,
+                }
+                return None
         canvas = self.actor.prepare_image(observation.screenshot)
         width, height = canvas.size
         prompt = (
@@ -328,6 +362,19 @@ class EvidenceAnswerPolicy:
         link_count = link_answer_count(observation.goal) if self.listing_preview is not None else None
         if self.screen_reader is not None:
             rows = self.screen_reader(observation.screenshot, canvas.size)
+            if reference is not None and self.reference_query is not None:
+                receipt = self.ranked_capture()
+                action = reference_result_action(observation.screenshot, reference, receipt, self.listing_site,
+                                                 rows, self.reference_query, observation.goal)
+                if action is not None:
+                    status = REFERENCE_RESULTS_EXPAND if action.action == "LISTING_GRID" else REFERENCE_RESULTS_OPEN
+                    self.actor.last_metrics = {
+                        "model_invocations": 0, "provider_output": None, "provider_format": status,
+                        "evidence_stage": "locate", "evidence_frame": frame, "screen_text": rows,
+                        "provider_image_size": list(canvas.size), "reference_card_receipt": receipt,
+                        "peak_cuda_allocated_bytes": 0,
+                    }
+                    return json.dumps(action.to_dict(), ensure_ascii=False)
             if not history:
                 try:
                     shortcut = exact_initial_search(observation.goal, rows, canvas.size)
@@ -342,6 +389,17 @@ class EvidenceAnswerPolicy:
                         "provider_format": "evidence_exact_search", "peak_cuda_allocated_bytes": 0,
                     }
                     return json.dumps(shortcut.to_dict(), ensure_ascii=False)
+                if reference is not None and empty_keyword_field(rows) is not None:
+                    raw = self.actor.ask(self.actor.prepare_image(reference), reference_search_prompt(observation.goal))
+                    action = reference_search_action(raw, rows, canvas.size)
+                    if action is not None:
+                        self.reference_query = action.value
+                    status = REFERENCE_SEARCH if action is not None else REFERENCE_SEARCH_ABSTAINED
+                    self.last_metrics.update(
+                        provider_format=status, evidence_stage="locate", evidence_frame=frame, screen_text=rows,
+                        search_canvas_size=list(canvas.size), reference_pixels=[pixel_hash(reference)],
+                    )
+                    return json.dumps(action.to_dict(), ensure_ascii=False) if action is not None else None
             navigation_rows = None if link_count is None and listing_detail(rows) else rows
         if navigation_rows is not None:
             controls = indexed_text(navigation_rows)

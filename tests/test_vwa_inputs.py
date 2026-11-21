@@ -9,9 +9,10 @@ from types import SimpleNamespace
 import pytest
 from PIL import Image, ImageDraw
 
-from gui_recover.actions import ActionError, compile_action
+from gui_recover.actions import ActionError, compile_action, parse_action
+from gui_recover.answer_evidence import EvidenceAnswerPolicy
 from gui_recover.environment import VisualObservation, frame_key
-from gui_recover.listing_cards import reference_title_region
+from gui_recover.listing_cards import reference_result_action, reference_title_region
 from gui_recover.qwen_grounding import QwenGroundingPolicy, normalize_qwen_action
 from gui_recover.verification import pixel_hash
 from gui_recover.vwa_inputs import LocalReferenceArchive, contextual_observation, reference_name
@@ -174,3 +175,61 @@ def test_registered_start_pages_reveal_sites_missing_from_login_metadata(monkeyp
         live.holdout_backend_origins(manifest)
     monkeypatch.setenv("VWA_REDDIT", "http://localhost:19982")
     assert live.holdout_backend_origins(manifest)["reddit"] == "http://localhost:19982"
+
+
+def test_reference_search_sends_only_reference_to_model_and_grounds_action_on_screen():
+    site = "http://localhost:19980"
+    screen = Image.new("RGB", (200, 100), "blue")
+    reference = Image.new("RGB", (64, 48), "red")
+    rows = [
+        {"text": "Keyword", "bounds": [5, 3, 40, 20]},
+        {"text": "e.g., a blue used car", "bounds": [10, 24, 90, 36]},
+        {"text": "Search", "bounds": [110, 24, 147, 37]},
+    ]
+    observation = VisualObservation("Find this exact item and tell me the price.", screen,
+                                    reference_images=(reference,), tabs=(("Classifieds", site),))
+    actor = SimpleNamespace(prepare_image=lambda image: image, last_metrics={})
+
+    def ask(image, prompt):
+        assert image is reference
+        assert "only image is the task reference" in prompt
+        actor.last_metrics = {"provider_output": '{"query":"red jacket"}', "model_invocations": 1}
+        return actor.last_metrics["provider_output"]
+
+    actor.ask = ask
+    policy = EvidenceAnswerPolicy(actor, confirm=True, screen_reader=lambda image, size: rows,
+                                  listing_site=site, ranked_capture=lambda: None)
+    action = parse_action(policy.predict(observation, []))
+    assert action.action == "SEARCH" and action.value == "red jacket"
+    assert action.position == (50.5 / 200, 30.5 / 100)
+    assert policy.last_metrics["reference_pixels"] == [pixel_hash(reference)]
+    assert policy.last_metrics["evidence_frame"] == pixel_hash(screen)
+    assert "browser_tabs" not in policy.last_metrics
+
+
+def test_reference_result_navigation_requires_complete_scope_and_only_breaks_ties_for_latest():
+    site = "http://localhost:19980"
+    screen = Image.new("RGB", (300, 160), "white")
+    reference = Image.new("RGB", (64, 45), "navy")
+    ImageDraw.Draw(reference).rectangle((13, 8, 48, 37), fill="orange")
+    thumbnail = reference.resize((80, 67))
+    screen.paste(thumbnail, (5, 20))
+    screen.paste(thumbnail, (105, 20))
+    screen.paste(Image.new("RGB", (80, 67), "green"), (205, 20))
+    cards = [
+        {"destination": f"{site}/index.php?page=item&id={index + 1}", "image": [x, 20, x + 80, 87],
+         "title": [x, 90, x + 80, 100]}
+        for index, x in enumerate((5, 105, 205))
+    ]
+    receipt = {"source_pixels": pixel_hash(screen), "scroll_top": 0, "next": None, "grid": [0.9, 0.1],
+               "cards": cards[:2]}
+    rows = [{"text": text} for text in ("Search results: jacket", "Sort by: Newly listed", "1 - 3 of 5 listings")]
+    latest = "Find the most recent lister of this exact item."
+    action = reference_result_action(screen, reference, receipt, site, rows, "jacket", latest)
+    assert action.action == "LISTING_GRID"
+    receipt["cards"] = cards
+    action = reference_result_action(screen, reference, receipt, site, rows, "jacket", latest)
+    assert action.action == "CLICK" and action.position == (45 / 300, 95 / 160)
+    assert reference_result_action(screen, reference, receipt, site, rows, "jacket",
+                                   "Find the lister of this exact item.") is None
+    assert reference_result_action(screen, reference, receipt, site, rows, "boots", latest) is None

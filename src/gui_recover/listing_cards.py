@@ -6,7 +6,7 @@ from urllib.parse import urlsplit
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
-from .actions import ActionError
+from .actions import Action, ActionError
 from .qwen_grounding import read_reply
 from .verification import pixel_hash
 from .visible_links import link_answer_count, listing_destination
@@ -19,6 +19,8 @@ _RECENT = re.compile(r"\b(?:most recent|most recently|newest|latest)\b", re.IGNO
 _APPEARANCE = re.compile(r"\bthat\s+(?:feature|depict|show)\s+([^.!?]{1,100})[.!?]?\s*$", re.IGNORECASE)
 _RANGE = re.compile(r"\b([\d,]+)\s*[-–]\s*([\d,]+)\s+of\s+([\d,]+)\s+listings\b", re.IGNORECASE)
 _TITLE = re.compile(r"\b(?:title|listing name)\b", re.IGNORECASE)
+_EXACT_ITEM = re.compile(r"\bexact (?:item|product|listing)\b", re.IGNORECASE)
+_MULTIPLE_ITEMS = re.compile(r"\b(?:all listings|compare|both|every listing)\b", re.IGNORECASE)
 
 _VISIBLE_CARDS = """
 ({width, height, limit}) => {
@@ -140,6 +142,37 @@ def inspect_card_receipt(receipt, frame, size, site):
 
 def reference_title_request(goal):
     return bool(_TITLE.search(goal))
+
+
+def reference_result_action(screen, reference, receipt, site, rows, query, goal):
+    """Expand a result page or open a visually grounded listing on its verified first page."""
+    if _EXACT_ITEM.search(goal) is None or _MULTIPLE_ITEMS.search(goal) is not None:
+        return None
+    scope = visible_result_range(rows, query)
+    if scope is None or scope[0] != 1 or receipt["scroll_top"] != 0:
+        return None
+    cards = inspect_card_receipt(receipt, pixel_hash(screen), screen.size, site)
+    if len(cards) != scope[1] or any(card["image"] is None for card in cards):
+        if screen.height < RESULT_VIEW_HEIGHT and receipt["grid"] is not None:
+            return Action("LISTING_GRID", position=tuple(receipt["grid"]))
+        return None
+
+    def pixels(image):
+        # Classifieds thumbnails can stretch an entire photo to their fixed card aspect ratio.
+        scaled = image.convert("RGB").resize((48, 48), Image.Resampling.LANCZOS)
+        return np.asarray(scaled, dtype=np.float32) / 255
+
+    wanted = pixels(reference)
+    if float(wanted.std()) < 0.04:
+        return None
+    distances = [float(np.abs(wanted - pixels(screen.crop(card["image"]))).mean()) for card in cards]
+    matches = [index for index, distance in enumerate(distances) if distance <= 0.055]
+    if not matches or (len(matches) > 1 and _RECENT.search(goal) is None):
+        return None
+    if any(0.055 < distance < 0.105 for distance in distances):
+        return None
+    left, top, right, bottom = cards[matches[0]]["title"]
+    return Action("CLICK", position=((left + right) / (2 * screen.width), (top + bottom) / (2 * screen.height)))
 
 
 def reference_title_region(screen, reference, receipt, site):
