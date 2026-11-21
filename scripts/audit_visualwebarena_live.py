@@ -508,7 +508,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                 require("evidence_panel_sha256" not in metrics and "evidence_context_sha256" not in metrics
                         and "listing_fact_reread_pending" not in metrics,
                         "Isolated confirmation must be bounded to its crop and may run only once")
-                confirmed, status = confirmation_outcome(reply, candidate)
+                confirmed, status = confirmation_outcome(reply, candidate, listing_fact_reread=isolated_facts)
                 require(metrics["provider_format"] == status, "Isolated confirmation status differs from the recorded reply")
                 require((metrics.get("stop_after_evidence") is True) == (confirmed is None),
                         "An unresolved isolated confirmation must stop without submission")

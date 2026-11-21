@@ -53,26 +53,48 @@ class ListingFacts:
         )
 
     def reread_prompt(self):
-        field = ('Copy every word after "Location:" up to the first comma.'
-                 if self.field == "city" else "Copy the complete heading exactly as printed, including any unusual spelling.")
+        if self.field == "city":
+            return (
+                "Act as an OCR transcriber. The upper strip contains one printed text label. Copy the entire upper strip, "
+                "including its label, punctuation, and all words, exactly as printed. Read the lower strip as a monetary amount. "
+                'Return one JSON object with "text" for the exact upper strip transcription and "dollars" for the lower amount. '
+                "If a strip is unreadable use null for its value."
+            )
         return (
-            f"Transcribe the two text crops verbatim. Read the top crop first. {field} "
-            "Read the dollar amount from the bottom crop. "
-            f'Return only JSON with keys "{self.field}" and "dollars". Use null for unreadable text.'
+            "Read the upper strip letter by letter. Keep the printed spelling, including repeated letters. "
+            "Put a space between every letter and a vertical bar between printed words. "
+            "Read the dollar amount separately from the lower strip. "
+            'Return a JSON object with keys "letters" (string of space-separated characters and word separators) and "dollars".'
         )
 
-    def confirm(self, reply):
+    def confirm(self, reply, *, reread=False):
+        key = self.field
+        if reread:
+            key = "text" if self.field == "city" else "letters"
         data = read_reply(reply, parse_float=Decimal)
-        if not isinstance(data, dict) or set(data) != {self.field, "dollars"}:
+        if not isinstance(data, dict) or set(data) != {key, "dollars"}:
             raise ActionError("Expected the price and one listing field")
-        text, dollars = data[self.field], data["dollars"]
+        text, dollars = data[key], data["dollars"]
         if text is None or dollars is None:
             return None, "evidence_verify_abstained"
         if not isinstance(text, str) or type(dollars) not in (str, int, Decimal):
             raise ActionError("Expected a listing label and a decimal amount")
+        expected = self.text
+        if key == "text":
+            text = _location_city(text)
+            if text is None:
+                return None, "evidence_verify_disagreed"
+        elif key == "letters":
+            groups = [part.split() for part in text.split("|")]
+            if any(not group or any(len(char) != 1 for char in group) for group in groups):
+                raise ActionError("Expected the printed heading characters in order")
+            text = " ".join("".join(group) for group in groups)
+            if len(groups) == 1:
+                # The OCR heading supplies word spacing when the reader returns an unsegmented character sequence.
+                expected = "".join(expected.split())
         amount = str(dollars).strip()
         cents = _displayed_cents(amount if "$" in amount else amount + " $")
-        if (" ".join(text.casefold().split()) != self.text.casefold()
+        if (" ".join(text.casefold().split()) != expected.casefold()
                 or cents != self.cents):
             return None, "evidence_verify_disagreed"
         whole, cents = divmod(self.cents, 100)
@@ -108,10 +130,18 @@ def _detail_city(rows, size):
     if (top < published["bounds"][3] or end - published["bounds"][3] > size[1] // 8
             or abs(start - published["bounds"][0]) > max(8, size[0] // 30)):
         return None
-    parts = [part.strip() for part in location["text"].split(":", 1)[1].split(",")]
+    city = _location_city(location["text"])
+    return (tuple(location["bounds"]), city) if city is not None else None
+
+
+def _location_city(text):
+    label, _, location = text.partition(":")
+    if label.strip().casefold() != "location":
+        return None
+    parts = [part.strip() for part in location.split(",")]
     if len(parts) != 3 or any(not part for part in parts) or not any(char.isalpha() for char in parts[0]):
         return None
-    return tuple(location["bounds"]), " ".join(parts[0].split())
+    return " ".join(parts[0].split())
 
 
 def _detail_facts(rows, size, field, expected=None):

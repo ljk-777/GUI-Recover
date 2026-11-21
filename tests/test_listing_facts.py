@@ -71,11 +71,11 @@ def test_compound_disagreement_rereads_only_the_two_fields_once(reread_city):
         if len(calls) == 1:
             assert context["observation"].tabs
             return '{"city":"Oak","dollars":80.50}'
-        assert not context and "first comma" in prompt and "Oak" not in prompt
+        assert not context and "entire upper strip" in prompt and "Oak" not in prompt
         assert image.getchannel("G").getextrema()[0] < 255
         assert image.getcolors(256) is not None
         assert (0, 255, 0) not in {color for _, color in image.getcolors(256)}
-        return f'{{"city":"{reread_city}","dollars":80.50}}'
+        return f'{{"text":"Location: {reread_city}, Illinois, United States","dollars":80.50}}'
 
     actor.ask = ask
     policy = EvidenceAnswerPolicy(actor, confirm=True, screen_reader=lambda *_: detail_rows(),
@@ -125,6 +125,15 @@ def test_keyword_results_bind_unique_highest_price_to_the_selected_detail():
     confirmed = listing_fact_decision(SEARCH_GOAL, ITEM, SITE, detail_rows(), screen.size, screen, None, target=select.target)
     assert confirmed.facts.confirm('{"title":"Brass lamp","dollars":"80.50"}') == (
         "Brass lamp, 80.50 dollars", "evidence_verify_agreed",
+    )
+    assert confirmed.facts.confirm('{"letters":"B r a s s | l a m p","dollars":80.5}', reread=True) == (
+        "Brass lamp, 80.50 dollars", "evidence_verify_agreed",
+    )
+    assert confirmed.facts.confirm('{"letters":"B r a s s l a m p","dollars":80.5}', reread=True) == (
+        "Brass lamp, 80.50 dollars", "evidence_verify_agreed",
+    )
+    assert confirmed.facts.confirm('{"letters":"B r a s | s l a m p","dollars":80.5}', reread=True) == (
+        None, "evidence_verify_disagreed",
     )
     rows[4]["text"] = "80.50 $"
     assert result(SORTED, capture).status == LISTING_FACTS_ABSTAINED

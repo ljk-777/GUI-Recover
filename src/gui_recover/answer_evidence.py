@@ -317,10 +317,10 @@ def parse_independent_confirmation(raw, request=None):
     return parse_visible_answer(json.dumps({"answer": data["answer"]}), allow_numeric=True)
 
 
-def confirmation_outcome(raw, candidate, request=None, *, expected_cents=None):
+def confirmation_outcome(raw, candidate, request=None, *, expected_cents=None, listing_fact_reread=False):
     try:
         if isinstance(candidate, ListingFacts):
-            return candidate.confirm(raw)
+            return candidate.confirm(raw, reread=listing_fact_reread)
         answer = (parse_visible_answer(raw) if isinstance(candidate, ReferenceTitleCrop)
                   else parse_independent_confirmation(raw, request))
     except (ValueError, RecursionError):
@@ -891,7 +891,7 @@ class EvidenceAnswerPolicy:
     def reread_listing_facts(self, observation, frame, candidate):
         panel, bounds = listing_fact_reread_image(observation.screenshot, candidate)
         raw = self.actor.ask(self.actor.prepare_image(panel), candidate.reread_prompt())
-        answer, status = confirmation_outcome(raw, candidate)
+        answer, status = confirmation_outcome(raw, candidate, listing_fact_reread=True)
         self.last_metrics.update(evidence_stage="confirm", evidence_frame=frame, provider_format=status,
                                  listing_fact_reread_sha256=pixel_hash(panel), listing_fact_reread_bounds=bounds)
         if answer is None:
