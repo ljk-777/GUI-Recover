@@ -499,7 +499,13 @@ The frozen run completed all eight pairs with identical reset screenshots for bo
 
 The title repair opens the item selected from its reference photo, checks the full detail heading against the visible breadcrumb, and independently transcribes the heading from a screenshot crop. A separate development replay of the three exposed title cases scored 3/3 with one model call per case. The frozen eight-task result remains recorded above.
 
+The next repair locates the asking price and city in the detail header. For a highest-price search, the policy checks the keyword and sort order, opens the visible first result after verifying that its price exceeds the runner-up's, and checks the price again on the matched listing. In both cases the model independently transcribes the two requested fields before the browser submits an answer.
+
+The full development replay passed seven of the eight exposed cases with zero wrong submissions. Every successful episode used one model call. The remaining reference-photo case hit the call limit without submitting. Two candidate thumbnails in its recorded list view have identical pixels.
+
 [Independent catalog results and archive checksums](../examples/vwa-catalog-holdout-results.json)
+
+[Second frozen catalog registration](../examples/vwa-catalog-holdout-protocol-002.json)
 
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 

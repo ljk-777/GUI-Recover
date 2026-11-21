@@ -530,5 +530,132 @@
     },
     "source_revision": "75c1161",
     "archive_sha256": "0e2e350a0647d49bb8c779dbd36077e50d75e13047e8ae507a6e15f75a06e51c"
+  },
+  "exposed_catalog_repair_replay": {
+    "scope": "exposed catalog development replay",
+    "task_ids": [
+      "10101",
+      "10102",
+      "10103",
+      "10104",
+      "10105",
+      "10106",
+      "10107",
+      "10108"
+    ],
+    "native_successes": 7,
+    "wrong_submissions": 0,
+    "by_task": {
+      "10101": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 2,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1
+        }
+      },
+      "10102": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 2,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1
+        }
+      },
+      "10103": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 3,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 2,
+          "reference_title_open": 1,
+          "reference_title_heading": 1,
+          "confirm": 1,
+          "navigation_context": 1
+        }
+      },
+      "10104": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 3,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 2,
+          "reference_title_open": 1,
+          "reference_title_heading": 1,
+          "confirm": 1,
+          "navigation_context": 1
+        }
+      },
+      "10105": {
+        "success": false,
+        "reason": "model_call_limit",
+        "answers_submitted": 0,
+        "predictions": 9,
+        "model_calls": 8,
+        "evidence_stages": {
+          "locate": 4,
+          "grounded_search": 1
+        }
+      },
+      "10106": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 4,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 3,
+          "grounded_search": 1,
+          "reference_title_open": 1,
+          "reference_title_heading": 1,
+          "confirm": 1,
+          "navigation_context": 1
+        }
+      },
+      "10107": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 6,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 5,
+          "grounded_search": 1,
+          "search_price_navigation": 3,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "navigation_context": 1
+        }
+      },
+      "10108": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 6,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 5,
+          "grounded_search": 1,
+          "search_price_navigation": 3,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "navigation_context": 1
+        }
+      }
+    },
+    "source_revision": "7a0aacfa8c57fa08627437d0954f7a3d53c8b032",
+    "archive_sha256": "9f1f75b686262e64f47a38a402b249cfcfd8cd113087d6905c240df2f70575a7"
   }
 }
