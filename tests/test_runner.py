@@ -39,6 +39,20 @@ class FixedPolicy:
         return self.raw
 
 
+def test_prediction_budget_counts_model_calls_separately(tmp_path):
+    class BudgetedPolicy(FixedPolicy):
+        def predict(self, obs, history):
+            self.last_metrics = {"model_invocations": int(bool(history))}
+            return super().predict(obs, history)
+
+    click = '{"action":"CLICK","value":null,"position":[0.5,0.5]}'
+    result = run_episode(FakeEnv(), BudgetedPolicy(click), "fake", 0, 5, tmp_path / "episode",
+                         max_model_calls=1)
+    assert result["reason"] == "model_call_limit"
+    assert result["steps"] == result["predictions"] == 2
+    assert result["model_calls"] == 1
+
+
 @pytest.mark.parametrize("raw,reason,steps", [
     ('{"action":"ANSWER","value":"success","position":null}', "policy_stop", 0),
     ('not an action', "invalid_action", 0),

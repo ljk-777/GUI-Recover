@@ -414,4 +414,21 @@ The shorter development replay also reproduced one known first-frame error on ta
 [Frozen input registration](../examples/vwa-fresh-heldout-protocol.json)
 [Per-task scores and archived evidence checksum](../examples/vwa-fresh-heldout-results.json)
 
+### Replay failures on price-ranked listings
+
+The price discovery path begins on the visible Classifieds search form. It selects a category, applies a keyword where appropriate, and uses the on-screen sort menu. The policy checks the rendered breadcrumb, selected price order, and consecutive result ranges before giving numbered thumbnails to Qwen. Book color is checked in the image. The policy avoids putting cover color in the keyword filter because a listing can show the color without naming it.
+
+The model records a visual cue for each judgment and opens the first matching item only when it has ruled out the higher-ranked cards already reviewed. A fully rejected page can advance to its visible next page. An unresolved earlier card causes abstention. The item page's price crop goes through the standard separate read and confirmation steps. The replay auditor reconstructs the verified results, panel pixels, browser actions, and answer checks.
+
+Use the frozen archive prepared for the previous comparison. This command uses previously observed development tasks 82, 84 and 99 on a genuine Classifieds backend. Both strategies get up to 12 decisions and eight model calls, so browser actions can be counted separately from inference.
+
+~~~bash
+python scripts/run_visualwebarena_live.py --actor qwen --qwen-7b-4bit \
+  --model models/Qwen2.5-VL-7B-Instruct --study evidence-cards \
+  --task-set evidence-cards-price-dev --cohort-dir runs/vwa-fresh-cohort \
+  --max-steps 12 --out runs/visualwebarena-price-dev
+python scripts/audit_visualwebarena_live.py runs/visualwebarena-price-dev \
+  --out runs/visualwebarena-price-dev-audit.json
+~~~
+
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)

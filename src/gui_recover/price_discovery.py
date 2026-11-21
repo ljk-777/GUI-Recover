@@ -219,13 +219,16 @@ class PriceDiscovery:
         self.page_frame = frame
         batch = cards[self.offset:self.offset + BATCH_SIZE]
         panel = card_panel([(screen, card) for card in batch])
+        example = '{"1":[false,"wooden table"],"2":[true,"person wearing ring"]}'
+        if len(batch) == 1:
+            example = '{"1":[false,"wooden table"]}'
         reply = actor.ask(actor.prepare_image(panel), (
             f"Visual criterion: {self.request.visual_target}.\n"
             "Inspect each numbered listing photo. First identify a concrete visual cue in the photo. "
             "Use that cue to decide whether the item visibly matches, recording false for a clearly unrelated photo. "
-            f'Return only one JSON object with keys "1" through "{len(batch)}". Each value is '
+            f"Return only one JSON object with keys 1 through {len(batch)}. Every entry is "
             "[true or false, at most three words of visible evidence]. "
-            "Use null if a visible cue cannot resolve the question."
+            f"For example, {example}."
         ))
         metrics.update(model_invocations=1, provider_output=reply, price_panel_pixels=pixel_hash(panel),
                        peak_cuda_allocated_bytes=actor.last_metrics.get("peak_cuda_allocated_bytes", 0))

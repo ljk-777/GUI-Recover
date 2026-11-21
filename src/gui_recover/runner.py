@@ -127,6 +127,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
                 model_calls_known = False
             else:
                 model_calls += invocation_count
+            can_continue = index + 1 < max_steps and (max_model_calls is None or model_calls < max_model_calls)
             inference_seconds += latency
             prediction = {"event": "prediction", "step": index, "raw": raw,
                           "inference_seconds": latency, "metrics": getattr(policy, "last_metrics", {})}
@@ -153,7 +154,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
             except ActionError as exc:
                 invalid_predictions += 1
                 emit({"event": "error", "step": index, "error": str(exc)})
-                if invalid_action_retry != "none" and not invalid_action_retries and index + 1 < max_steps:
+                if invalid_action_retry != "none" and not invalid_action_retries and can_continue:
                     feedback = INVALID_ACTION_FEEDBACK if invalid_action_retry == "feedback" else None
                     if feedback:
                         policy.set_feedback(feedback)
@@ -207,7 +208,7 @@ def run_episode(env, policy, task, seed, max_steps, out_dir, parser_mode="strict
                 reason = "success" if success else ("truncated" if truncated else "task_failure")
                 break
             previous_scroll_feedbacks = controller.scroll_used
-            feedback = controller.feedback(signal) if index + 1 < max_steps else None
+            feedback = controller.feedback(signal) if can_continue else None
             if hasattr(policy, "set_feedback"):
                 policy.set_feedback(feedback)
             if feedback:

@@ -428,7 +428,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
 def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=False, answer_study=False,
                   evidence_check=False, confirm=False, use_navigation_context=False, compact_navigation=False,
                   use_screen_text=False, guarded_ocr=False, direct_navigation=False, listing_site=None,
-                  use_ranked_cards=False, use_browser_context=False):
+                  use_ranked_cards=False, use_browser_context=False, model_budget=None):
     events = [json.loads(line) for line in (directory / "trajectory.jsonl").read_text().splitlines()]
     row = read_json(directory / "episode.json")
     require(events[0]["event"] == "reset" and events[-1] == {"event": "episode_end", **row},
@@ -441,6 +441,14 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
     for event in events:
         by_event.setdefault(event["event"], []).append(event)
     predictions = by_event["prediction"]
+    if model_budget is not None:
+        calls_before = 0
+        for prediction in predictions:
+            calls = prediction["metrics"]["model_invocations"]
+            require(calls in (0, 1) and calls_before < model_budget, "Prediction exceeded the model call budget")
+            calls_before += calls
+        if row["reason"] == "model_call_limit":
+            require(calls_before == model_budget and len(predictions) < budget, "Model budget stop disagrees with the trace")
     transitions = by_event.get("transition", [])
     tab_states = [event.get("browser_tabs") for event in [events[0], *transitions]]
     if use_browser_context:
@@ -561,7 +569,9 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
     retries = by_event.get("invalid_action_retry", [])
     repaired = by_event.get("invalid_action_repaired", [])
     first_invalid = invalid_steps[0] if invalid_steps else None
-    should_retry = retry_mode != "none" and first_invalid is not None and first_invalid + 1 < budget
+    should_retry = (retry_mode != "none" and first_invalid is not None and first_invalid + 1 < budget
+                    and (model_budget is None or sum(p["metrics"]["model_invocations"]
+                         for p in predictions[:first_invalid + 1]) < model_budget))
     require(len(retries) == int(should_retry), "Missing or extra invalid-action retry")
     if retries:
         retry = retries[0]
@@ -715,7 +725,8 @@ def audit(directory):
                                    guarded_ocr=summary.get("screen_reader", {}).get("guarded_ocr", False),
                                    direct_navigation=summary.get("screen_reader", {}).get("direct_navigation", False),
                                    listing_site=summary["listing_origin"] if mode in LINK_MODES else None,
-                                   use_ranked_cards=mode == "evidence-cards", use_browser_context=use_inputs)
+                                   use_ranked_cards=mode == "evidence-cards", use_browser_context=use_inputs,
+                                   model_budget=model_budget)
             require(record["row"]["task"] == name and record["row"]["seed"] == record["reset"][1] == 0,
                     "Task or seed mismatch")
             studies[mode].append(record)
