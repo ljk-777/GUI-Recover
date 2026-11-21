@@ -26,13 +26,13 @@ VISIBLE_ANSWER_PROMPT = (
 )
 
 
-def read_reply(raw):
+def read_reply(raw, *, parse_float=None):
     if len(raw) > 4096:
         raise ActionError("Qwen response is too long")
     raw = raw.strip()
     if raw.startswith("```") and raw.endswith("```"):
         raw = "\n".join(raw.splitlines()[1:-1])
-    return json.loads(raw, object_pairs_hook=_unique_dict)
+    return json.loads(raw, object_pairs_hook=_unique_dict, parse_float=parse_float)
 
 
 def parse_pixel_point(raw, width, height):

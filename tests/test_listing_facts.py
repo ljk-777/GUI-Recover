@@ -38,11 +38,13 @@ def test_current_listing_checks_price_and_city_from_the_header():
     assert decision.facts == ListingFacts("city", "Oak Park", 8050, (116, 123, 909, 224))
     verify = decision.facts.confirm
     assert verify('{"city":"Oak Park","dollars":"80.5"}') == ("Oak Park, 80.50 dollars", "evidence_verify_agreed")
+    assert verify('{"city":"Oak Park","dollars":80.50}') == ("Oak Park, 80.50 dollars", "evidence_verify_agreed")
+    assert verify('{"city":"Oak Park","dollars":80.50000000000001}') == (None, "evidence_verify_disagreed")
     assert verify('{"city":"Illinois","dollars":"80.50"}') == (None, "evidence_verify_disagreed")
     assert verify('{"city":"Oak Park","dollars":"120"}') == (None, "evidence_verify_disagreed")
     assert verify('{"city":null,"dollars":"80.50"}') == (None, "evidence_verify_abstained")
     with pytest.raises(ActionError):
-        verify('{"city":"Oak Park","dollars":80.5}')
+        verify('{"city":"Oak Park","dollars":true}')
     without_location = [line for line in rows if not line["text"].startswith("Location:")]
     assert listing_fact_decision(DETAIL_GOAL, ITEM, SITE, without_location, screen.size, screen, None).status == LISTING_FACTS_ABSTAINED
 

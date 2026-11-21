@@ -2,6 +2,7 @@
 
 import re
 from dataclasses import dataclass
+from decimal import Decimal
 from urllib.parse import parse_qs, urlsplit
 
 from .actions import Action, ActionError
@@ -40,21 +41,23 @@ class ListingFacts:
                        else "complete listing heading, preserving every word")
         return (
             f"Transcribe the {description} and the asking price from the enlarged crop on the right. "
-            f'Return one JSON object with keys "{self.field}" and "dollars" containing strings. '
-            "Use null for a field if it is unreadable. Write the dollar amount as digits with an optional decimal point."
+            f'Return one JSON object with keys "{self.field}" and "dollars". '
+            "Use null for unreadable fields. Write the dollar amount as a number or numeric string."
         )
 
     def confirm(self, reply):
-        data = read_reply(reply)
+        data = read_reply(reply, parse_float=Decimal)
         if not isinstance(data, dict) or set(data) != {self.field, "dollars"}:
             raise ActionError("Expected the price and one listing field")
         text, dollars = data[self.field], data["dollars"]
         if text is None or dollars is None:
             return None, "evidence_verify_abstained"
-        if not isinstance(text, str) or not isinstance(dollars, str):
-            raise ActionError("Listing fields must be transcribed as strings")
+        if not isinstance(text, str) or type(dollars) not in (str, int, Decimal):
+            raise ActionError("Expected a listing label and a decimal amount")
+        amount = str(dollars).strip()
+        cents = _displayed_cents(amount if "$" in amount else amount + " $")
         if (" ".join(text.casefold().split()) != self.text.casefold()
-                or _displayed_cents(dollars.strip().strip("$").strip() + " $") != self.cents):
+                or cents != self.cents):
             return None, "evidence_verify_disagreed"
         whole, cents = divmod(self.cents, 100)
         amount = str(whole) if cents == 0 else f"{whole}.{cents:02d}"

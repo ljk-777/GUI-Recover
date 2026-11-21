@@ -21,7 +21,9 @@ from gui_recover.listing_cards import (
     RESULT_VIEW_HEIGHT, exact_reference_title_request, ranked_photo_request, reference_result_action,
     reference_result_destination, reference_title_open_action, reference_title_region, reference_title_request,
 )
-from gui_recover.listing_facts import LISTING_FACTS_ABSTAINED, LISTING_FACTS_STAGES, SEARCH_PRICE_NAVIGATION, listing_fact_decision
+from gui_recover.listing_facts import (
+    LISTING_FACTS_ABSTAINED, LISTING_FACTS_STAGES, SEARCH_PRICE_NAVIGATION, ListingFacts, listing_fact_decision,
+)
 from gui_recover.price_discovery import PRICE_DISCOVERY, PriceDiscovery, price_request, same_origin
 from gui_recover.qwen_grounding import native_action_after_note, parse_visible_answer, read_reply
 from gui_recover.ranked_cards import RankedCardEvidence
@@ -372,6 +374,9 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                 stages["grounded_search"] += 1
                 if ranked_request is not None:
                     scan = RankedCardEvidence(listing_site)
+                if use_ranked_cards and len(reference_images) == 1 and exact_reference_title_request(goal):
+                    reference_query = shortcut.value
+                    reference_refined = True
                 continue
             if direct_navigation and link_count is None and rows is not None and listing_detail(rows):
                 rows = None
@@ -475,6 +480,9 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                     "Confirmation pixels differ from the recorded viewport and crop")
             tie = price_scan.tie if price_scan is not None else None
             confirmed, status = confirmation_outcome(reply, candidate, request, expected_cents=tie.cents if tie is not None else None)
+            if isinstance(candidate, ListingFacts):
+                require((metrics.get("stop_after_evidence") is True) == (confirmed is None),
+                        "An unresolved compound answer must stop without submission")
             if status == "evidence_verify_agreed":
                 action = parse_action(raw)
                 require(action.action == "ANSWER" and action.value == confirmed, "Submission differs from agreed answer")

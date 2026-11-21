@@ -585,6 +585,9 @@ class EvidenceAnswerPolicy:
                 if shortcut is not None:
                     if self.ranked_capture is not None:
                         self.ranked_request = ranked_photo_request(observation.goal)
+                        if exact_title:
+                            self.reference_query = shortcut.value
+                            self.reference_refined = True
                     self.actor.last_metrics = {
                         "model_invocations": 0, "provider_output": None, "provider_image_size": list(canvas.size),
                         "evidence_stage": "locate", "evidence_frame": frame, "screen_text": rows,
@@ -811,6 +814,8 @@ class EvidenceAnswerPolicy:
         tie = self.price_discovery.tie if self.price_discovery is not None else None
         confirmed, status = confirmation_outcome(raw, candidate, request, expected_cents=tie.cents if tie is not None else None)
         self.last_metrics["provider_format"] = status
+        if confirmed is None and isinstance(candidate, ListingFacts):
+            self.last_metrics["stop_after_evidence"] = True
         return json.dumps(Action("ANSWER", confirmed).to_dict(), ensure_ascii=False) if confirmed is not None else None
 
     def verify_links(self, observation, frame, rows, selected, destinations, count):
