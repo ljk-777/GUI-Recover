@@ -1,7 +1,7 @@
 """Ground compound Classifieds answers in a single matched listing."""
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from urllib.parse import parse_qs, urlsplit
 
@@ -66,6 +66,10 @@ class ListingFacts:
             "Read the dollar amount separately from the lower strip. "
             'Return a JSON object with keys "letters" (string of space-separated characters and word separators) and "dollars".'
         )
+
+    def with_price_from_crop(self, rows):
+        cents = _displayed_cents(" ".join(row["text"] for row in rows))
+        return replace(self, cents=cents) if cents is not None else self
 
     def confirm(self, reply, *, reread=False):
         key = self.field

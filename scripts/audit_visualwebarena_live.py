@@ -13,7 +13,7 @@ from gui_recover.answer_evidence import (
     REFERENCE_CONTACT_REGION, REFERENCE_NAVIGATION, REFERENCE_SEARCH, REFERENCE_SEARCH_ABSTAINED,
     REFERENCE_TITLE_AMBIGUOUS, REFERENCE_TITLE_CROP, REFERENCE_TITLE_HEADING, REFERENCE_TITLE_OPEN,
     breadcrumb_ocr_image, confirmation_image, confirmation_outcome, contact_from_evidence, evidence_answer,
-    listing_fact_reread_image, native_crop,
+    listing_fact_reread_image, listing_price_ocr_image, native_crop,
     parse_evidence_location, reference_contact_box, reference_search_action,
     visible_contact_request,
 )
@@ -207,6 +207,8 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         else:
             stage = None
         require(metrics.get("evidence_stage") == stage, "Evidence check schedule disagrees with the observed frame")
+        require("listing_price_ocr" not in metrics or (stage == "confirm" and listing_fact_reread_pending),
+                "Price OCR reread is outside isolated compound confirmation")
         require("listing_preview" not in metrics or (stage == "locate" and link_count is not None),
                 "Link preview is outside the registered link-localization stage")
         if stage != "link_confirm":
@@ -509,6 +511,19 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                         and "listing_fact_reread_pending" not in metrics,
                         "Isolated confirmation must be bounded to its crop and may run only once")
                 confirmed, status = confirmation_outcome(reply, candidate, listing_fact_reread=isolated_facts)
+                if "listing_price_ocr" in metrics:
+                    require(isolated_facts and candidate.field == "city" and status == "evidence_verify_disagreed",
+                            "Price OCR reread requires a disagreeing price-and-city reread")
+                    review = metrics["listing_price_ocr"]
+                    with Image.open(directory / f"{index:04d}.png") as screen:
+                        image, price_bounds = listing_price_ocr_image(screen, candidate)
+                    require(review["bounds"] == list(price_bounds) and review["pixels_sha256"] == pixel_hash(image),
+                            "Price OCR reread differs from the saved screenshot")
+                    verify_ocr_rows(review["rows"], image.size)
+                    confirmed, status = confirmation_outcome(
+                        reply, candidate.with_price_from_crop(review["rows"]), listing_fact_reread=True,
+                    )
+                    stages["listing_price_ocr"] += 1
                 require(metrics["provider_format"] == status, "Isolated confirmation status differs from the recorded reply")
                 require((metrics.get("stop_after_evidence") is True) == (confirmed is None),
                         "An unresolved isolated confirmation must stop without submission")
