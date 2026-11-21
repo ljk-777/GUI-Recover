@@ -652,6 +652,25 @@ Both runs used fresh Qwen inference and recorded identical substitutions. Task 1
 
 Fresh clean controls passed both tasks with one Qwen call and one local price OCR check each. These experiments reuse the two known tasks and cover the two registered fault timings.
 
+### Test price recovery on six unopened listings
+
+The [cohort 005 protocol](../examples/vwa-catalog-price-holdout-protocol-005.json) paired the prior policy with the guarded policy on six new price-and-city tasks. The sampler excluded 320 item paths from earlier cohorts and recorded trajectories. Each fault timing was assigned to one single-word and one multiword city. All six tasks passed native preflight. The two policies used the same checkpoint and budgets, and the CPU audit matched all twelve pairs of starting screenshots and all six pairs of fault receipts.
+
+| Condition | Policy | Native success | Wrong submissions | Abstentions | Qwen calls |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Clean | Prior | 6/6 | 0 | 0 | 6 |
+| Clean | Guarded | 5/6 | 0 | 1 | 6 |
+| Injected | Prior | 2/6 | 4 | 0 | 10 |
+| Injected | Guarded | 3/6 | 0 | 3 | 11 |
+
+The guarded policy failed the clean preservation gate on task 10503. Full-page OCR and Qwen both read $600 correctly. At twice the native scale, the price crop produced overlapping fragments `600.` and `0.00` and the policy abstained. The frozen result includes this failure.
+
+Development revision `633f413` retries the same box at native scale once when the enlarged OCR result cannot be parsed as a single price. The native crop read $600 on task 10503. With fresh inference on that exposed task, the clean case passed in one Qwen call and the identical injected case passed in two. Both crop checks were reconstructed from the saved screenshots. The development reruns leave the frozen acceptance result in place.
+
+Use the [exclusion list](../examples/vwa-catalog-exclusions-005.json) with `prepare_vwa_catalog_holdout.py --series 5`. Run the two clean arms with `run_vwa_catalog_holdout.py run --evidence-only` in their pinned source trees. Run both fault arms with the [fixed fault plan](../examples/vwa-catalog-price-transfer-faults-005.json), the prior clean run as `--clean-run`, and `--allow-unexecuted`. Keep the six native preflight lines in the cohort's `preflight.log`. The CPU comparison takes the sealed cohort, the protocol, the fault plan, and the parent directory of the four runs.
+
+[Cohort 005 scores and checksums](../examples/vwa-catalog-price-transfer-results-005.json)
+
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
