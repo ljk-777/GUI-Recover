@@ -44,6 +44,7 @@ INPUT_MEDIA_SHA256 = "88a7fcad2505d581b266427896265c71367cbc067ed1da461eba127a45
 FRESH_PROTOCOL_SHA256 = "c62ac0397ef9a40d718f32194696362691800a95dadf072593a2163aca39e4fe"
 FRESH_MEDIA_SHA256 = "98c1ec76419d982dcecc97169bc74ee21d286804d3a2f75bfb79ae16c1966cab"
 SUPPLEMENTAL_TASK_ID = 10001
+CATALOG_TASK_IDS = tuple(range(10101, 10109))
 INPUT_CROSS_SITE_TASKS = (36, 233)
 INPUT_SITE_TOKENS = {
     "__CLASSIFIEDS__": "classifieds",
@@ -314,12 +315,16 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
     """Use BrowserGym's screenshot and action contract with native VWA answers."""
 
     def __init__(self, task_id, *, enable_card_view=False, enable_browser_context=False, reference_archive=None,
-                 start_sites=None, supplemental=None):
+                 start_sites=None, supplemental=None, catalog_case=None):
         from browsergym.core.action.highlevel import HighLevelActionSet
         from browsergym.core.env import BrowserEnv
         from browsergym.visualwebarena.task import GenericVisualWebArenaTask
 
-        if not any(task_id in tasks for tasks in TASK_SETS.values()):
+        if catalog_case is not None:
+            if (task_id not in CATALOG_TASK_IDS or catalog_case.get("task_id") != task_id
+                    or catalog_case.get("sites") != ["classifieds"] or supplemental is not None):
+                raise ValueError("Expected one frozen independent Classifieds case")
+        elif not any(task_id in tasks for tasks in TASK_SETS.values()):
             raise ValueError("Task is outside the registered Classifieds subset")
         # The upstream module constructs an OpenAI client even for its local
         # string evaluator. These tasks require no external judging service.
@@ -327,7 +332,21 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
         os.environ["OPENAI_BASE_URL"] = "http://127.0.0.1:1/v1"
         class LocalAnswerTask(GenericVisualWebArenaTask):
             def __init__(self, seed, task_id):
-                if supplemental is None:
+                if catalog_case is not None:
+                    super().__init__(seed, task_id=137)
+                    origin = self.webarena_instance.urls["classifieds"].rstrip("/")
+
+                    def catalog_url(value):
+                        if not value.startswith("__CLASSIFIEDS__/") or " |AND| " in value:
+                            raise ValueError("Independent cases require one registered Classifieds origin")
+                        return origin + value.removeprefix("__CLASSIFIEDS__")
+
+                    evaluation = dict(catalog_case["eval"])
+                    if evaluation.get("reference_url"):
+                        evaluation["reference_url"] = catalog_url(evaluation["reference_url"])
+                    self.task_configs = [{**catalog_case, "start_url": catalog_url(catalog_case["start_url"]),
+                                          "eval": evaluation}]
+                elif supplemental is None:
                     super().__init__(seed, task_id=task_id)
                 else:
                     super().__init__(seed, task_id=137)
@@ -344,7 +363,7 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
                     config_sites = set(config["sites"])
                     evaluators = tuple(evaluation["eval_types"])
                     local_evaluators = [("string_match",)]
-                    if task_id in TASK_SETS[FRESH_HOLDOUT_TASK_SET]:
+                    if task_id in TASK_SETS[FRESH_HOLDOUT_TASK_SET] or catalog_case is not None:
                         local_evaluators.extend((("url_match", "string_match"), ("string_match", "url_match")))
                     if ("classifieds" not in config_sites or not config_sites <= permitted or config.get("require_reset")
                             or evaluators not in local_evaluators
