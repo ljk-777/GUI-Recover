@@ -1,0 +1,43 @@
+{
+  "cohort_sha256": "ad6dd9d6a0345385c2869000ebaa12a4aa050a405f1ecddb4934cfaeaa3b29fd",
+  "source_revision": "ce6fcc0911b42909e3757373e83d6ee9d0ed2575",
+  "excluded_listing_paths": 228,
+  "registration": {
+    "acceptance": {
+      "fewer_wrong_submissions_than_control": true,
+      "minimum_successes": 2,
+      "more_successes_than_control": true
+    },
+    "catalog_pool_sha256": "0d7cc6751a5fae60c4d39202245c8f3abdce7814dda845ba5fa265bc02921ba9",
+    "evidence_sha256": "6a62d198d17f0137715e90ec296084acb034ac7a3a935a9981c287865fd59c97",
+    "exclusion_list_sha256": "de923f7e3e868443fbc3b7cde1491c919050d3cc7d0d3535bd9ef8b5e1ba8207",
+    "families": [
+      "detail-price-city",
+      "gallery-reference",
+      "search-reference",
+      "search-highest-price"
+    ],
+    "max_model_calls": 8,
+    "max_predictions": 12,
+    "minimum_reference_photo_distance": 0.105,
+    "reference_files_sha256": "c7c723ada583d6cb558066f1bbc0963d3bb8c7bd49152523a9d0679983ea9165",
+    "sample_key": "gui-recover-catalog-holdout-v3",
+    "scope": "independently sampled Classifieds tasks",
+    "seed": 0,
+    "strategies": [
+      "answer-check",
+      "evidence-cards"
+    ],
+    "task_ids": [
+      10301,
+      10302,
+      10303,
+      10304,
+      10305,
+      10306,
+      10307,
+      10308
+    ],
+    "tasks_sha256": "201df16a8553ee2a873492a37243dd8679674fc30b796482016fcbce290d3f93"
+  }
+}
