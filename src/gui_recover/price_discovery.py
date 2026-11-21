@@ -5,10 +5,11 @@ import re
 from dataclasses import dataclass, field
 from urllib.parse import parse_qs, urlsplit
 
-from .actions import Action
+from .actions import Action, ActionError
 from .listing_cards import (
     RESULT_VIEW_HEIGHT, card_panel, inspect_card_receipt, listing_range, read_card_checks, title_point,
 )
+from .qwen_grounding import read_reply
 from .ranked_cards import BATCH_SIZE
 from .screen_text import empty_keyword_field, listing_detail, replace_keyword_search
 from .verification import pixel_hash
@@ -25,6 +26,7 @@ _REQUEST = re.compile(
     r"and tell me how much it costs in dollars[.!?]?\s*$", re.IGNORECASE,
 )
 _QUALIFIER = re.compile(r"\s+(?:that|which|whose|with)\s+", re.IGNORECASE)
+_MULTIPLE_PEOPLE = re.compile(r"\b(?:has|with|shows?|showing)\s+multiple people\b", re.IGNORECASE)
 _CATEGORIES = {
     "Books": {"book", "books", "textbook", "textbooks"},
     "Jewelry": {"ring", "rings", "bracelet", "bracelets", "necklace", "necklaces", "earrings"},
@@ -33,6 +35,7 @@ _CATEGORIES = {
 _DOLLAR_PRICE = re.compile(r"(?:\$\s*[\d,.]+|[\d,.]+\s*\$)")
 _PRICE_AMOUNT = re.compile(r"\d[\d,]*(?:\.\d{2})?")
 _CENTS_AMOUNT = re.compile(r"(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{1,2})?")
+_BATCH_NUMBER_WORDS = ("zero", "one", "two", "three", "four", "five", "six")
 
 
 @dataclass(frozen=True)
@@ -211,6 +214,30 @@ def first_ranked_match(reply, count):
         if value:
             return index, False
     return None, True
+
+
+def _people_count_match(reply, count):
+    counts = read_reply(reply)
+    if not isinstance(counts, list) or len(counts) != count or any(
+        type(people) is not int or not 0 <= people <= 1000 for people in counts
+    ):
+        raise ActionError("Expected one visible people count for every photo")
+    index = next((index for index, people in enumerate(counts) if people >= 2), None)
+    return index, index is None
+
+
+def _people_count_prompt(count):
+    cards = [f"Card {index}" for index in range(1, count + 1)]
+    if count == 1:
+        sequence = cards[0]
+    elif count == 2:
+        sequence = " and ".join(cards)
+    else:
+        sequence = ", ".join(cards[:-1]) + ", and " + cards[-1]
+    amount = _BATCH_NUMBER_WORDS[count] if count < len(_BATCH_NUMBER_WORDS) else str(count)
+    return (f"Count the people visibly present in {sequence}. "
+            f"Return one JSON array of exactly {amount} nonnegative integers in that order. "
+            "Return no prose or other values.")
 
 
 class PriceDiscovery:
@@ -406,6 +433,7 @@ class PriceDiscovery:
             self.retry_panel = None
             self.retried_photo_response = True
             metrics["price_retried_photo_response"] = True
+        count_people = retry and self.tie is not None and _MULTIPLE_PEOPLE.search(self.request.visual_target) is not None
         example = '{"1":[false,"wooden table"],"2":[true,"person wearing ring"]}'
         condition = ""
         if self.request.requires_selfie_cue:
@@ -423,16 +451,20 @@ class PriceDiscovery:
             "[true or false, at most three words of visible evidence]. "
             f"For example, {example}."
         )
-        reply = actor.ask(actor.prepare_image(panel), (
+        prompt = _people_count_prompt(len(batch)) if count_people else (
             f"Visual criterion: {self.request.visual_target}.\n"
             f"{condition}"
             "Inspect each numbered listing photo. First identify a concrete visual cue in the photo. "
             "Use that cue to decide whether the item visibly matches, recording false for a clearly unrelated photo. "
             f"{response_format}"
-        ))
+        )
+        reply = actor.ask(actor.prepare_image(panel), prompt)
         metrics.update(model_invocations=1, provider_output=reply, price_panel_pixels=panel_hash,
                        peak_cuda_allocated_bytes=actor.last_metrics.get("peak_cuda_allocated_bytes", 0))
         try:
+            if count_people:
+                metrics["price_counted_people"] = True
+                return _people_count_match(reply, len(batch))
             return first_ranked_match(reply, len(batch))
         except (ValueError, RecursionError):
             return None

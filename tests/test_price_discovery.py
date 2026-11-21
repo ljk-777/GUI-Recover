@@ -7,7 +7,7 @@ from PIL import Image
 from gui_recover.actions import ActionError, category_search_terms, compile_action, parse_action
 from gui_recover.environment import VisualObservation
 from gui_recover.price_discovery import (
-    PriceDiscovery, _detail_price_box, first_ranked_match, price_request, price_result_scope,
+    PriceDiscovery, PriceTie, _detail_price_box, first_ranked_match, price_request, price_result_scope,
 )
 from gui_recover.verification import pixel_hash
 
@@ -233,3 +233,28 @@ def test_invalid_photo_reply_gets_one_retry_on_the_same_panel(retry_succeeds):
         assert discovery.destination == cards[1]["destination"]
     else:
         assert decision is None and actor.last_metrics["stop_after_evidence"]
+
+
+@pytest.mark.parametrize(("reply", "expected"), [("[0,1,3]", (2, False)), ("[0,1,1]", (None, True)),
+                                               ("[0,true,3]", None), ("[0,1]", None)])
+def test_people_count_retry_requires_an_exact_count_for_every_tied_card(reply, expected):
+    site = "http://localhost:19980"
+    goal = "Find the most expensive wheelchair lift that has multiple people in the image, and tell me how much it costs in dollars."
+    discovery = PriceDiscovery(price_request(goal), site)
+    discovery.tie = PriceTie(20000, site, (1, 3, 10), ["1"], set())
+    screen = Image.new("RGB", (300, 150))
+    cards = [{"image": [x, 10, x + 65, 75], "title": [x, 80, x + 65, 95]} for x in (5, 85, 165)]
+    replies = iter(('{"1":false,"2":false,"3":true,"people standing"}', reply))
+    prompts = []
+
+    def ask(_panel, prompt):
+        prompts.append(prompt)
+        return next(replies)
+
+    actor = SimpleNamespace(prepare_image=lambda image: image, ask=ask, last_metrics={})
+    metrics = {}
+    assert discovery.review_photos(cards, screen, actor, metrics) is None
+    discovery.retry_panel = metrics["price_panel_pixels"]
+    assert discovery.review_photos(cards, screen, actor, metrics) == expected
+    assert prompts[-1].startswith("Count the people visibly present in Card 1, Card 2, and Card 3.")
+    assert metrics["price_counted_people"] is True
