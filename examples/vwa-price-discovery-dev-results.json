@@ -1,0 +1,112 @@
+{
+  "scope": "previously observed development tasks",
+  "task_set": "evidence-cards-price-dev",
+  "run": "visualwebarena-price-discovery-dev-004",
+  "source_commit": "388c0ad973d8df5e0817ce184da0291e0aa4d6d7",
+  "evidence_archive_sha256": "69a81201d7fb203a38ab3a01a91ab95f418093fc753aa554c2d45f74cb24c602",
+  "hardware": "NVIDIA GeForce RTX 4090 D",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct (NF4)",
+  "prediction_budget": 12,
+  "max_observed_model_calls": 8,
+  "screenshots": 31,
+  "native_successes": {
+    "answer-check": 0,
+    "evidence-cards": 0
+  },
+  "wrong_submissions": {
+    "answer-check": 0,
+    "evidence-cards": 0
+  },
+  "by_task": {
+    "82": {
+      "evidence_calls": {
+        "price_search": 1,
+        "price_sort": 1,
+        "price_expand": 1,
+        "price_more_cards": 2,
+        "price_next_page": 2,
+        "price_abstained": 1
+      },
+      "answer_outcome": {
+        "answer-check": null,
+        "evidence-cards": null
+      },
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "model_calls": 8,
+          "predictions": 8,
+          "reason": "model_call_limit",
+          "answers_submitted": 0
+        },
+        "evidence-cards": {
+          "success": false,
+          "model_calls": 4,
+          "predictions": 8,
+          "reason": "evidence_abstained",
+          "answers_submitted": 0
+        }
+      }
+    },
+    "84": {
+      "evidence_calls": {
+        "price_search": 1,
+        "price_sort": 1,
+        "price_expand": 1,
+        "price_more_cards": 1,
+        "price_next_page": 1,
+        "price_abstained": 1
+      },
+      "answer_outcome": {
+        "answer-check": null,
+        "evidence-cards": null
+      },
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "model_calls": 8,
+          "predictions": 8,
+          "reason": "model_call_limit",
+          "answers_submitted": 0
+        },
+        "evidence-cards": {
+          "success": false,
+          "model_calls": 3,
+          "predictions": 6,
+          "reason": "evidence_abstained",
+          "answers_submitted": 0
+        }
+      }
+    },
+    "99": {
+      "evidence_calls": {
+        "price_search": 1,
+        "price_sort": 1,
+        "price_expand": 1,
+        "price_more_cards": 1,
+        "price_next_page": 1,
+        "price_abstained": 1
+      },
+      "answer_outcome": {
+        "answer-check": null,
+        "evidence-cards": null
+      },
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "model_calls": 8,
+          "predictions": 8,
+          "reason": "model_call_limit",
+          "answers_submitted": 0
+        },
+        "evidence-cards": {
+          "success": false,
+          "model_calls": 2,
+          "predictions": 6,
+          "reason": "evidence_abstained",
+          "answers_submitted": 0
+        }
+      }
+    }
+  }
+}

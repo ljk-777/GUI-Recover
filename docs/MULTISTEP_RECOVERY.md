@@ -431,4 +431,10 @@ python scripts/audit_visualwebarena_live.py runs/visualwebarena-price-dev \
   --out runs/visualwebarena-price-dev-audit.json
 ~~~
 
+In the completed CUDA development comparison, the evidence policy reached the sorted gallery and used the next-page control on all three tasks. Both policies scored 0/3 and made zero submissions. The evidence policy used four, three, and two model calls on tasks 82, 84, and 99 respectively. On tasks 82 and 99, a later page repeated listings from the previous page, so the policy stopped when it could no longer establish complete ranked coverage. On task 84, the model returned an ordered sequence of judgments that the original parser rejected.
+
+The parser now accepts a complete ordered response with one valid judgment per card. The detail-page reader also handles a dollar sign that OCR puts in a separate adjacent box. A controlled browser replay reached the read and confirmation stages. The resulting CUDA comparison is still pending. The three previously seen tasks remain development cases.
+
+[Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
+
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
