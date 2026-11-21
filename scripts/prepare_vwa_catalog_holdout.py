@@ -16,10 +16,12 @@ from bs4 import BeautifulSoup
 from PIL import Image
 
 
-SAMPLE_KEY = "gui-recover-catalog-holdout-v1"
+COHORT_IDS = {
+    "gui-recover-catalog-holdout-v1": tuple(range(10101, 10109)),
+    "gui-recover-catalog-holdout-v2": tuple(range(10201, 10209)),
+}
 CATEGORIES = (9, 19, 6)
 FAMILIES = ("detail-price-city", "gallery-reference", "search-reference", "search-highest-price")
-IDS = tuple(range(10101, 10109))
 PRICE = re.compile(r"([0-9][0-9,]*)\.00\s*\$")
 RANGE = re.compile(r"([\d,]+)\s*-\s*([\d,]+)\s+of\s+([\d,]+)\s+listings\b", re.I)
 SAFE_TITLE = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ,'.&/-]{5,55}")
@@ -32,10 +34,6 @@ def encoded(value):
 
 def fingerprint(data):
     return hashlib.sha256(data).hexdigest()
-
-
-def sample_key(value):
-    return fingerprint(f"{SAMPLE_KEY}\n{value}".encode())
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -123,7 +121,13 @@ def task(task_id, goal, start, expected, *, item=None, image=None):
             "image": image, "eval": rule}
 
 
-def freeze(site, excluded, output):
+def freeze(site, excluded, output, *, series=1):
+    key = f"gui-recover-catalog-holdout-v{series}"
+    ids = COHORT_IDS[key]
+
+    def sample_key(value):
+        return fingerprint(f"{key}\n{value}".encode())
+
     catalog = Catalog(site)
     pool = {}
     pool_digests = {}
@@ -139,7 +143,7 @@ def freeze(site, excluded, output):
     searched = {}
 
     def record(family, start, goal, expected, card, source, *, pin_item=False, reference=False):
-        case_id = IDS[len(specs)]
+        case_id = ids[len(specs)]
         name = f"catalog-references/{case_id}.png" if reference else None
         if name:
             with Image.open(io.BytesIO(catalog.read(card.photo))) as photo:
@@ -223,7 +227,7 @@ def freeze(site, excluded, output):
     media_record = {"files": manifest, "archive_sha256": fingerprint(archive.read_bytes())}
     protocol = {
         "scope": "independently sampled Classifieds tasks",
-        "sample_key": SAMPLE_KEY, "task_ids": list(IDS), "families": list(FAMILIES),
+        "sample_key": key, "task_ids": list(ids), "families": list(FAMILIES),
         "seed": 0, "max_predictions": 12, "max_model_calls": 8,
         "strategies": ["answer-check", "evidence-cards"],
         "acceptance": {"minimum_successes": 2, "more_successes_than_control": True,
@@ -244,8 +248,9 @@ if __name__ == "__main__":
     parser.add_argument("--site", required=True)
     parser.add_argument("--exclude", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--series", type=int, choices=(1, 2), default=1)
     args = parser.parse_args()
     excluded = set(json.loads(args.exclude.read_text()))
     if any(not isinstance(item, str) or not OWN_INDEX.fullmatch(item) for item in excluded):
         raise ValueError("The exclusion file needs verified listing paths")
-    print(freeze(args.site, excluded, args.out), flush=True)
+    print(freeze(args.site, excluded, args.out, series=args.series), flush=True)

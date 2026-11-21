@@ -14,14 +14,14 @@ from gui_recover.runner import render_replay, run_episode, write_json
 from gui_recover.screen_text import RapidScreenReader
 from gui_recover.verification import pixel_hash
 from gui_recover.vwa_inputs import LocalReferenceArchive
-from prepare_vwa_catalog_holdout import FAMILIES, IDS, OWN_INDEX, SAMPLE_KEY, encoded, fingerprint
+from prepare_vwa_catalog_holdout import COHORT_IDS, FAMILIES, OWN_INDEX, encoded, fingerprint
 from run_visualwebarena_live import VisualWebArenaEnvironment, exact_vwa_success, holdout_profile, probe_instance
 
 
 STRATEGIES = ("answer-check", "evidence-cards")
 SCOPE = "independently sampled Classifieds tasks"
 PROFILE = {
-    "scope": SCOPE, "sample_key": SAMPLE_KEY, "task_ids": list(IDS), "families": list(FAMILIES),
+    "scope": SCOPE, "families": list(FAMILIES),
     "seed": 0, "max_predictions": 12, "max_model_calls": 8, "strategies": list(STRATEGIES),
     "acceptance": {"minimum_successes": 2, "more_successes_than_control": True,
                    "fewer_wrong_submissions_than_control": True},
@@ -46,14 +46,15 @@ def load_cohort(directory, digest, homepage):
     if fingerprint(raw) != digest:
         raise ValueError("Cohort digest differs from its registration")
     protocol = json.loads(raw)
-    if any(protocol.get(key) != value for key, value in PROFILE.items()):
+    ids = COHORT_IDS.get(protocol["sample_key"])
+    if ids is None or protocol.get("task_ids") != list(ids) or any(protocol.get(key) != value for key, value in PROFILE.items()):
         raise ValueError("Unexpected independent evaluation profile")
     cases = json.loads((directory / "tasks.json").read_bytes())
     evidence = json.loads((directory / "source-evidence.json").read_bytes())
     if (fingerprint(encoded(cases)) != protocol["tasks_sha256"]
             or fingerprint(encoded(evidence)) != protocol["evidence_sha256"]):
         raise ValueError("Independent task definitions or source evidence changed")
-    if tuple(case["task_id"] for case in cases) != IDS or tuple(row["task_id"] for row in evidence) != IDS:
+    if tuple(case["task_id"] for case in cases) != ids or tuple(row["task_id"] for row in evidence) != ids:
         raise ValueError("Expected the eight preregistered case IDs")
     if [row["family"] for row in evidence] != [family for family in FAMILIES for _ in range(2)]:
         raise ValueError("Expected two cases in each preregistered family")
