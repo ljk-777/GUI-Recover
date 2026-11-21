@@ -16,6 +16,7 @@ CATALOG_SERIES_IDS = {
     "gui-recover-catalog-holdout-v1": tuple(range(10101, 10109)),
     "gui-recover-catalog-holdout-v2": tuple(range(10201, 10209)),
     "gui-recover-catalog-holdout-v3": tuple(range(10301, 10309)),
+    "gui-recover-catalog-holdout-v4": tuple(range(10401, 10409)),
 }
 
 

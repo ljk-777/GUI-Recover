@@ -16,7 +16,7 @@ from gui_recover.runner import render_replay, run_episode, write_json
 from gui_recover.screen_text import RapidScreenReader
 from gui_recover.verification import pixel_hash
 from gui_recover.vwa_inputs import CATALOG_SERIES_IDS, LocalReferenceArchive
-from prepare_vwa_catalog_holdout import FAMILIES, OWN_INDEX, encoded, fingerprint
+from prepare_vwa_catalog_holdout import CITY_WORD_COUNTS, FAMILIES, OWN_INDEX, encoded, fingerprint
 from run_visualwebarena_live import VisualWebArenaEnvironment, exact_vwa_success, holdout_profile, probe_instance
 
 
@@ -69,7 +69,7 @@ def load_cohort(directory, digest, homepage):
     if ids is None or protocol.get("task_ids") != list(ids) or any(protocol.get(key) != value for key, value in PROFILE.items()):
         raise ValueError("Unexpected independent evaluation profile")
     minimum_photo_distance = protocol.get("minimum_reference_photo_distance")
-    if ((protocol["sample_key"] == "gui-recover-catalog-holdout-v3" or minimum_photo_distance is not None)
+    if ((ids[0] >= 10301 or minimum_photo_distance is not None)
             and minimum_photo_distance != REFERENCE_PHOTO_CLEAR_DISTANCE):
         raise ValueError("Unexpected reference photo screening threshold")
     cases = json.loads((directory / "tasks.json").read_bytes())
@@ -81,6 +81,12 @@ def load_cohort(directory, digest, homepage):
         raise ValueError("Expected the eight preregistered case IDs")
     if [row["family"] for row in evidence] != [family for family in FAMILIES for _ in range(2)]:
         raise ValueError("Expected two cases in each preregistered family")
+    city_word_counts = CITY_WORD_COUNTS.get(protocol["sample_key"])
+    if city_word_counts and (
+        protocol.get("detail_city_word_counts_capped_at_two") != list(city_word_counts)
+        or tuple(min(len(row["source"]["visible"]["city"].split()), 2) for row in evidence[:2]) != city_word_counts
+    ):
+        raise ValueError("Expected the registered mix of single-word and multiword city names")
     references = LocalReferenceArchive(directory, protocol["reference_files_sha256"], homepage=homepage)
     used_images = set()
     for case, proof in zip(cases, evidence, strict=True):

@@ -25,6 +25,7 @@ PRICE = re.compile(r"([0-9][0-9,]*)\.00\s*\$")
 RANGE = re.compile(r"([\d,]+)\s*-\s*([\d,]+)\s+of\s+([\d,]+)\s+listings\b", re.I)
 SAFE_TITLE = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ,'.&/-]{5,55}")
 OWN_INDEX = re.compile(r"^/index\.php\?page=item&id=([1-9][0-9]*)$")
+CITY_WORD_COUNTS = {"gui-recover-catalog-holdout-v4": (2, 1)}
 
 
 def encoded(value):
@@ -168,6 +169,7 @@ def task(task_id, goal, start, expected, *, item=None, image=None):
 def freeze(site, excluded, output, *, series=1):
     key = f"gui-recover-catalog-holdout-v{series}"
     ids = CATALOG_SERIES_IDS[key]
+    city_word_counts = CITY_WORD_COUNTS.get(key)
 
     def sample_key(value):
         return fingerprint(f"{key}\n{value}".encode())
@@ -202,6 +204,8 @@ def freeze(site, excluded, output, *, series=1):
         verified = catalog.detail(card)
         if verified and card.dollars >= 10:
             city, digest = verified
+            if city_word_counts and min(len(city.split()), 2) != city_word_counts[len(specs)]:
+                continue
             record(FAMILIES[0], card.item, "What is the asking price in dollars and the city for the listing open in this tab?",
                    [str(card.dollars), city], card, {"detail_sha256": digest, "visible": {"dollars": card.dollars, "city": city}},
                    pin_item=True)
@@ -284,6 +288,8 @@ def freeze(site, excluded, output, *, series=1):
         "catalog_pool_sha256": fingerprint(encoded(pool_digests)),
         "exclusion_list_sha256": fingerprint(encoded(sorted(excluded))),
     }
+    if city_word_counts:
+        protocol["detail_city_word_counts_capped_at_two"] = list(city_word_counts)
     for name, payload in (("cohort.json", protocol), ("tasks.json", specs), ("source-evidence.json", evidence),
                           ("reference-media.json", media_record)):
         (output / name).write_bytes(encoded(payload) + b"\n")
