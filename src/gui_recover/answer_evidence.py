@@ -10,8 +10,8 @@ from PIL import Image, ImageDraw
 from .actions import Action, ActionError
 from .environment import frame_key
 from .listing_cards import (
-    exact_reference_title_request, listing_title_heading, ranked_photo_request, reference_result_action, reference_result_destination,
-    reference_title_open_action, reference_title_region, reference_title_request,
+    ReferenceTitleCrop, exact_reference_title_request, ranked_photo_request, reference_result_action, reference_result_destination,
+    reference_title_crop, reference_title_open_action, reference_title_region, reference_title_request,
 )
 from .listing_facts import LISTING_FACTS_ABSTAINED, ListingFacts, listing_fact_decision
 from .price_discovery import SELFIE_PHOTO_REQUIREMENT, PriceDiscovery, cover_color_labels, price_request, same_origin
@@ -38,6 +38,7 @@ REFERENCE_RESULTS_REFINE = "evidence_reference_results_refine"
 REFERENCE_CONTACT_REGION = "evidence_reference_contact_region"
 REFERENCE_TITLE_OPEN = "evidence_reference_title_open"
 REFERENCE_TITLE_HEADING = "evidence_reference_title_heading"
+REFERENCE_TITLE_CROP = "evidence_reference_title_crop"
 REFERENCE_NAVIGATION = {
     "LISTING_GRID": REFERENCE_RESULTS_EXPAND,
     "CLICK": REFERENCE_RESULTS_OPEN,
@@ -90,12 +91,12 @@ def evidence_box(raw, size):
     return tuple(box)
 
 
-def native_crop(screen, size, box):
+def native_crop(screen, size, box, *, pad=True):
     """Map prepared-image coordinates to the original pixels with context."""
     left, top, right, bottom = box
     width, height = size
-    pad_x = max(16, (right - left) // 8)
-    pad_y = max(16, (bottom - top) // 8)
+    pad_x = max(16, (right - left) // 8) if pad else 0
+    pad_y = max(16, (bottom - top) // 8) if pad else 0
     bounds = (
         max(0, (left - pad_x) * screen.width // width),
         max(0, (top - pad_y) * screen.height // height),
@@ -297,12 +298,16 @@ def confirmation_outcome(raw, candidate, request=None, *, expected_cents=None):
     try:
         if isinstance(candidate, ListingFacts):
             return candidate.confirm(raw)
-        answer = parse_independent_confirmation(raw, request)
+        answer = (parse_visible_answer(raw) if isinstance(candidate, ReferenceTitleCrop)
+                  else parse_independent_confirmation(raw, request))
     except (ValueError, RecursionError):
         return None, "evidence_invalid"
     if answer is None:
         return None, "evidence_verify_abstained"
-    confirmed = confirmed_evidence_answer(candidate, answer, price_crop=request is not None, expected_cents=expected_cents)
+    if isinstance(candidate, ReferenceTitleCrop):
+        confirmed = candidate.title if " ".join(answer.casefold().split()) == candidate.title.casefold() else None
+    else:
+        confirmed = confirmed_evidence_answer(candidate, answer, price_crop=request is not None, expected_cents=expected_cents)
     return (confirmed, "evidence_verify_agreed") if confirmed is not None else (None, "evidence_verify_disagreed")
 
 
@@ -392,7 +397,6 @@ class EvidenceAnswerPolicy:
         self.reference_query = None
         self.reference_refined = False
         self.reference_destination = None
-        self.reference_title_frame = None
         self.listing_fact_target = None
         self.checked_frames = set()
         self.pending_crop = None
@@ -416,7 +420,6 @@ class EvidenceAnswerPolicy:
         self.reference_query = None
         self.reference_refined = False
         self.reference_destination = None
-        self.reference_title_frame = None
         self.listing_fact_target = None
         if self.ranked_capture is not None:
             self.ranked_evidence = RankedCardEvidence(self.listing_site)
@@ -532,16 +535,15 @@ class EvidenceAnswerPolicy:
             if handled:
                 return raw
             if exact_title and self.reference_destination is not None and active_url == self.reference_destination:
-                heading = listing_title_heading(rows, canvas.size)
-                if heading is not None:
-                    box, title = heading
-                    crop, bounds = native_crop(observation.screenshot, canvas.size, box)
+                title = reference_title_crop(rows, canvas.size)
+                if title is not None:
+                    crop, bounds = native_crop(observation.screenshot, canvas.size, title.bounds, pad=False)
                     self.pending_answer = frame, crop, bounds, title
-                    self.reference_title_frame = frame
                     self.actor.last_metrics = {
-                        "model_invocations": 0, "provider_output": None, "provider_format": REFERENCE_TITLE_HEADING,
+                        "model_invocations": 0, "provider_output": None, "provider_format": REFERENCE_TITLE_CROP,
                         "evidence_stage": "locate", "evidence_frame": frame, "screen_text": rows,
                         "provider_image_size": list(canvas.size), "evidence_bounds": list(bounds),
+                        "reference_title_missing_number": title.missing_number,
                         "peak_cuda_allocated_bytes": 0,
                     }
                     return None
@@ -734,6 +736,18 @@ class EvidenceAnswerPolicy:
         return None
 
     def verify(self, observation, frame, crop, bounds, candidate):
+        if isinstance(candidate, ReferenceTitleCrop):
+            raw = self.actor.ask(self.actor.prepare_image(crop), (
+                "Transcribe the full listing heading in this crop. Include every word and number. "
+                'Return only JSON with the key "answer". Use {"answer":null} if any part is unreadable.'
+            ))
+            answer, status = confirmation_outcome(raw, candidate)
+            self.last_metrics.update(evidence_stage="confirm", evidence_frame=frame, evidence_bounds=list(bounds),
+                                     reference_title_crop_sha256=pixel_hash(crop), provider_format=status)
+            if answer is None:
+                self.last_metrics["stop_after_evidence"] = True
+                return None
+            return json.dumps(Action("ANSWER", answer).to_dict(), ensure_ascii=False)
         request = self.price_discovery.request if self.price_discovery is not None else None
         color = request.hardcover_color if request is not None else None
         panel = confirmation_image(observation.screenshot, crop, bounds, self.navigation_context,
@@ -756,12 +770,6 @@ class EvidenceAnswerPolicy:
         )
         if isinstance(candidate, ListingFacts):
             prompt = candidate.confirmation_prompt()
-        elif self.reference_title_frame == frame:
-            prompt = (
-                "Transcribe the opened listing's full heading exactly from the enlarged image on the right. "
-                'Keep every word even if the gallery card was shortened. Return only JSON with the key "answer". '
-                'Use {"answer":null} if any heading text is unreadable.'
-            )
         elif color is not None:
             shades = ", ".join(cover_color_labels(color))
             prompt = (

@@ -1,6 +1,7 @@
 """Read and inspect visible listing cards without exposing page contents to the model."""
 
 import re
+from dataclasses import dataclass
 from urllib.parse import urlsplit
 
 import numpy as np
@@ -149,8 +150,7 @@ def reference_title_request(goal):
     return bool(_TITLE.search(goal))
 
 
-def listing_title_heading(rows, size):
-    """Use the full detail heading only when it agrees with the visible breadcrumb."""
+def _listing_title_rows(rows, size):
     crumbs = [row for row in rows if row["text"].casefold().startswith("classifieds > ")
               and row["text"].count(" > ") >= 2]
     dates = [row for row in rows if row["text"].casefold().startswith("published date:")]
@@ -163,15 +163,65 @@ def listing_title_heading(rows, size):
         and abs(row["bounds"][0] - date["bounds"][0]) <= max(8, size[0] // 30)
     ]
     lines.sort(key=lambda row: (row["bounds"][1], row["bounds"][0]))
+    return (crumb, date, lines) if lines else None
+
+
+def _listing_title_fields(crumb, lines):
     heading = " ".join(" ".join(row["text"].split()) for row in lines)
-    title = crumb["text"].rsplit(" > ", 1)[1].strip()
-    if (not 1 <= len(heading) <= 200 or heading.casefold() != " ".join(title.casefold().split())
-            or heading.endswith(("…", "..."))):
-        return None
     boxes = [row["bounds"] for row in lines]
     bounds = (min(box[0] for box in boxes), min(box[1] for box in boxes),
               max(box[2] for box in boxes), max(box[3] for box in boxes))
-    return bounds, heading
+    return bounds, heading, crumb["text"].rsplit(" > ", 1)[1].strip()
+
+
+def listing_title_heading(rows, size):
+    """Use the full detail heading when it agrees with the visible breadcrumb."""
+    title_rows = _listing_title_rows(rows, size)
+    if title_rows is None:
+        return None
+    crumb, _, lines = title_rows
+    bounds, heading, title = _listing_title_fields(crumb, lines)
+    if (1 <= len(heading) <= 200 and heading.casefold() == " ".join(title.casefold().split())
+            and not heading.endswith(("…", "..."))):
+        return bounds, heading
+    return None
+
+
+@dataclass(frozen=True)
+class ReferenceTitleCrop:
+    bounds: tuple[int, int, int, int]
+    title: str
+    missing_number: bool
+
+
+def reference_title_crop(rows, size):
+    """Isolate the heading, allowing for one short numeric suffix missed by OCR."""
+    title_rows = _listing_title_rows(rows, size)
+    if title_rows is None:
+        return None
+    crumb, date, lines = title_rows
+    (left, top, right, bottom), heading, title = _listing_title_fields(crumb, lines)
+    title = " ".join(title.split())
+    if not 1 <= len(title) <= 200 or heading.endswith(("…", "...")):
+        return None
+    missing_number = heading.casefold() != title.casefold()
+    prefix, _, number = title.rpartition(" ")
+    if missing_number and (prefix.casefold() != heading.casefold() or not re.fullmatch(r"[0-9]{1,4}", number)):
+        return None
+
+    last_line = lines[-1]["bounds"]
+    height = last_line[3] - last_line[1]
+    margin = max(4, height // 5)
+    end = right + (2 * height if missing_number else margin)
+    if missing_number:
+        # The second column can hold the price. Keep its text out of the crop.
+        neighbors = [x0 for row in rows for x0, y0, _, y1 in [row["bounds"]]
+                     if right <= x0 < end and y0 < bottom and y1 > top
+                     and row["text"].strip() != number]
+        end = min(neighbors, default=end)
+    bounds = (max(0, left - margin), max(crumb["bounds"][3], top - margin),
+              min(size[0], end), min(date["bounds"][1], bottom + margin))
+    return ReferenceTitleCrop(bounds, title, missing_number)
 
 
 def title_point(card, size):

@@ -11,15 +11,16 @@ from PIL import Image
 from gui_recover.actions import ActionError, parse_action
 from gui_recover.answer_evidence import (
     REFERENCE_CONTACT_REGION, REFERENCE_NAVIGATION, REFERENCE_SEARCH, REFERENCE_SEARCH_ABSTAINED,
-    REFERENCE_TITLE_HEADING, REFERENCE_TITLE_OPEN,
-    confirmation_image, confirmation_outcome, contact_from_evidence, evidence_answer, listing_title_heading, native_crop,
+    REFERENCE_TITLE_CROP, REFERENCE_TITLE_HEADING, REFERENCE_TITLE_OPEN,
+    confirmation_image, confirmation_outcome, contact_from_evidence, evidence_answer, native_crop,
     parse_evidence_location, reference_contact_box, reference_search_action,
     visible_contact_request,
 )
 from gui_recover.environment import VisualObservation, frame_key
 from gui_recover.listing_cards import (
-    RESULT_VIEW_HEIGHT, exact_reference_title_request, ranked_photo_request, reference_result_action,
-    reference_result_destination, reference_title_open_action, reference_title_region, reference_title_request,
+    RESULT_VIEW_HEIGHT, ReferenceTitleCrop, exact_reference_title_request, listing_title_heading, ranked_photo_request,
+    reference_result_action, reference_result_destination, reference_title_crop, reference_title_open_action,
+    reference_title_region, reference_title_request,
 )
 from gui_recover.listing_facts import (
     LISTING_FACTS_ABSTAINED, LISTING_FACTS_STAGES, SEARCH_PRICE_NAVIGATION, ListingFacts, listing_fact_decision,
@@ -270,7 +271,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                     reference_destination = reference_result_destination(receipt, screen.size, action)
                 stages["reference_title_open"] += 1
                 continue
-            if metrics["provider_format"] == REFERENCE_TITLE_HEADING:
+            if metrics["provider_format"] in (REFERENCE_TITLE_HEADING, REFERENCE_TITLE_CROP):
                 require(use_ranked_cards and use_screen_text and exact_reference_title_request(goal)
                         and reference_destination is not None and tabs
                         and tabs["tabs"][tabs["active_tab"]][1] == reference_destination
@@ -278,14 +279,21 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                         "Full title evidence requires the matched listing detail")
                 rows, size = metrics["screen_text"], metrics["provider_image_size"]
                 verify_ocr_rows(rows, size)
-                heading = listing_title_heading(rows, size)
-                require(heading is not None, "Full heading no longer matches the visible breadcrumb")
-                box, title = heading
+                isolated = metrics["provider_format"] == REFERENCE_TITLE_CROP
+                if isolated:
+                    title = reference_title_crop(rows, size)
+                    require(title is not None and metrics["reference_title_missing_number"] is title.missing_number,
+                            "Isolated title crop differs from the visible heading and breadcrumb")
+                    box = title.bounds
+                else:
+                    heading = listing_title_heading(rows, size)
+                    require(heading is not None, "Full heading no longer matches the visible breadcrumb")
+                    box, title = heading
                 with Image.open(directory / f"{index:04d}.png") as screen:
-                    _, bounds = native_crop(screen, size, box)
+                    _, bounds = native_crop(screen, size, box, pad=not isolated)
                 require(list(bounds) == metrics["evidence_bounds"], "Unexpected title heading crop")
                 pending_confirmation = frame, list(bounds), title
-                stages["reference_title_heading"] += 1
+                stages["reference_title_crop" if isolated else "reference_title_heading"] += 1
                 continue
             if metrics["provider_format"] == "evidence_reference_region":
                 require(use_ranked_cards and reference_title_request(goal) and len(reference_images) == 1
@@ -461,6 +469,26 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         else:
             _, bounds, candidate = pending_confirmation
             pending_confirmation = None
+            if isinstance(candidate, ReferenceTitleCrop):
+                with Image.open(directory / f"{index:04d}.png") as screen:
+                    cropped = screen.crop(bounds)
+                    require(metrics["evidence_bounds"] == bounds
+                            and metrics["reference_title_crop_sha256"] == pixel_hash(cropped)
+                            and "evidence_panel_sha256" not in metrics and "evidence_context_sha256" not in metrics,
+                            "Title confirmation must inspect only the recorded heading crop")
+                confirmed, status = confirmation_outcome(reply, candidate)
+                require(metrics["provider_format"] == status, "Title confirmation status differs from the recorded reply")
+                require((metrics.get("stop_after_evidence") is True) == (confirmed is None),
+                        "Title disagreement must stop without submission")
+                if confirmed is not None:
+                    action = parse_action(raw)
+                    require(action.action == "ANSWER" and action.value == confirmed, "Submitted title differs from the crop")
+                    answers.add(step)
+                else:
+                    require(raw is None, "Title reached the browser without agreement")
+                stages["reference_title_crop_confirm"] += 1
+                continue
+            require("reference_title_crop_sha256" not in metrics, "Unexpected isolated title confirmation")
             context = None
             origin = click_origins.get(index) if click_origins is not None else None
             if origin is not None:
@@ -548,7 +576,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         is_shortcut = direct_navigation and use_screen_text and provider_format == "evidence_exact_search" and step == 0
         reference_region = use_browser_context and use_ranked_cards and provider_format in (
             "evidence_reference_region", REFERENCE_CONTACT_REGION, REFERENCE_TITLE_OPEN, REFERENCE_TITLE_HEADING,
-            *REFERENCE_NAVIGATION.values(), *LISTING_FACTS_STAGES,
+            REFERENCE_TITLE_CROP, *REFERENCE_NAVIGATION.values(), *LISTING_FACTS_STAGES,
         )
         ranked = use_ranked_cards and metrics.get("evidence_stage") in ("ranked_cards", PRICE_DISCOVERY)
         require(metrics["model_invocations"] in ((0, 1) if ranked else (0 if is_shortcut or reference_region else 1,)),
@@ -565,6 +593,10 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
                 require(use_ranked_cards and not reference_hashes and "browser_tabs" not in metrics
                         and "price_panel_pixels" in metrics,
                         "Ranked price judgments must inspect only the reconstructed visible photo panel")
+            elif "reference_title_crop_sha256" in metrics:
+                require(use_ranked_cards and len(reference_hashes) == 1 and metrics.get("evidence_stage") == "confirm"
+                        and "browser_tabs" not in metrics and "reference_pixels" not in metrics,
+                        "Isolated title confirmation must exclude tab metadata and reference images")
             else:
                 require(metrics.get("browser_tabs") == tabs and metrics.get("reference_pixels", []) == reference_hashes,
                         "Model inputs differ from the task reference images or active tabs")
