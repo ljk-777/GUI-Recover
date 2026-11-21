@@ -5,7 +5,8 @@ from PIL import Image
 
 from gui_recover.actions import Action, ActionError, parse_action
 from gui_recover.answer_evidence import (EvidenceAnswerPolicy, answer_signature, evidence_answer, evidence_box,
-                                         confirmation_image, evidence_clipped, evidence_navigation, native_crop)
+                                         confirmation_image, evidence_answers_agree, evidence_clipped,
+                                         evidence_navigation, native_crop)
 from gui_recover.environment import VisualObservation
 from gui_recover.price_discovery import PriceDiscovery, price_request
 from gui_recover.qwen_grounding import QwenGroundingPolicy, normalize_qwen_action, parse_visible_answer
@@ -54,6 +55,11 @@ def test_independent_answer_signature_matches_formatting_variants():
     assert answer_signature("Blue and white.") == answer_signature("blue and white")
     assert answer_signature("$5 - $120") != answer_signature("$5")
     assert answer_signature("-3") != answer_signature("3")
+
+
+def test_confirmation_cannot_submit_an_amount_outside_the_verified_price_tie():
+    assert evidence_answers_agree("100.00", "$100", expected_cents=10000)
+    assert not evidence_answers_agree("101.00", "$101", expected_cents=10000)
 
 
 def test_independent_reader_accepts_finite_numeric_json_answers():

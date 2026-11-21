@@ -243,6 +243,12 @@ def answer_signature(answer):
     return value
 
 
+def evidence_answers_agree(candidate, independent, expected_cents=None):
+    signature = answer_signature(candidate)
+    return (signature == answer_signature(independent)
+            and (expected_cents is None or signature == (Decimal(expected_cents).scaleb(-2),)))
+
+
 def parse_selfie_price_confirmation(raw):
     data = read_reply(raw)
     if not isinstance(data, dict) or set(data) != {"answer", "selfie_cue"}:
@@ -676,7 +682,8 @@ class EvidenceAnswerPolicy:
         if answer is None:
             self.last_metrics["provider_format"] = "evidence_verify_abstained"
             return None
-        if answer_signature(candidate) != answer_signature(answer):
+        tie = self.price_discovery.tie if self.price_discovery is not None else None
+        if not evidence_answers_agree(candidate, answer, tie.cents if tie is not None else None):
             self.last_metrics["provider_format"] = "evidence_verify_disagreed"
             return None
         self.last_metrics["provider_format"] = "evidence_verify_agreed"

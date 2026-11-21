@@ -11,7 +11,7 @@ from PIL import Image
 from gui_recover.actions import ActionError, parse_action
 from gui_recover.answer_evidence import (
     REFERENCE_CONTACT_REGION, REFERENCE_NAVIGATION, REFERENCE_SEARCH, REFERENCE_SEARCH_ABSTAINED,
-    answer_signature, confirmation_image, contact_from_evidence, evidence_answer, native_crop,
+    confirmation_image, contact_from_evidence, evidence_answer, evidence_answers_agree, native_crop,
     parse_evidence_location, parse_selfie_price_confirmation, reference_contact_box, reference_search_action,
     visible_contact_request,
 )
@@ -33,7 +33,7 @@ from run_visualwebarena_live import (
     FRESH_HOLDOUT_TASK_SET, INPUT_HOLDOUT_TASK_SET, INPUT_RETRIEVAL_TASK_SET, INPUT_TASK_SETS,
     LINK_MODES, NAVIGATION_CONTEXT_MODES, OCR_MODES, STUDY_MODES, SUPPLEMENTAL_TASK_ID, TASK_SETS,
     PRICE_DEV_MODEL_CALLS, PRICE_DEV_TASK_SET, category_search_code, exact_vwa_success, holdout_profile, input_fingerprints,
-    replace_keyword_code, sort_listing_code, url_origin,
+    replace_keyword_code, sort_listing_code, tied_price_filter_code, tied_price_return_code, url_origin,
 )
 
 
@@ -405,6 +405,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
             require(metrics["evidence_bounds"] == bounds and metrics["evidence_panel_sha256"] == pixel_hash(panel),
                     "Confirmation pixels differ from the recorded viewport and crop")
             selfie = price_scan is not None and price_scan.request.requires_selfie_cue
+            tie = price_scan.tie if price_scan is not None else None
             try:
                 independent = (parse_selfie_price_confirmation(reply) if selfie
                                else parse_visible_answer(reply, allow_numeric=True))
@@ -413,7 +414,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
             else:
                 if independent is None:
                     status = "evidence_verify_abstained"
-                elif answer_signature(candidate) != answer_signature(independent):
+                elif not evidence_answers_agree(candidate, independent, tie.cents if tie is not None else None):
                     status = "evidence_verify_disagreed"
                 else:
                     status = "evidence_verify_agreed"
@@ -562,6 +563,22 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
                     and event["executed_code"] == sort_listing_code(parse_action(predictions[event["step"]]["raw"]),
                                                                      [events[0], *transitions][before]["size"]),
                     "Price sort differs from the recorded on-screen action")
+        if action["action"] == "FILTER_TIED_PRICE":
+            before = frame_before_prediction[event["step"]]
+            metrics = predictions[event["step"]]["metrics"]
+            require(use_ranked_cards and use_browser_context and metrics["provider_format"] == "price_tie_open"
+                    and metrics["price_tie_resume"] == tab_states[before]["tabs"][tab_states[before]["active_tab"]][1]
+                    and metrics["price_tie_cents"] == 100 * int(action["value"])
+                    and event["executed_code"] == tied_price_filter_code(parse_action(predictions[event["step"]]["raw"])),
+                    "Tie recovery did not apply the recorded price filter")
+        if action["action"] == "RETURN_PRICE_RESULTS":
+            before = frame_before_prediction[event["step"]]
+            metrics = predictions[event["step"]]["metrics"]
+            destination = metrics["price_tie_resume"]
+            require(use_ranked_cards and use_browser_context and metrics["provider_format"] == "price_tie_return"
+                    and event["executed_code"] == tied_price_return_code(destination)
+                    and tab_states[before + 1]["tabs"][tab_states[before + 1]["active_tab"]][1] == destination,
+                    "Tie recovery did not return to the interrupted results")
         if action["action"] == "TAB_FOCUS":
             before = frame_before_prediction[event["step"]]
             target = int(action["value"]) - 1

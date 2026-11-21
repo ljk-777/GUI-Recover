@@ -2,7 +2,7 @@
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from urllib.parse import parse_qs, urlsplit
 
 from .actions import Action
@@ -32,6 +32,7 @@ _CATEGORIES = {
 }
 _DOLLAR_PRICE = re.compile(r"(?:\$\s*[\d,.]+|[\d,.]+\s*\$)")
 _PRICE_AMOUNT = re.compile(r"\d[\d,]*(?:\.\d{2})?")
+_CENTS_AMOUNT = re.compile(r"(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{1,2})?")
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,20 @@ class PriceRequest:
     @property
     def requires_selfie_cue(self):
         return re.search(r"\bselfie\b", self.visual_target, re.IGNORECASE) is not None
+
+
+@dataclass
+class PriceTie:
+    cents: int
+    resume_url: str
+    resume_scope: tuple[int, int, int]
+    category_ids: list[str]
+    required: set[str]
+    observed: set[str] = field(default_factory=set)
+
+    @property
+    def dollars(self):
+        return str(self.cents // 100)
 
 
 def price_request(goal):
@@ -100,10 +115,17 @@ def price_category_search(request, rows, size):
     return Action("SEARCH_CATEGORY", value, _point(field, size))
 
 
-def price_result_scope(rows, request, query, active_url):
+def price_result_scope(rows, request, query, active_url, tie=None):
     params = parse_qs(urlsplit(active_url).query)
     expected_query = [query] if query else None
     if params.get("page") != ["search"] or params.get("sPattern") != expected_query or not params.get("sCategory"):
+        return None
+    amount = [tie.dollars] if tie is not None else None
+    if params.get("sPriceMin") != amount or params.get("sPriceMax") != amount:
+        return None
+    if tie is not None and (params["sCategory"] != tie.category_ids
+                            or params.get("sOrder") != ["dt_pub_date"] or params.get("iOrderType") != ["desc"]
+                            or _unique(rows, lambda text: text == "sort by: newly listed") is None):
         return None
     prefix = f"classifieds > {request.category.casefold()}"
     if query:
@@ -120,7 +142,41 @@ def _price_order(rows, request, active_url):
             and _unique(rows, lambda text: text == f"sort by: {request.order_label}") is not None)
 
 
-def _detail_price_box(rows):
+def _cents(text):
+    text = text.replace(",", "")
+    whole, _, cent = text.partition(".")
+    return 100 * int(whole) + int(cent.ljust(2, "0"))
+
+
+def _displayed_cents(text):
+    if _DOLLAR_PRICE.fullmatch(text) is not None:
+        amount = text.strip("$").strip()
+        if _CENTS_AMOUNT.fullmatch(amount) is not None:
+            return _cents(amount)
+    return None
+
+
+def _card_prices(rows, cards, screen_size, size):
+    """Associate each rendered price with its own card's visible geometry."""
+    if any(card["image"] is None for card in cards):
+        return None
+    sx, sy = size[0] / screen_size[0], size[1] / screen_size[1]
+    rendered = [(amount, row["bounds"]) for row in rows
+                if (amount := _displayed_cents(row["text"])) is not None]
+    prices = {}
+    for card in cards:
+        left, top, right, bottom = card["image"]
+        under_title = card["title"][3] * sy
+        end = under_title + (bottom - top) * sy / 2
+        matches = [amount for amount, (x0, y0, x1, y1) in rendered
+                   if left * sx <= x0 < x1 <= right * sx and under_title <= y0 < y1 <= end]
+        if len(matches) != 1:
+            return None
+        prices[card["destination"]] = matches[0]
+    return prices
+
+
+def _detail_price_box(rows, expected_cents=None):
     if not listing_detail(rows):
         return None
     published = _unique(rows, lambda text: text.startswith("published date:"))
@@ -129,11 +185,14 @@ def _detail_price_box(rows):
     header = [row for row in rows
               if row["bounds"][3] <= published["bounds"][1]
               and row["bounds"][0] > published["bounds"][2]]
-    price = [row["bounds"] for row in header if _DOLLAR_PRICE.fullmatch(row["text"])]
+    price = [row["bounds"] for row in header if _DOLLAR_PRICE.fullmatch(row["text"])
+             and (expected_cents is None or _displayed_cents(row["text"]) == expected_cents)]
     # The OCR engine can put the currency symbol in its own box.
     for symbol in (row["bounds"] for row in header if row["text"] == "$"):
         for left, top, right, bottom in (row["bounds"] for row in header
-                                         if _PRICE_AMOUNT.fullmatch(row["text"])):
+                                         if _PRICE_AMOUNT.fullmatch(row["text"])
+                                         and (expected_cents is None or (_CENTS_AMOUNT.fullmatch(row["text"])
+                                                                        and _cents(row["text"]) == expected_cents))):
             height = min(bottom - top, symbol[3] - symbol[1])
             overlap = min(bottom, symbol[3]) - max(top, symbol[1])
             gap = max(symbol[0] - right, left - symbol[2])
@@ -171,6 +230,31 @@ class PriceDiscovery:
         self.first = 1
         self.total = None
         self.reviewed_destinations = set()
+        self.boundary_prices = None
+        self.tie = None
+        self.covered_prices = {}
+        self.resume = None
+
+    def open_tie(self, active, scope, prices, overlap, rows, size):
+        if not prices or not self.boundary_prices:
+            return None
+        pivot = next(reversed(self.boundary_prices.values()))
+        if not 100 <= pivot <= 99999900 or pivot % 100:
+            return None
+        if list(prices.values()) != sorted(prices.values(), reverse=self.request.descending):
+            return None
+        if next(iter(prices.values())) != pivot or any(
+            self.boundary_prices.get(key) != pivot or prices[key] != pivot for key in overlap
+        ):
+            return None
+        apply = _unique(rows, lambda text: text == "apply")
+        if apply is None or not {"price", "min.", "max."} <= {row["text"].casefold() for row in rows}:
+            return None
+        required = {key for catalog in (self.boundary_prices, prices)
+                    for key, value in catalog.items() if value == pivot}
+        self.tie = PriceTie(pivot, active, scope, parse_qs(urlsplit(active).query)["sCategory"], required)
+        self.first, self.total = 1, None
+        return Action("FILTER_TIED_PRICE", self.tie.dollars, _point(apply, size))
 
     def decide(self, observation, actor, screen_reader, capture):
         screen = observation.screenshot
@@ -181,7 +265,7 @@ class PriceDiscovery:
 
         def finish(status, action=None, box=None):
             if action is not None:
-                key = self.query, self.first, status
+                key = self.query, self.first, self.tie.cents if self.tie is not None else None, status
                 if key in self.visited:
                     status, action = "price_abstained", None
                 self.visited.add(key)
@@ -200,7 +284,8 @@ class PriceDiscovery:
         rows = screen_reader(screen, size)
         metrics.update(price_screen_text=rows, price_canvas_size=list(size))
         if self.destination is not None:
-            box = _detail_price_box(rows) if active == self.destination else None
+            expected_cents = self.tie.cents if self.tie is not None else None
+            box = _detail_price_box(rows, expected_cents) if active == self.destination else None
             key = self.query, self.first, PRICE_REGION
             if box is None or key in self.visited:
                 return finish("price_abstained")
@@ -209,10 +294,14 @@ class PriceDiscovery:
         search = price_category_search(self.request, rows, size)
         if search is not None and not self.visited:
             return finish("price_search", search)
-        scope = price_result_scope(rows, self.request, self.query, active)
+        scope = price_result_scope(rows, self.request, self.query, active, self.tie)
         if scope is None or scope[0] != self.first or (self.total is not None and scope[2] != self.total):
             return finish("price_abstained")
-        if not _price_order(rows, self.request, active):
+        if self.resume is not None:
+            if (active, scope) != self.resume:
+                return finish("price_abstained")
+            self.resume = None
+        if self.tie is None and not _price_order(rows, self.request, active):
             menu = _unique(rows, lambda text: text.startswith("sort by:"))
             if menu is not None:
                 action = Action("SORT_LISTINGS_PRICE", self.request.order_label.capitalize(),
@@ -230,14 +319,79 @@ class PriceDiscovery:
             return finish("price_abstained")
         if self.offset and frame != self.page_frame:
             return finish("price_abstained")
-        if not self.offset:
-            destinations = {card["destination"] for card in cards}
-            if destinations & self.reviewed_destinations:
+        destinations = {card["destination"] for card in cards}
+        prices = _card_prices(rows, cards, screen.size, size)
+        if self.tie is not None:
+            if (not prices or any(price != self.tie.cents for price in prices.values())
+                    or destinations & self.tie.observed):
                 return finish("price_abstained")
-            self.reviewed_destinations.update(destinations)
-            self.total = scope[2]
+            ignored = destinations & self.reviewed_destinations
+        else:
+            if self.covered_prices and (not prices or any(
+                self.covered_prices.get(key) != amount for key, amount in prices.items()
+                if key in self.covered_prices or amount in self.covered_prices.values()
+            )):
+                return finish("price_abstained")
+            ignored = {key for key, amount in (prices or {}).items() if self.covered_prices.get(key) == amount}
+            overlap = (destinations & self.reviewed_destinations) - ignored
+            if overlap:
+                repair = self.open_tie(active, scope, prices, overlap, rows, size)
+                if repair is None:
+                    return finish("price_abstained")
+                metrics.update(price_tie_cents=self.tie.cents, price_tie_resume=self.tie.resume_url)
+                return finish("price_tie_open", repair)
+        self.total = scope[2]
         self.page_frame = frame
-        batch = cards[self.offset:self.offset + BATCH_SIZE]
+        remaining = [card for card in cards if card["destination"] not in ignored]
+        batch = remaining[self.offset:self.offset + BATCH_SIZE]
+        if batch:
+            index, clear_miss = self.review_photos(batch, screen, actor, metrics)
+            if index is not None:
+                selected = batch[index]
+                self.destination = selected["destination"]
+                return finish("price_open", Action("CLICK", position=title_point(selected, screen.size)))
+            if not clear_miss:
+                return finish("price_abstained")
+            if self.offset + len(batch) < len(remaining):
+                self.offset += len(batch)
+                return finish("price_more_cards")
+        if self.tie is not None:
+            self.tie.observed.update(destinations)
+        else:
+            self.reviewed_destinations.update(destinations)
+            if prices and list(prices.values()) != sorted(prices.values(), reverse=self.request.descending):
+                prices = None
+            self.boundary_prices = prices
+        if scope[1] < scope[2] and receipt["next"] is not None:
+            self.first = scope[1] + 1
+            self.offset = 0
+            return finish("price_next_page", Action("CLICK", position=tuple(receipt["next"])))
+        if self.tie is not None:
+            tie = self.tie
+            if scope[1] != scope[2] or len(tie.observed) != scope[2] or not tie.required <= tie.observed:
+                return finish("price_abstained")
+            self.covered_prices.update(dict.fromkeys(tie.observed, tie.cents))
+            self.reviewed_destinations.update(tie.observed)
+            self.resume = tie.resume_url, tie.resume_scope
+            self.first, _, self.total = tie.resume_scope
+            self.offset = 0
+            self.tie = None
+            metrics.update(price_tie_cents=tie.cents, price_tie_count=len(tie.observed), price_tie_resume=tie.resume_url)
+            return finish("price_tie_return", Action("RETURN_PRICE_RESULTS"))
+        if self.request.alternate is not None and self.query != self.request.alternate:
+            refinement = replace_keyword_search(self.query, self.request.alternate, rows, size)
+            if refinement is not None:
+                self.query = self.request.alternate
+                self.offset = 0
+                self.first = 1
+                self.total = None
+                self.reviewed_destinations.clear()
+                self.boundary_prices = None
+                self.covered_prices.clear()
+                return finish("price_refine", refinement)
+        return finish("price_abstained")
+
+    def review_photos(self, batch, screen, actor, metrics):
         panel = card_panel([(screen, card) for card in batch])
         example = '{"1":[false,"wooden table"],"2":[true,"person wearing ring"]}'
         condition = ""
@@ -257,25 +411,4 @@ class PriceDiscovery:
         ))
         metrics.update(model_invocations=1, provider_output=reply, price_panel_pixels=pixel_hash(panel),
                        peak_cuda_allocated_bytes=actor.last_metrics.get("peak_cuda_allocated_bytes", 0))
-        index, clear_miss = first_ranked_match(reply, len(batch))
-        if index is not None:
-            selected = batch[index]
-            self.destination = selected["destination"]
-            return finish("price_open", Action("CLICK", position=title_point(selected, screen.size)))
-        if clear_miss and self.offset + len(batch) < len(cards):
-            self.offset += len(batch)
-            return finish("price_more_cards")
-        if clear_miss and scope[1] < scope[2] and receipt["next"] is not None:
-            self.first = scope[1] + 1
-            self.offset = 0
-            return finish("price_next_page", Action("CLICK", position=tuple(receipt["next"])))
-        if clear_miss and self.request.alternate is not None and self.query != self.request.alternate:
-            refinement = replace_keyword_search(self.query, self.request.alternate, rows, size)
-            if refinement is not None:
-                self.query = self.request.alternate
-                self.offset = 0
-                self.first = 1
-                self.total = None
-                self.reviewed_destinations.clear()
-                return finish("price_refine", refinement)
-        return finish("price_abstained")
+        return first_ranked_match(reply, len(batch))

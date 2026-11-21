@@ -138,3 +138,57 @@ def test_detail_price_crop_joins_the_visible_amount_and_currency_symbol():
     assert _detail_price_box([rows[0], *rows[2:]]) is None
     rows[1] = {"text": "$", "bounds": [588, 79, 603, 99]}
     assert _detail_price_box(rows) is None
+
+
+@pytest.mark.parametrize("missing_known_listing", [False, True])
+def test_tie_recovery_checks_exact_price_coverage_before_resuming_ranked_results(missing_known_listing):
+    site = "http://localhost:19980"
+    goal = "Find the most expensive book with a purple cover, and tell me how much it costs in dollars."
+    screen = Image.new("RGB", (360, 150))
+    url = site + "/index.php?page=search&sCategory=9&sOrder=i_price&iOrderType=desc&sShowAs=gallery"
+    next_url = url + "&iPage=2"
+    exact_url = (site + "/index.php?page=search&sCategory=9&sPriceMin=100&sPriceMax=100"
+                 "&sOrder=dt_pub_date&iOrderType=desc&sShowAs=gallery")
+    batches = []
+
+    def ask(_panel, prompt):
+        count = int(prompt.split("keys 1 through ")[1].split(".")[0])
+        batches.append(count)
+        return json.dumps({str(index): [False, "blue cover"] for index in range(1, count + 1)})
+
+    actor = SimpleNamespace(prepare_image=lambda image: image, ask=ask, last_metrics={})
+    discovery = PriceDiscovery(price_request(goal), site)
+
+    def decide(address, result_range, listings, *, tie=False, next_page=False):
+        order = "Newly listed" if tie else "Higher price first"
+        rows = [{"text": value, "bounds": [1, 1, 12, 5]} for value in (
+            "Classifieds > Books", result_range, f"Sort by: {order}", "Price", "Min.", "Max.", "Apply",
+        )]
+        cards = []
+        for index, (listing_id, dollars) in enumerate(listings):
+            x = 15 + 85 * index
+            cards.append({"destination": f"{site}/index.php?page=item&id={listing_id}",
+                          "image": [x, 20, x + 70, 76], "title": [x + 2, 78, x + 65, 90]})
+            rows.append({"text": f"{dollars}.00 $", "bounds": [x + 3, 94, x + 36, 106]})
+        receipt = {"source_pixels": pixel_hash(screen), "scroll_top": 0, "cards": cards,
+                   "grid": None, "next": [0.8, 0.9] if next_page else None}
+        observation = VisualObservation(goal, screen, tabs=(("Classifieds", address),))
+        raw, box = discovery.decide(observation, actor, lambda *_: rows, lambda: receipt)
+        assert box is None
+        return parse_action(raw) if raw is not None else None
+
+    assert decide(url, "1 - 2 of 5 listings", [(1, 120), (2, 100)], next_page=True).action == "CLICK"
+    next_cards = [(2, 100), (3, 100), (4, 99)]
+    filter_action = decide(next_url, "3 - 5 of 5 listings", next_cards)
+    assert (filter_action.action, filter_action.value) == ("FILTER_TIED_PRICE", "100")
+    assert batches == [2]
+    group = [(2, 100), (5, 100), (6 if missing_known_listing else 3, 100)]
+    returned = decide(exact_url, "1 - 3 of 3 listings", group, tie=True)
+    assert batches == [2, 2]
+    if missing_known_listing:
+        assert returned is None and actor.last_metrics["stop_after_evidence"]
+    else:
+        assert returned.action == "RETURN_PRICE_RESULTS"
+        assert actor.last_metrics["price_tie_count"] == 3
+        assert decide(next_url, "3 - 5 of 5 listings", next_cards) is None
+        assert batches == [2, 2, 1]

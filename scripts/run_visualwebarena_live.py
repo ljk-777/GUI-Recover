@@ -243,6 +243,58 @@ def choose_listing_price_order(order: str):
     page.get_by_text(order, exact=True).click(timeout=2000)
 
 
+def open_tied_price_gallery(dollars: str):
+    """Filter one price, then use the visible date order and gallery controls.
+
+    Examples:
+        open_tied_price_gallery("100")
+    """
+    lower = page.locator('input[name="sPriceMin"]:visible:enabled')
+    form = lower.locator("xpath=ancestor::form[1]")
+    upper = form.locator('input[name="sPriceMax"]:visible:enabled')
+    lower.fill(dollars, timeout=2000)
+    upper.fill(dollars, timeout=2000)
+    with page.expect_navigation(wait_until="domcontentloaded", timeout=5000):
+        form.get_by_role("button", name="Apply", exact=True).click(timeout=2000)
+    menu = page.locator(".see_by:visible")
+    menu.hover(timeout=2000)
+    with page.expect_navigation(wait_until="domcontentloaded", timeout=5000):
+        menu.get_by_role("link", name="Newly listed", exact=True).click(timeout=2000)
+    with page.expect_navigation(wait_until="domcontentloaded", timeout=5000):
+        page.locator("a.grid-button:visible").click(timeout=2000)
+
+
+def return_to_price_results(destination: str):
+    """Return through browser history to the interrupted results view.
+
+    Examples:
+        return_to_price_results("http://localhost/index.php?page=search")
+    """
+    from urllib.parse import urlsplit
+
+    original = urlsplit(destination)
+    for _ in range(8):
+        if page.url == destination:
+            return
+        current = urlsplit(page.url)
+        if (current.scheme, current.netloc) != (original.scheme, original.netloc):
+            break
+        before = page.url
+        page.go_back(wait_until="domcontentloaded", timeout=5000)
+        if page.url == before:
+            break
+    if page.url != destination:
+        raise ValueError("The interrupted price results are no longer in browser history")
+
+
+def tied_price_filter_code(action):
+    return f"open_tied_price_gallery({action.value!r})"
+
+
+def tied_price_return_code(destination):
+    return f"return_to_price_results({destination!r})"
+
+
 def sort_listing_code(action, size):
     click = compile_action(Action("CLICK", position=action.position), *size)
     return f"{click}\nchoose_listing_price_order({action.value!r})"
@@ -342,14 +394,16 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
         subsets = ["coord", "chat", "custom"] if enable_card_view else ["coord", "chat"]
         if enable_browser_context:
             subsets.append("tab")
+        custom_actions = [expand_listing_view, search_listing_category, choose_listing_price_order,
+                          open_tied_price_gallery, return_to_price_results]
         actions = HighLevelActionSet(subsets=subsets, strict=True, multiaction=True,
-                                     custom_actions=[expand_listing_view, search_listing_category, choose_listing_price_order]
-                                     if enable_card_view else None)
+                                     custom_actions=custom_actions if enable_card_view else None)
         self.env = BrowserEnv(LocalAnswerTask, task_kwargs={"task_id": task_id}, headless=True,
                               action_mapping=actions.to_python_code)
 
     def reset(self, seed):
         self.references = None
+        self.price_return_url = None
         return super().reset(seed)
 
     def _visual(self, observation):
@@ -402,6 +456,27 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
                     or url_origin(page.url) != url_origin(os.environ["VWA_CLASSIFIEDS"])):
                 raise ValueError("Price sorting requires the registered Classifieds results page")
             code = sort_listing_code(checked, self.obs.screenshot.size)
+        elif checked.action == "FILTER_TIED_PRICE":
+            page = self.env.unwrapped.page
+            if (not self.enable_card_view or self.obs is None or self.price_return_url is not None
+                    or url_origin(page.url) != url_origin(os.environ["VWA_CLASSIFIEDS"])
+                    or not page.evaluate("""([x, y]) => {
+                         const button = document.elementFromPoint(x * innerWidth, y * innerHeight)
+                             ?.closest('button[type="submit"]:enabled');
+                         return button?.innerText.trim() === 'Apply'
+                             && Boolean(button.form?.querySelector('input[name="sPriceMin"]:enabled'))
+                             && Boolean(button.form?.querySelector('input[name="sPriceMax"]:enabled'));
+                    }""", list(checked.position))):
+                raise ValueError("A price tie must use the visible Classifieds filter form")
+            self.price_return_url = page.url
+            code = tied_price_filter_code(checked)
+        elif checked.action == "RETURN_PRICE_RESULTS":
+            page = self.env.unwrapped.page
+            if (not self.enable_card_view or self.price_return_url is None
+                    or url_origin(page.url) != url_origin(self.price_return_url)):
+                raise ValueError("No interrupted Classifieds price results are available")
+            code = tied_price_return_code(self.price_return_url)
+            self.price_return_url = None
         else:
             code = compile_action(checked, *self.obs.screenshot.size)
         return self._step_code(code)
