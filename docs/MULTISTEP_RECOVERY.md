@@ -505,7 +505,20 @@ The full development replay passed seven of the eight exposed cases with zero wr
 
 [Independent catalog results and archive checksums](../examples/vwa-catalog-holdout-results.json)
 
+### Check the repair on eight new catalog tasks
+
+The second cohort excludes 198 previously recorded listing paths, including the first cohort's targets and result cards. It keeps the same four task families, native graders, Qwen 7B NF4 checkpoint, and per-episode budgets. All eight cases passed native preflight before inference.
+
+| Strategy | Native success | Wrong submissions | Model calls |
+| --- | ---: | ---: | ---: |
+| Answer check | 1/8 | 2 | 37 |
+| Evidence cards | 7/8 | 0 | 15 |
+
+The evidence policy passed the three registered acceptance checks. All eight pairs had identical reset screenshots, and the CPU auditor reproduced the result from the saved traces. Both price-and-city cases and both highest-price searches passed. The remaining case opened the registered item, but OCR dropped the final digit of its detail heading. The full-title check withheld the submission.
+
 [Second frozen catalog registration](../examples/vwa-catalog-holdout-protocol-002.json)
+
+[Paired results, source revisions and checksums](../examples/vwa-catalog-holdout-results-002.json)
 
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 

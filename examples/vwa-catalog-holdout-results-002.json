@@ -1,0 +1,271 @@
+{
+  "scope": "independently sampled Classifieds tasks",
+  "cohort_sha256": "7b5acac02ea6a57b572b71b3bb91129b106446d7663c83a9e6827df702ce8760",
+  "task_count": 8,
+  "max_model_calls": 8,
+  "strategies": {
+    "answer-check": {
+      "native_successes": 1,
+      "wrong_submissions": 2
+    },
+    "evidence-cards": {
+      "native_successes": 7,
+      "wrong_submissions": 0
+    }
+  },
+  "by_task": {
+    "10201": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "invalid_action",
+          "answers_submitted": 0,
+          "model_calls": 7,
+          "predictions": 7,
+          "screenshots": 5,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 2,
+          "screenshots": 2,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1
+          }
+        }
+      },
+      "family": "detail-price-city"
+    },
+    "10202": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "task_failure",
+          "answers_submitted": 1,
+          "model_calls": 2,
+          "predictions": 2,
+          "screenshots": 2,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 2,
+          "screenshots": 2,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1
+          }
+        }
+      },
+      "family": "detail-price-city"
+    },
+    "10203": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "task_failure",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 1,
+          "screenshots": 2,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 3,
+          "screenshots": 3,
+          "evidence_stages": {
+            "locate": 2,
+            "reference_title_open": 1,
+            "reference_title_heading": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          }
+        }
+      },
+      "family": "gallery-reference"
+    },
+    "10204": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 1,
+          "screenshots": 2,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 3,
+          "screenshots": 3,
+          "evidence_stages": {
+            "locate": 2,
+            "reference_title_open": 1,
+            "reference_title_heading": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          }
+        }
+      },
+      "family": "gallery-reference"
+    },
+    "10205": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "invalid_action",
+          "answers_submitted": 0,
+          "model_calls": 5,
+          "predictions": 5,
+          "screenshots": 2,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": false,
+          "reason": "model_call_limit",
+          "answers_submitted": 0,
+          "model_calls": 8,
+          "predictions": 10,
+          "screenshots": 9,
+          "evidence_stages": {
+            "locate": 7,
+            "grounded_search": 1,
+            "reference_title_open": 1
+          }
+        }
+      },
+      "family": "search-reference",
+      "failure_analysis": "Opened the registered listing; OCR omitted the final digit of the title."
+    },
+    "10206": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "invalid_action",
+          "answers_submitted": 0,
+          "model_calls": 5,
+          "predictions": 5,
+          "screenshots": 2,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 4,
+          "screenshots": 4,
+          "evidence_stages": {
+            "locate": 3,
+            "grounded_search": 1,
+            "reference_title_open": 1,
+            "reference_title_heading": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          }
+        }
+      },
+      "family": "search-reference"
+    },
+    "10207": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "model_call_limit",
+          "answers_submitted": 0,
+          "model_calls": 8,
+          "predictions": 8,
+          "screenshots": 5,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 6,
+          "screenshots": 6,
+          "evidence_stages": {
+            "locate": 5,
+            "grounded_search": 1,
+            "search_price_navigation": 3,
+            "listing_facts_region": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          }
+        }
+      },
+      "family": "search-highest-price"
+    },
+    "10208": {
+      "identical_reset_pixels": true,
+      "strategies": {
+        "answer-check": {
+          "success": false,
+          "reason": "invalid_action",
+          "answers_submitted": 0,
+          "model_calls": 8,
+          "predictions": 8,
+          "screenshots": 4,
+          "evidence_stages": {}
+        },
+        "evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 6,
+          "screenshots": 6,
+          "evidence_stages": {
+            "locate": 5,
+            "grounded_search": 1,
+            "search_price_navigation": 3,
+            "listing_facts_region": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          }
+        }
+      },
+      "family": "search-highest-price"
+    }
+  },
+  "pairs_with_identical_reset_pixels": 8,
+  "acceptance_checks": {
+    "at_least_two_native_successes": true,
+    "more_native_successes_than_control": true,
+    "fewer_wrong_submissions_than_control": true
+  },
+  "target_met": true,
+  "model_calls_by_strategy": {
+    "answer-check": 37,
+    "evidence-cards": 15
+  },
+  "policy_revision": "7a0aacfa8c57fa08627437d0954f7a3d53c8b032",
+  "runtime_adapter_revision": "31a1a383adf48fe0b19a47b997f6ac6aae617ecf",
+  "cohort_archive_sha256": "fc4e87b676687f017ad5d047eb35a3606e04bfa60c9e6982d7325b7093e6c64b",
+  "archive_sha256": "c4fe61ee3414efab46d02853e58efdc3412720b94d601e0366f284d5d771cda5"
+}
