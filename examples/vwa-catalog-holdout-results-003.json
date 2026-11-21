@@ -273,5 +273,116 @@
   },
   "source_revision": "ce6fcc0911b42909e3757373e83d6ee9d0ed2575",
   "cohort_archive_sha256": "dece4d64b93fb2f2850e41a4650c5a5823c7a1c52a77fc9bac3c01e0f08924ef",
-  "archive_sha256": "82a8f9782c02f1f68531f1e48813e7c2507befd1b635d4a80475dc7b035eb6ed"
+  "archive_sha256": "82a8f9782c02f1f68531f1e48813e7c2507befd1b635d4a80475dc7b035eb6ed",
+  "exposed_literal_reread_replay": {
+    "scope": "exposed literal evidence development replay",
+    "source_revision": "3591a67c8bcf2a5f2f42f3ff8c14a8ebdc77e2e1",
+    "task_ids": [
+      "10301",
+      "10302",
+      "10303",
+      "10304",
+      "10307",
+      "10308"
+    ],
+    "original_evidence_policy_on_these_cases": {
+      "native_successes": 3,
+      "wrong_submissions": 0,
+      "model_calls": 8
+    },
+    "development_replay": {
+      "native_successes": 6,
+      "wrong_submissions": 0,
+      "model_calls": 8
+    },
+    "identical_reset_screenshots": 6,
+    "by_task": {
+      "10301": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 3,
+        "model_calls": 2,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 2,
+          "listing_fact_reread": 1
+        }
+      },
+      "10302": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 2,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1
+        }
+      },
+      "10303": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 3,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 2,
+          "reference_title_open": 1,
+          "reference_title_breadcrumb": 1,
+          "reference_title_heading": 1,
+          "confirm": 1,
+          "navigation_context": 1
+        }
+      },
+      "10304": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 3,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 2,
+          "reference_title_open": 1,
+          "reference_title_heading": 1,
+          "confirm": 1,
+          "navigation_context": 1
+        }
+      },
+      "10307": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 7,
+        "model_calls": 2,
+        "evidence_stages": {
+          "locate": 5,
+          "grounded_search": 1,
+          "search_price_navigation": 3,
+          "listing_facts_region": 1,
+          "confirm": 2,
+          "navigation_context": 1,
+          "listing_fact_reread": 1
+        }
+      },
+      "10308": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 6,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 5,
+          "grounded_search": 1,
+          "search_price_navigation": 3,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "navigation_context": 1
+        }
+      }
+    },
+    "archive_sha256": "4bd27ce70c25f7b92d8b8c3187a5f057bceef16f326f696c994bcaa1d2253d39"
+  }
 }

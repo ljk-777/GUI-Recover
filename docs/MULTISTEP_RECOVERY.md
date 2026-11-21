@@ -547,6 +547,14 @@ All eight cases passed native preflight, all paired resets had identical screens
 
 [Third paired results and archive checksums](../examples/vwa-catalog-holdout-results-003.json)
 
+### Recover literal text from listing fields
+
+On a matched listing with a visible heading and published date, a missing breadcrumb gets one localized OCR read. The policy enlarges the band above the heading and checks the recovered breadcrumb against the full heading. The browser trace retains the crop bounds, pixel hash, and OCR rows.
+
+When a price-and-city or price-and-title answer fails confirmation, the policy may use one model call to reread the two field crops. The city read transcribes the complete Location line so the parser can take every word before the first comma. The title read checks the printed character sequence, including unusual spelling. An explicit word separator is checked against the OCR heading, and the OCR heading supplies spacing when the model returns an unsegmented sequence. The reread receives only the field pixels. Both the text and price must agree before submission.
+
+The development replay used the three exposed failures and three previously passing controls from the third cohort. Native success went from 3/6 on these cases in the original run to 6/6 in replay, with eight model calls and zero wrong submissions in each. All six reset screenshots matched the original run. The price-and-city and price-and-title repairs used two calls each. The recovered breadcrumb used one model call and an additional CPU OCR read. The archived third-cohort result is 5/8.
+
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
