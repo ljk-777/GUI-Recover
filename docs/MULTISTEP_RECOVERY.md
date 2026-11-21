@@ -477,6 +477,24 @@ Run 013 passed the three-task development gate. Task 82 submitted `1100` after f
 
 These three cases were previously observed. The pinned official registry and existing runs were checked for untouched, read-only Classifieds answer tasks using deterministic native rules. That inventory found no remaining tasks under those rules and found ten untouched tasks with native fuzzy text scoring that requires an external judge.
 
+### Run the frozen independent catalog comparison
+
+The independent cohort uses the same pinned Classifieds site and native BrowserGym string and URL graders. It contains two cases each for detail-page price and city, matching a reference photo in a gallery, finding a reference photo after search, and identifying the highest-priced search result. The sampler excluded 166 listing paths already logged in development or earlier evaluation. It selected new cases by stable hash order and sealed the questions, references, visible source evidence, and scoring rules before inference.
+
+Each arm uses the same Qwen 7B NF4 model and seed, up to eight model calls and 12 decisions per episode. The evaluation requires at least two native successes for the evidence policy, more successes than the control, and fewer wrong submissions than the control. The independent results belong to this catalog cohort.
+
+Use the sealed cohort directory and registered SHA-256. The preflight checks the native start page, reference pixels, and a verified answer for every case without invoking the model.
+
+~~~bash
+python scripts/run_vwa_catalog_holdout.py preflight --cohort runs/catalog-cohort --sha256 "$COHORT_SHA256"
+python scripts/run_vwa_catalog_holdout.py run --cohort runs/catalog-cohort --sha256 "$COHORT_SHA256" \
+  --model models/Qwen2.5-VL-7B-Instruct --out runs/catalog-holdout
+python scripts/run_vwa_catalog_holdout.py audit --cohort runs/catalog-cohort --sha256 "$COHORT_SHA256" \
+  --out runs/catalog-holdout
+~~~
+
+[Frozen independent catalog registration](../examples/vwa-catalog-holdout-protocol.json)
+
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)

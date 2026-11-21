@@ -1,0 +1,41 @@
+{
+  "acceptance": {
+    "fewer_wrong_submissions_than_control": true,
+    "minimum_successes": 2,
+    "more_successes_than_control": true
+  },
+  "catalog_pool_sha256": "aabe94ee2c1bcdc794dc81153347426202590593bb105133900d9599312b914e",
+  "evidence_sha256": "1cd405fc91776f280cd9515c05f394bbc587e8307589f553bfaa6f900d7ca06c",
+  "exclusion_list_sha256": "af6fd855ab320da4d2b1d8ec6654e09e35a9c1412f532fb76d25df10cecb5040",
+  "families": [
+    "detail-price-city",
+    "gallery-reference",
+    "search-reference",
+    "search-highest-price"
+  ],
+  "max_model_calls": 8,
+  "max_predictions": 12,
+  "reference_files_sha256": "e73df6e04ba7741b1f235bb92f66ebbe2114e1f30031da53539dcb748bc33187",
+  "sample_key": "gui-recover-catalog-holdout-v1",
+  "scope": "independently sampled Classifieds tasks",
+  "seed": 0,
+  "strategies": [
+    "answer-check",
+    "evidence-cards"
+  ],
+  "task_ids": [
+    10101,
+    10102,
+    10103,
+    10104,
+    10105,
+    10106,
+    10107,
+    10108
+  ],
+  "tasks_sha256": "08c6df9a51a1b895ea135201dd5294ea324cf995d8ac267e4084bd5feb5b2bad",
+  "cohort_sha256": "8d914b4723cb405692846469fa3f955c09b1867a9b7181067818b72499ff8d9f",
+  "policy_source_revision": "2271db5",
+  "evaluation_runner_revision": "1310127",
+  "excluded_previously_seen_listing_paths": 166
+}
