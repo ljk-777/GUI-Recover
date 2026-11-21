@@ -159,10 +159,10 @@ def preflight(cases, references):
             env.close()
 
 
-def audit_pair(run, case, reference_pixels, listing_site, model):
+def audit_pair(run, case, reference_pixels, listing_site, model, strategies=STRATEGIES):
     task_id = case["task_id"]
     checked = {}
-    for mode in STRATEGIES:
+    for mode in strategies:
         evidence = mode == "evidence-cards"
         directory = run / f"visualwebarena.{task_id}-{mode}"
         checked[mode] = audit_episode(
@@ -175,15 +175,18 @@ def audit_pair(run, case, reference_pixels, listing_site, model):
         row = checked[mode]
         if row["reset"] != (case["intent"], PROFILE["seed"]) or row["reset_context"][1] != reference_pixels:
             raise ValueError("Native replay differs from the frozen question or reference")
-    control, evidence = (checked[mode] for mode in STRATEGIES)
+    outcomes = {mode: {"success": row["row"]["success"], "reason": row["row"]["reason"],
+                       "answers_submitted": row["row"]["answers_submitted"],
+                       "model_calls": row["counts"]["model_calls"], "predictions": row["counts"]["predictions"],
+                       "screenshots": row["screenshots"], "evidence_stages": row["evidence_stages"]}
+                for mode, row in checked.items()}
+    evidence = checked["evidence-cards"]
+    if len(strategies) == 1:
+        return {"reset_pixels": evidence["reset_pixels"], "strategies": outcomes}
+    control = checked["answer-check"]
     if control["reset_context"] != evidence["reset_context"]:
         raise ValueError("The paired reset tabs or references differ")
-    return {"identical_reset_pixels": control["reset_pixels"] == evidence["reset_pixels"],
-            "strategies": {mode: {"success": row["row"]["success"], "reason": row["row"]["reason"],
-                                  "answers_submitted": row["row"]["answers_submitted"],
-                                  "model_calls": row["counts"]["model_calls"], "predictions": row["counts"]["predictions"],
-                                  "screenshots": row["screenshots"], "evidence_stages": row["evidence_stages"]}
-                           for mode, row in checked.items()}}
+    return {"identical_reset_pixels": control["reset_pixels"] == evidence["reset_pixels"], "strategies": outcomes}
 
 
 def audit_run(run, cases, references, cohort_digest):
@@ -192,6 +195,9 @@ def audit_run(run, cases, references, cohort_digest):
         "evidence-cards", PROFILE["max_model_calls"], plan["model"], "evidence-cards"
     ):
         raise ValueError("The checkpoint or registration differs from the paired protocol")
+    strategies = tuple(plan.get("strategies", STRATEGIES))
+    if strategies not in (STRATEGIES, ("evidence-cards",)):
+        raise ValueError("Unknown catalog strategy selection")
     pairs = {}
     for case in cases:
         image = case["image"]
@@ -199,12 +205,15 @@ def audit_run(run, cases, references, cohort_digest):
         if image:
             with references(image) as ref:
                 pixels = [pixel_hash(ref.convert("RGB"))]
-        pairs[str(case["task_id"])] = audit_pair(run, case, pixels, plan["listing_origin"], plan["model"])
-    scores = {mode: {"native_successes": 0, "wrong_submissions": 0} for mode in STRATEGIES}
+        pairs[str(case["task_id"])] = audit_pair(run, case, pixels, plan["listing_origin"], plan["model"], strategies)
+    scores = {mode: {"native_successes": 0, "wrong_submissions": 0} for mode in strategies}
     for pair in pairs.values():
         for mode, row in pair["strategies"].items():
             scores[mode]["native_successes"] += int(row["success"])
             scores[mode]["wrong_submissions"] += int(row["answers_submitted"] > 0 and not row["success"])
+    if len(strategies) == 1:
+        return {"scope": SCOPE, "cohort_sha256": cohort_digest, "task_count": len(pairs),
+                "max_model_calls": PROFILE["max_model_calls"], "strategies": scores, "by_task": pairs}
     baseline, evidence = (scores[mode] for mode in STRATEGIES)
     checks = {
         "at_least_two_native_successes": evidence["native_successes"] >= 2,
@@ -217,7 +226,7 @@ def audit_run(run, cases, references, cohort_digest):
             "acceptance_checks": checks, "target_met": all(checks.values())}
 
 
-def run_pairs(run, cases, references, cohort_digest, model, listing_site):
+def run_pairs(run, cases, references, cohort_digest, model, listing_site, *, evidence_only=False):
     probe_instance()
     actor = QwenGroundingPolicy(model, device="cuda", max_new_tokens=128, max_pixels=784 * 784,
                                 load_in_4bit=True, native_navigation=True)
@@ -228,6 +237,9 @@ def run_pairs(run, cases, references, cohort_digest, model, listing_site):
             "source_files": {path.name: fingerprint(path.read_bytes()) for path in
                              [Path(__file__), Path(__file__).with_name("run_visualwebarena_live.py"),
                               *sorted(package.glob("*.py"))]}}
+    strategies = ("evidence-cards",) if evidence_only else STRATEGIES
+    if evidence_only:
+        plan["strategies"] = list(strategies)
     run.mkdir(parents=True, exist_ok=True)
     plan_path = run / "run-plan.json"
     if plan_path.exists():
@@ -239,7 +251,7 @@ def run_pairs(run, cases, references, cohort_digest, model, listing_site):
         write_json(plan_path, plan)
     reader = RapidScreenReader()
     for case in cases:
-        for mode in STRATEGIES:
+        for mode in strategies:
             branch = run / f"visualwebarena.{case['task_id']}-{mode}"
             if branch.is_dir():
                 continue
@@ -278,12 +290,14 @@ def main():
     parser.add_argument("--sha256", required=True)
     parser.add_argument("--model", type=Path)
     parser.add_argument("--out", type=Path)
+    parser.add_argument("--evidence-only", action="store_true", help="record a clean evidence policy arm for a separate comparison")
     args = parser.parse_args()
     _, cases, references = load_cohort(args.cohort, args.sha256, os.getenv("VWA_HOMEPAGE", "__HOMEPAGE__"))
     if args.command == "preflight":
         preflight(cases, references)
     elif args.command == "run" and args.out is not None and args.model is not None and args.model.is_dir():
-        run_pairs(args.out, cases, references, args.sha256, args.model, os.environ["VWA_CLASSIFIEDS"])
+        run_pairs(args.out, cases, references, args.sha256, args.model, os.environ["VWA_CLASSIFIEDS"],
+                  evidence_only=args.evidence_only)
     elif args.command == "audit" and args.out is not None:
         print(json.dumps(audit_run(args.out, cases, references, args.sha256), indent=2, ensure_ascii=False))
     else:
