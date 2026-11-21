@@ -657,5 +657,25 @@
     },
     "source_revision": "7a0aacfa8c57fa08627437d0954f7a3d53c8b032",
     "archive_sha256": "9f1f75b686262e64f47a38a402b249cfcfd8cd113087d6905c240df2f70575a7"
+  },
+  "exposed_duplicate_photo_replay": {
+    "scope": "exposed ambiguous reference development replay",
+    "task_id": 10105,
+    "previous_development_model_calls": 8,
+    "replay": {
+      "success": false,
+      "reason": "evidence_abstained",
+      "answers_submitted": 0,
+      "predictions": 2,
+      "model_calls": 0,
+      "evidence_stages": {
+        "locate": 2,
+        "grounded_search": 1,
+        "reference_title_ambiguous": 1
+      }
+    },
+    "identical_thumbnail_source_sha256": "d0af1b14767d0fec6fbb382f12fc92b3d9c1c6b03753c4891693eaf7a824019f",
+    "source_revision": "ce6fcc0911b42909e3757373e83d6ee9d0ed2575",
+    "archive_sha256": "96000aebaf0112a817d6843a701c247ae9e997a3df586b7b6dda787b95582f89"
   }
 }

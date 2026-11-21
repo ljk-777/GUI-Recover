@@ -528,6 +528,16 @@ Case 10205 exposed a second issue in the sampler. The HTML had two spaces betwee
 
 The four exposed reference-title cases passed in development with the rendered title rubric and one model call per case. Only case 10205 used the numeric recovery. The same submitted title scored zero under the frozen rule and one under the rendered rule. The paired results file records both scores and the development archive checksum.
 
+### Screen reference photos for duplicate matches
+
+Two Classifieds cards can serve the same thumbnail from separate URLs. The sampler compares each proposed reference with every other card in its result set. It checks image hashes and the mean absolute RGB distance for both fitted and stretched 48-pixel thumbnails. The minimum distance must be at least 0.105, using the existing visual matcher's threshold for a clear alternative. The seal records each comparison and the corresponding source hash.
+
+During a visual title task, two distinct listings with identical strong matches on screen trigger abstention when the question gives no recency tie-breaker. A live replay of the previously exposed ambiguous case stopped after the keyword search. It used zero model calls and made zero submissions. The earlier replay used eight calls on the same case.
+
+The third cohort excludes 228 previously recorded listing paths. The four reference cases have 25 recorded target-to-candidate comparisons. The smallest distance was 0.194. A fresh download reproduced the comparisons and source hashes.
+
+[Third frozen catalog registration](../examples/vwa-catalog-holdout-protocol-003.json)
+
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
