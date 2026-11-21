@@ -81,10 +81,11 @@ def parse_action(raw: str, mode: str = "strict") -> Action:
     if not isinstance(data, dict) or set(data) != {"action", "value", "position"}:
         raise ActionError("Required keys: action, value, position; no extra keys")
     kind, value, pos = data["action"], data["value"], data["position"]
-    if kind not in ("CLICK", "INPUT", "SEARCH", "SEARCH_REPLACE", "SEARCH_CATEGORY", "TYPE", "HOVER", "ENTER",
+    if kind not in ("CLICK", "INPUT", "SEARCH", "SEARCH_REPLACE", "SEARCH_CATEGORY", "SORT_LISTINGS_PRICE", "TYPE", "HOVER", "ENTER",
                     "SCROLL", "ANSWER", "LISTING_GRID", "TAB_FOCUS"):
         raise ActionError(f"Unsupported action: {kind!r}")
-    if kind in ("CLICK", "INPUT", "SEARCH", "SEARCH_REPLACE", "SEARCH_CATEGORY", "HOVER", "LISTING_GRID"):
+    if kind in ("CLICK", "INPUT", "SEARCH", "SEARCH_REPLACE", "SEARCH_CATEGORY", "SORT_LISTINGS_PRICE",
+                "HOVER", "LISTING_GRID"):
         if not isinstance(pos, (list, tuple)) or len(pos) != 2:
             raise ActionError("Position must be [x, y]")
         if any(type(p) not in (int, float) or not 0 <= p <= 1 or not math.isfinite(p) for p in pos):
@@ -100,6 +101,9 @@ def parse_action(raw: str, mode: str = "strict") -> Action:
             raise ActionError("Search query must be one short text line")
     elif kind == "SEARCH_CATEGORY":
         category_search_terms(value)
+    elif kind == "SORT_LISTINGS_PRICE":
+        if value not in ("Higher price first", "Lower price first"):
+            raise ActionError("Expected a visible price-order option")
     elif kind == "SCROLL":
         if value not in ("up", "down", "left", "right"):
             raise ActionError("SCROLL value must be up/down/left/right")
@@ -136,7 +140,7 @@ def compile_action(action: Action, width: int, height: int) -> str:
     if action.action == "SCROLL":
         dx, dy = {"up": (0, -300), "down": (0, 300), "left": (-300, 0), "right": (300, 0)}[action.value]
         return f"scroll_at({width // 2}, {height // 2}, {dx}, {dy})"
-    if action.action in ("LISTING_GRID", "SEARCH_REPLACE", "SEARCH_CATEGORY"):
+    if action.action in ("LISTING_GRID", "SEARCH_REPLACE", "SEARCH_CATEGORY", "SORT_LISTINGS_PRICE"):
         raise ActionError(f"{action.action} is available only in the Classifieds adapter")
     if action.action == "TAB_FOCUS":
         raise ActionError("Tab focus is available only in a tab-aware browser adapter")

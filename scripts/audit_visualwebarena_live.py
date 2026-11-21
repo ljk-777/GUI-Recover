@@ -32,7 +32,7 @@ from run_visualwebarena_live import (
     FRESH_HOLDOUT_TASK_SET, INPUT_HOLDOUT_TASK_SET, INPUT_RETRIEVAL_TASK_SET, INPUT_TASK_SETS,
     LINK_MODES, NAVIGATION_CONTEXT_MODES, OCR_MODES, STUDY_MODES, SUPPLEMENTAL_TASK_ID, TASK_SETS,
     PRICE_DEV_TASK_SET, category_search_code, exact_vwa_success, holdout_profile, input_fingerprints,
-    replace_keyword_code, url_origin,
+    replace_keyword_code, sort_listing_code, url_origin,
 )
 
 
@@ -540,6 +540,13 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
                     and predictions[event["step"]]["metrics"]["provider_format"] == "price_search"
                     and event["executed_code"] == category_search_code(parse_action(predictions[event["step"]]["raw"])),
                     "Category search differs from the recorded on-screen action")
+        if action["action"] == "SORT_LISTINGS_PRICE":
+            before = frame_before_prediction[event["step"]]
+            require(use_ranked_cards and use_browser_context
+                    and predictions[event["step"]]["metrics"]["provider_format"] == "price_sort"
+                    and event["executed_code"] == sort_listing_code(parse_action(predictions[event["step"]]["raw"]),
+                                                                     [events[0], *transitions][before]["size"]),
+                    "Price sort differs from the recorded on-screen action")
         if action["action"] == "TAB_FOCUS":
             before = frame_before_prediction[event["step"]]
             target = int(action["value"]) - 1

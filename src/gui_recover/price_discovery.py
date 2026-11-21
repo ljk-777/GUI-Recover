@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, urlsplit
 from .actions import Action
 from .listing_cards import RESULT_VIEW_HEIGHT, card_panel, inspect_card_receipt, listing_range, title_point
 from .qwen_grounding import ask_observation, read_reply
+from .ranked_cards import BATCH_SIZE
 from .screen_text import empty_keyword_field, listing_detail, replace_keyword_search
 from .verification import pixel_hash
 
@@ -33,6 +34,7 @@ class PriceRequest:
     query: str
     alternate: str | None
     descending: bool
+    visual_target: str
 
     @property
     def order_label(self):
@@ -57,7 +59,7 @@ def price_request(goal):
         query, alternate = "lift", noun
     else:
         query, alternate = noun, None
-    return PriceRequest(category, query, alternate, match[1].casefold() == "most expensive")
+    return PriceRequest(category, query, alternate, match[1].casefold() == "most expensive", match[2].rstrip(", "))
 
 
 def same_origin(url, site):
@@ -146,6 +148,8 @@ class PriceDiscovery:
         self.query = request.query
         self.visited = set()
         self.destination = None
+        self.offset = 0
+        self.page_frame = None
 
     def decide(self, observation, actor, screen_reader, capture):
         screen = observation.screenshot
@@ -187,12 +191,11 @@ class PriceDiscovery:
         if scope is None or scope[0] != 1:
             return finish("price_abstained")
         if not _price_order(rows, self.request, active):
-            option = _unique(rows, lambda text: text == self.request.order_label)
-            if option is not None:
-                return finish("price_sort", Action("CLICK", position=_point(option, size)))
             menu = _unique(rows, lambda text: text.startswith("sort by:"))
             if menu is not None:
-                return finish("price_sort_menu", Action("CLICK", position=_point(menu, size, toward_right=True)))
+                action = Action("SORT_LISTINGS_PRICE", self.request.order_label.capitalize(),
+                                _point(menu, size, toward_right=True))
+                return finish("price_sort", action)
             return finish("price_abstained")
         receipt = capture()
         metrics["price_card_receipt"] = receipt
@@ -203,26 +206,32 @@ class PriceDiscovery:
             if screen.height < RESULT_VIEW_HEIGHT and receipt["grid"] is not None:
                 return finish("price_expand", Action("LISTING_GRID", position=tuple(receipt["grid"])))
             return finish("price_abstained")
-        panel = card_panel([(screen, card) for card in cards])
+        if self.offset and frame != self.page_frame:
+            return finish("price_abstained")
+        self.page_frame = frame
+        batch = cards[self.offset:self.offset + BATCH_SIZE]
+        panel = card_panel([(screen, card) for card in batch])
         reply = ask_observation(actor, actor.prepare_image(panel), (
-            f"Task: {observation.goal}\n"
-            "The numbered cards are in the required price order. Judge whether each pictured listing is "
-            "the requested kind of item and meets every visual condition. Check the photo and title together. "
-            "Use false when at least one condition clearly fails. Use null only when no condition clearly fails "
-            "but a required condition cannot be resolved from the photo and title. "
-            f"Return only a JSON array of exactly {len(cards)} values in card order, each true, false, or null. "
-            "Do not answer the task or give a price."
+            f"Find photos that visibly match this description: {self.request.visual_target}.\n"
+            "Inspect each numbered card independently. Write true if the photo shows the requested physical item "
+            "and the visual details match. Write false for a clear photo that lacks a requested visible feature "
+            "or shows another subject. Use null for an unreadable photo or a genuinely ambiguous case. "
+            f"Return only a JSON array with exactly {len(batch)} values in the numbered order."
         ), observation)
         metrics.update(model_invocations=1, provider_output=reply, price_panel_pixels=pixel_hash(panel),
                        peak_cuda_allocated_bytes=actor.last_metrics.get("peak_cuda_allocated_bytes", 0))
-        index, clear_miss = first_ranked_match(reply, len(cards))
+        index, clear_miss = first_ranked_match(reply, len(batch))
         if index is not None:
-            selected = cards[index]
+            selected = batch[index]
             self.destination = selected["destination"]
             return finish("price_open", Action("CLICK", position=title_point(selected, screen.size)))
+        if clear_miss and self.offset + len(batch) < len(cards):
+            self.offset += len(batch)
+            return finish("price_more_cards")
         if clear_miss and self.request.alternate is not None and self.query != self.request.alternate:
             refinement = replace_keyword_search(self.query, self.request.alternate, rows, size)
             if refinement is not None:
                 self.query = self.request.alternate
+                self.offset = 0
                 return finish("price_refine", refinement)
         return finish("price_abstained")

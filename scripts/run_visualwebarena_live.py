@@ -233,6 +233,20 @@ def search_listing_category(category: str, query: str):
     keyword.press("Enter", timeout=2000)
 
 
+def choose_listing_price_order(order: str):
+    """Click the requested visible option after opening the results sort menu.
+
+    Examples:
+        choose_listing_price_order("Higher price first")
+    """
+    page.get_by_text(order, exact=True).click(timeout=2000)
+
+
+def sort_listing_code(action, size):
+    click = compile_action(Action("CLICK", position=action.position), *size)
+    return f"{click}\nchoose_listing_price_order({action.value!r})"
+
+
 def category_search_code(action):
     category, query = category_search_terms(action.value)
     return f"search_listing_category({category!r}, {query!r})"
@@ -328,7 +342,7 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
         if enable_browser_context:
             subsets.append("tab")
         actions = HighLevelActionSet(subsets=subsets, strict=True, multiaction=True,
-                                     custom_actions=[expand_listing_view, search_listing_category]
+                                     custom_actions=[expand_listing_view, search_listing_category, choose_listing_price_order]
                                      if enable_card_view else None)
         self.env = BrowserEnv(LocalAnswerTask, task_kwargs={"task_id": task_id}, headless=True,
                               action_mapping=actions.to_python_code)
@@ -381,6 +395,12 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
                     """, list(checked.position))):
                 raise ValueError("Category search must point to the visible Classifieds selector")
             code = category_search_code(checked)
+        elif checked.action == "SORT_LISTINGS_PRICE":
+            page = self.env.unwrapped.page
+            if (not self.enable_card_view or self.obs is None
+                    or url_origin(page.url) != url_origin(os.environ["VWA_CLASSIFIEDS"])):
+                raise ValueError("Price sorting requires the registered Classifieds results page")
+            code = sort_listing_code(checked, self.obs.screenshot.size)
         else:
             code = compile_action(checked, *self.obs.screenshot.size)
         return self._step_code(code)
