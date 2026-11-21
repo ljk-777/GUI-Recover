@@ -555,6 +555,23 @@ When a price-and-city or price-and-title answer fails confirmation, the policy m
 
 The development replay used the three exposed failures and three previously passing controls from the third cohort. Native success went from 3/6 on these cases in the original run to 6/6 in replay, with eight model calls and zero wrong submissions in each. All six reset screenshots matched the original run. The price-and-city and price-and-title repairs used two calls each. The recovered breadcrumb used one model call and an additional CPU OCR read. The archived third-cohort result is 5/8.
 
+### Compare literal rereading on a fresh catalog cohort
+
+The fourth cohort samples twelve pages per category and excludes 273 previously observed listing paths. Its first two cases cover a multiword city name and a single-word city name. The four reference tasks passed 20 thumbnail comparisons against their on-page alternatives. The minimum distance was 0.253.
+
+The paired protocol shares the checkpoint, seed, inference budget, start page, and native scoring rules between direct answer checking and the current evidence policy. It also registers a same-task run of the evidence policy from before literal rereading. That run uses the earlier policy code and the fourth cohort's task registry and loader.
+
+| Strategy | Native success | Wrong submissions | Model calls |
+| --- | ---: | ---: | ---: |
+| Answer check | 2/8 | 1 | 44 |
+| Evidence cards | 8/8 | 0 | 8 |
+
+The clean paired run met all registered acceptance checks. All eight paired start screenshots matched, and the CPU audit reproduced the archived scores. The evidence policy used one call per task. None of these clean episodes triggered the newly added reread paths.
+
+[Fourth frozen catalog registration](../examples/vwa-catalog-holdout-protocol-004.json)
+
+[Fourth paired results and archive checksums](../examples/vwa-catalog-holdout-results-004.json)
+
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
