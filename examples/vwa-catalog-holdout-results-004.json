@@ -11,6 +11,10 @@
     "evidence-cards": {
       "native_successes": 8,
       "wrong_submissions": 0
+    },
+    "prior-evidence-cards": {
+      "native_successes": 8,
+      "wrong_submissions": 0
     }
   },
   "by_task": {
@@ -33,6 +37,18 @@
           "model_calls": 1,
           "predictions": 2,
           "screenshots": 2,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1
+          }
+        },
+        "prior-evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "predictions": 2,
+          "model_calls": 1,
           "evidence_stages": {
             "locate": 1,
             "listing_facts_region": 1,
@@ -66,6 +82,18 @@
             "listing_facts_region": 1,
             "confirm": 1
           }
+        },
+        "prior-evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "predictions": 2,
+          "model_calls": 1,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1
+          }
         }
       },
       "family": "detail-price-city"
@@ -89,6 +117,20 @@
           "model_calls": 1,
           "predictions": 3,
           "screenshots": 3,
+          "evidence_stages": {
+            "locate": 2,
+            "reference_title_open": 1,
+            "reference_title_heading": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          }
+        },
+        "prior-evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "predictions": 3,
+          "model_calls": 1,
           "evidence_stages": {
             "locate": 2,
             "reference_title_open": 1,
@@ -126,6 +168,20 @@
             "confirm": 1,
             "navigation_context": 1
           }
+        },
+        "prior-evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "predictions": 3,
+          "model_calls": 1,
+          "evidence_stages": {
+            "locate": 2,
+            "reference_title_open": 1,
+            "reference_title_heading": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          }
         }
       },
       "family": "gallery-reference"
@@ -149,6 +205,21 @@
           "model_calls": 1,
           "predictions": 4,
           "screenshots": 4,
+          "evidence_stages": {
+            "locate": 3,
+            "grounded_search": 1,
+            "reference_title_open": 1,
+            "reference_title_heading": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          }
+        },
+        "prior-evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "predictions": 4,
+          "model_calls": 1,
           "evidence_stages": {
             "locate": 3,
             "grounded_search": 1,
@@ -188,6 +259,21 @@
             "confirm": 1,
             "navigation_context": 1
           }
+        },
+        "prior-evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "predictions": 4,
+          "model_calls": 1,
+          "evidence_stages": {
+            "locate": 3,
+            "grounded_search": 1,
+            "reference_title_open": 1,
+            "reference_title_heading": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          }
         }
       },
       "family": "search-reference"
@@ -211,6 +297,21 @@
           "model_calls": 1,
           "predictions": 6,
           "screenshots": 6,
+          "evidence_stages": {
+            "locate": 5,
+            "grounded_search": 1,
+            "search_price_navigation": 3,
+            "listing_facts_region": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          }
+        },
+        "prior-evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "predictions": 6,
+          "model_calls": 1,
           "evidence_stages": {
             "locate": 5,
             "grounded_search": 1,
@@ -250,6 +351,21 @@
             "confirm": 1,
             "navigation_context": 1
           }
+        },
+        "prior-evidence-cards": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "predictions": 6,
+          "model_calls": 1,
+          "evidence_stages": {
+            "locate": 5,
+            "grounded_search": 1,
+            "search_price_navigation": 3,
+            "listing_facts_region": 1,
+            "confirm": 1,
+            "navigation_context": 1
+          }
         }
       },
       "family": "search-highest-price"
@@ -264,16 +380,164 @@
   "target_met": true,
   "model_calls_by_strategy": {
     "answer-check": 44,
+    "prior-evidence-cards": 8,
     "evidence-cards": 8
   },
-  "new_recovery_activations_on_clean_tasks": 0,
+  "clean_resets_identical_across_all_strategies": 8,
   "source_revision": "0b4139d1616f7d452c6c157f8cf4b691f8db74e7",
+  "prior_policy_comparison": {
+    "policy_revision": "ce6fcc0911b42909e3757373e83d6ee9d0ed2575",
+    "registration_harness_revision": "0b4139d1616f7d452c6c157f8cf4b691f8db74e7",
+    "overlay": [
+      "src/gui_recover/vwa_inputs.py",
+      "scripts/prepare_vwa_catalog_holdout.py",
+      "scripts/run_vwa_catalog_holdout.py"
+    ],
+    "runner_sha256": "14b05ca7b8069c8d1cb5a86f7488c5afcd2f331e0391604adfaefc848f6595e0"
+  },
+  "new_recovery_activations_on_clean_tasks": 0,
   "reference_photo_verification": {
     "verification_count": 20,
     "minimum_distance": 0.25304388999938965
   },
+  "controlled_read_faults": {
+    "registration": {
+      "scope": "controlled read faults on the fourth frozen browser cohort",
+      "cohort_sha256": "6f53c7889915133c6171206695cc851c42a2d99d4cb2b08cfaae0c2504e269bc",
+      "cases": {
+        "10401": "shorten-city",
+        "10403": "omit-breadcrumb",
+        "10407": "change-title-letter"
+      },
+      "runner_sha256": "c42ad9b88f06ba5256848365ba5de3b6ebd24c40b82b1a168480964d2594b63c",
+      "policies": {
+        "prior": "ce6fcc0911b42909e3757373e83d6ee9d0ed2575",
+        "current": "0b4139d1616f7d452c6c157f8cf4b691f8db74e7"
+      },
+      "budget": {
+        "model_calls": 8,
+        "decisions": 12
+      }
+    },
+    "strategies": {
+      "prior": {
+        "native_successes": 0,
+        "wrong_submissions": 0,
+        "model_calls": 10
+      },
+      "current": {
+        "native_successes": 3,
+        "wrong_submissions": 0,
+        "model_calls": 5
+      }
+    },
+    "by_task": {
+      "10401": {
+        "fault": "shorten-city",
+        "strategies": {
+          "prior": {
+            "success": false,
+            "reason": "evidence_abstained",
+            "answers_submitted": 0,
+            "predictions": 2,
+            "model_calls": 1,
+            "evidence_stages": {
+              "locate": 1,
+              "listing_facts_region": 1,
+              "confirm": 1
+            }
+          },
+          "current": {
+            "success": true,
+            "reason": "success",
+            "answers_submitted": 1,
+            "predictions": 3,
+            "model_calls": 2,
+            "evidence_stages": {
+              "locate": 1,
+              "listing_facts_region": 1,
+              "confirm": 2,
+              "listing_fact_reread": 1
+            }
+          }
+        }
+      },
+      "10403": {
+        "fault": "omit-breadcrumb",
+        "strategies": {
+          "prior": {
+            "success": false,
+            "reason": "model_call_limit",
+            "answers_submitted": 0,
+            "predictions": 9,
+            "model_calls": 8,
+            "evidence_stages": {
+              "locate": 2,
+              "reference_title_open": 1
+            }
+          },
+          "current": {
+            "success": true,
+            "reason": "success",
+            "answers_submitted": 1,
+            "predictions": 3,
+            "model_calls": 1,
+            "evidence_stages": {
+              "locate": 2,
+              "reference_title_open": 1,
+              "reference_title_breadcrumb": 1,
+              "reference_title_heading": 1,
+              "confirm": 1,
+              "navigation_context": 1
+            }
+          }
+        }
+      },
+      "10407": {
+        "fault": "change-title-letter",
+        "strategies": {
+          "prior": {
+            "success": false,
+            "reason": "evidence_abstained",
+            "answers_submitted": 0,
+            "predictions": 6,
+            "model_calls": 1,
+            "evidence_stages": {
+              "locate": 5,
+              "grounded_search": 1,
+              "search_price_navigation": 3,
+              "listing_facts_region": 1,
+              "confirm": 1,
+              "navigation_context": 1
+            }
+          },
+          "current": {
+            "success": true,
+            "reason": "success",
+            "answers_submitted": 1,
+            "predictions": 7,
+            "model_calls": 2,
+            "evidence_stages": {
+              "locate": 5,
+              "grounded_search": 1,
+              "search_price_navigation": 3,
+              "listing_facts_region": 1,
+              "confirm": 2,
+              "navigation_context": 1,
+              "listing_fact_reread": 1
+            }
+          }
+        }
+      }
+    },
+    "identical_injections": 3,
+    "matching_clean_reset_screenshots": 6
+  },
   "archive_sha256": {
     "cohort-004": "3ad8686ac0909897f2e2ca09c049954841ebb1e523a01f38dfb9d358a156b81f",
-    "visualwebarena-catalog-holdout-004": "237e2f47508566dac240683f8bb098c4ce5d41bdc8e614d942c972da3b52963c"
+    "visualwebarena-catalog-holdout-004": "237e2f47508566dac240683f8bb098c4ce5d41bdc8e614d942c972da3b52963c",
+    "visualwebarena-catalog-prior-policy-004": "aea2b8459ae94e865d69a9c8ac94854ab22378d2e6bad0116b1cad13a27dafdb",
+    "visualwebarena-catalog-literalfault-prior-004": "edca707497b4dea5b0e5d4e6e69f3d5dda2722e0b276c0775a1cc33bd108448d",
+    "visualwebarena-catalog-literalfault-current-004": "833c2219df242a67962b8aa64ad686d2772ef6fcc9aae677cb6415019603ecdc"
   }
 }

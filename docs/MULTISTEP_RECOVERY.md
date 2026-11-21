@@ -564,9 +564,19 @@ The paired protocol shares the checkpoint, seed, inference budget, start page, a
 | Strategy | Native success | Wrong submissions | Model calls |
 | --- | ---: | ---: | ---: |
 | Answer check | 2/8 | 1 | 44 |
-| Evidence cards | 8/8 | 0 | 8 |
+| Prior evidence policy | 8/8 | 0 | 8 |
+| Current evidence policy | 8/8 | 0 | 8 |
 
-The clean paired run met all registered acceptance checks. All eight paired start screenshots matched, and the CPU audit reproduced the archived scores. The evidence policy used one call per task. None of these clean episodes triggered the newly added reread paths.
+The clean paired run met all registered acceptance checks. Start screenshots matched across all three strategies on all eight tasks. Neither evidence policy used more than one model call per clean task, and the run recorded zero activations of the newly added reread paths.
+
+The controlled replay applied one fixed fault to each of three cases. It shortened a multiword city name in the first verification reply, removed the breadcrumb row from the full-screen OCR output, or changed one letter in the first title verification reply. The audit verified identical injected inputs across the two policies and matched each replay's reset screenshot to its clean run.
+
+| Strategy under injected faults | Native success | Wrong submissions | Model calls |
+| --- | ---: | ---: | ---: |
+| Prior evidence policy | 0/3 | 0 | 10 |
+| Current evidence policy | 3/3 | 0 | 5 |
+
+The localized breadcrumb read recovered the title with one model call after the prior policy reached its eight-call limit. The city and title faults each recovered with two model calls. The CPU auditor reproduced the clean and controlled scores from the saved traces.
 
 [Fourth frozen catalog registration](../examples/vwa-catalog-holdout-protocol-004.json)
 
