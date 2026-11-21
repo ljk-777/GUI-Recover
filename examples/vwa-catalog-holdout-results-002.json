@@ -267,5 +267,92 @@
   "policy_revision": "7a0aacfa8c57fa08627437d0954f7a3d53c8b032",
   "runtime_adapter_revision": "31a1a383adf48fe0b19a47b997f6ac6aae617ecf",
   "cohort_archive_sha256": "fc4e87b676687f017ad5d047eb35a3606e04bfa60c9e6982d7325b7093e6c64b",
-  "archive_sha256": "c4fe61ee3414efab46d02853e58efdc3412720b94d601e0366f284d5d771cda5"
+  "archive_sha256": "c4fe61ee3414efab46d02853e58efdc3412720b94d601e0366f284d5d771cda5",
+  "exposed_title_suffix_replay": {
+    "scope": "exposed title development replay with rendered whitespace",
+    "source_revision": "b9c96fe6685fc77543dfb1065faa780680f6d85a",
+    "archive_sha256": "67fd56ae179292de26c88cad3a297763bff6eac7f029d1ee1d7bf8400c093d6e",
+    "task_ids": [
+      "10203",
+      "10204",
+      "10205",
+      "10206"
+    ],
+    "native_successes": 4,
+    "wrong_submissions": 0,
+    "model_calls": 4,
+    "rubric_changes": {
+      "10205": {
+        "sealed": [
+          "Forever Ring  Rose Gold size 6"
+        ],
+        "rendered": [
+          "Forever Ring Rose Gold size 6"
+        ],
+        "submission": "Forever Ring Rose Gold size 6",
+        "sealed_score": 0.0,
+        "rendered_score": 1.0
+      }
+    },
+    "by_task": {
+      "10203": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 3,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 2,
+          "reference_title_open": 1,
+          "reference_title_heading": 1,
+          "confirm": 1,
+          "navigation_context": 1
+        }
+      },
+      "10204": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 3,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 2,
+          "reference_title_open": 1,
+          "reference_title_heading": 1,
+          "confirm": 1,
+          "navigation_context": 1
+        }
+      },
+      "10205": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 4,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 3,
+          "grounded_search": 1,
+          "reference_title_open": 1,
+          "reference_title_crop": 1,
+          "confirm": 1,
+          "reference_title_crop_confirm": 1
+        }
+      },
+      "10206": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "predictions": 4,
+        "model_calls": 1,
+        "evidence_stages": {
+          "locate": 3,
+          "grounded_search": 1,
+          "reference_title_open": 1,
+          "reference_title_heading": 1,
+          "confirm": 1,
+          "navigation_context": 1
+        }
+      }
+    }
+  }
 }

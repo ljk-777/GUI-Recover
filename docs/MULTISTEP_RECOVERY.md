@@ -497,7 +497,7 @@ python scripts/run_vwa_catalog_holdout.py audit --cohort runs/catalog-cohort --s
 
 The frozen run completed all eight pairs with identical reset screenshots for both arms. Both scored 0/8. Wrong submissions fell from four to one. The evidence policy reached a crop read on three reference-photo tasks and confirmed one shortened gallery title. Both price-and-city detail tasks and both highest-price search tasks exhausted inference without reaching a crop read. The run missed the success thresholds. The CPU auditor reproduced the result from the archived browser traces.
 
-The title repair opens the item selected from its reference photo, checks the full detail heading against the visible breadcrumb, and independently transcribes the heading from a screenshot crop. A separate development replay of the three exposed title cases scored 3/3 with one model call per case. The frozen eight-task result remains recorded above.
+The title repair opens the item selected from its reference photo and checks the full detail heading against the visible breadcrumb. It asks the model to read the heading from a crop alongside browser context. A separate development replay of the three exposed title cases scored 3/3 with one model call per case. The frozen eight-task result remains recorded above.
 
 The next repair locates the asking price and city in the detail header. For a highest-price search, the policy checks the keyword and sort order, opens the visible first result after verifying that its price exceeds the runner-up's, and checks the price again on the matched listing. In both cases the model independently transcribes the two requested fields before the browser submits an answer.
 
@@ -519,6 +519,14 @@ The evidence policy passed the three registered acceptance checks. All eight pai
 [Second frozen catalog registration](../examples/vwa-catalog-holdout-protocol-002.json)
 
 [Paired results, source revisions and checksums](../examples/vwa-catalog-holdout-results-002.json)
+
+### Reread a title with a missing final number
+
+If OCR reads the same title prefix as the breadcrumb and misses a short final number, the policy extends the heading crop to the right. For this recovery, the model receives only the heading pixels. The OCR breadcrumb stays in the verifier, and the request excludes tab metadata and reference photos. The browser submits the full title when the transcription agrees with the breadcrumb.
+
+Case 10205 exposed a second issue in the sampler. The HTML had two spaces between two title words, and the browser rendered a single space. The native string evaluator rejected the visually correct transcription under the frozen rule. The sampler now collapses title whitespace before sealing future cases. The frozen comparison above retains its original scores.
+
+The four exposed reference-title cases passed in development with the rendered title rubric and one model call per case. Only case 10205 used the numeric recovery. The same submitted title scored zero under the frozen rule and one under the rendered rule. The paired results file records both scores and the development archive checksum.
 
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
