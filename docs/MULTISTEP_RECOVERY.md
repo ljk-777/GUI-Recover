@@ -622,6 +622,21 @@ A fresh run of the public command on a 12,032 MiB RTX 4090 D slice passed all th
 
 A second BrowserGym test started with a truncated plan and interrupted execution after task 10401 was finalized. On restart, the first trajectory retained its hash and modification time, and the runner executed only tasks 10403 and 10407. The three tasks passed with five archived replies across the two invocations. This test made zero fresh model calls.
 
+### Recover a wrong price from full-page OCR
+
+For a price-and-city question on an open listing, the policy can crop and enlarge the price box if the isolated model reread still disagrees with the original OCR. It accepts the cropped OCR amount only when it agrees with the isolated model read and the city still matches. The CPU auditor reconstructs the crop from the recorded viewport and checks its bounds, pixel hash, and effect on the submitted answer.
+
+The [price OCR fault plan](../examples/vwa-catalog-price-ocr-faults-004.json) reuses the two price-and-city cases from cohort 004. It edits the leading digit in the first OCR amount while retaining the currency symbol, row bounds, and remaining rows. Use this file as `--fault-plan` in the commands above. Compare runs from revisions `4a1c36a` and `9e0e980` with separate output directories and the original clean run.
+
+| Strategy | Native success | Wrong submissions | Qwen calls | Extra price OCR reads |
+| --- | ---: | ---: | ---: | ---: |
+| Prior evidence policy | 0/2 | 0 | 4 | 0 |
+| Local price OCR | 2/2 | 0 | 4 | 2 |
+
+The paired runs used fresh Qwen inference and identical injections on both arms. The first amount changed from $25 to $35 and the second from $10 to $20. Local CPU OCR recovered both prices from the archived crops. The aggregate CPU audit reproduced both native scores and rejected a modified crop hash. These two cases measure recovery from one OCR digit error on previously seen tasks.
+
+Fresh clean controls with the new policy also passed both cases. The clean runs made one Qwen call per task and zero local price OCR reads.
+
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
