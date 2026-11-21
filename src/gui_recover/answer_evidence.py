@@ -129,11 +129,14 @@ def evidence_navigation(raw, size, *, compact_navigation=True, allow_click_box=F
     return action
 
 
-def evidence_answer(raw, goal, *, allow_string_abstention=False):
+def evidence_answer(raw, goal, *, allow_string_abstention=False, price_crop=False):
     data = read_reply(raw)
     if not isinstance(data, dict) or set(data) != {"answer", "evidence"}:
         raise ActionError("Expected an answer and its visual evidence")
     answer, facts = data["answer"], data["evidence"]
+    if price_crop and isinstance(facts, list) and len(facts) == 1 and isinstance(facts[0], list) and len(facts[0]) == 1:
+        # A price crop has one displayed amount. Accept one redundant evidence wrapper.
+        facts = facts[0]
     if (not isinstance(facts, list) or len(facts) > 6
             or any(not isinstance(fact, str) or not 0 < len(fact.strip()) <= 200 for fact in facts)):
         raise ActionError("Expected a bounded list of visual evidence descriptions")
@@ -602,7 +605,8 @@ class EvidenceAnswerPolicy:
         self.last_metrics.update(evidence_stage="read", evidence_frame=frame, evidence_bounds=list(bounds),
                                  evidence_crop_sha256=pixel_hash(crop), provider_format="evidence_invalid")
         try:
-            answer, status = evidence_answer(raw, observation.goal, allow_string_abstention=self.confirm)
+            answer, status = evidence_answer(raw, observation.goal, allow_string_abstention=self.confirm,
+                                             price_crop=self.price_discovery is not None)
         except (ValueError, RecursionError):
             return None
         if status == "evidence_abstained" and self.ranked_capture is not None and self.navigation_context is not None:

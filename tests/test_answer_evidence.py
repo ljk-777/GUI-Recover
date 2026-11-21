@@ -62,6 +62,17 @@ def test_confirmation_cannot_submit_an_amount_outside_the_verified_price_tie():
     assert not evidence_answers_agree("101.00", "$101", expected_cents=10000)
 
 
+def test_ranked_price_crop_accepts_one_redundant_evidence_wrapper_only():
+    goal = "Find the most expensive wheelchair lift with multiple people, and tell me how much it costs in dollars."
+    nested = '{"evidence":[["2995.00 $"]],"answer":"2995.00"}'
+    assert evidence_answer(nested, goal, price_crop=True) == ("2995.00", "evidence_answer")
+    with pytest.raises(ActionError):
+        evidence_answer(nested, goal)
+    for evidence in ([[["2995.00 $"]]], [["2995.00 $"], ["other"]], [[2995]]):
+        with pytest.raises(ActionError):
+            evidence_answer(json.dumps({"evidence": evidence, "answer": "2995.00"}), goal, price_crop=True)
+
+
 def test_independent_reader_accepts_finite_numeric_json_answers():
     assert parse_visible_answer('{"answer":6}', allow_numeric=True) == "6"
     assert parse_visible_answer('{"answer":1200.0}', allow_numeric=True) == "1200.0"

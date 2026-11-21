@@ -353,7 +353,8 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                     "Evidence-read pixels differ from the recorded screenshot crop")
             candidate = None
             try:
-                candidate, status = evidence_answer(reply, goal, allow_string_abstention=confirm)
+                candidate, status = evidence_answer(reply, goal, allow_string_abstention=confirm,
+                                                    price_crop=price_scan is not None)
             except (ValueError, RecursionError):
                 pass
             if (status == "evidence_abstained" and use_ranked_cards and click_origins is not None
