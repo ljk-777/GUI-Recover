@@ -431,9 +431,20 @@ python scripts/audit_visualwebarena_live.py runs/visualwebarena-price-dev \
   --out runs/visualwebarena-price-dev-audit.json
 ~~~
 
-In the completed CUDA development comparison, the evidence policy reached the sorted gallery and used the next-page control on all three tasks. Both policies scored 0/3 and made zero submissions. The evidence policy used four, three, and two model calls on tasks 82, 84, and 99 respectively. On tasks 82 and 99, a later page repeated listings from the previous page, so the policy stopped when it could no longer establish complete ranked coverage. On task 84, the model returned an ordered sequence of judgments that the original parser rejected.
+The evidence policy reached the sorted gallery and used the next-page control on all three tasks. Later pages on tasks 82 and 99 repeated listings from the previous page. The visible boundary prices were $400 and $2,995 respectively. The policy stopped after it could no longer establish ranked coverage. Any continuation through such a boundary has to account for unseen listings at the tied price before it can certify a lower price.
 
-The parser now accepts a complete ordered response with one valid judgment per card. The detail-page reader also handles a dollar sign that OCR puts in a separate adjacent box. A controlled browser replay reached the read and confirmation stages. The resulting CUDA comparison is still pending. The three previously seen tasks remain development cases.
+On task 84, the model initially returned an ordered sequence of judgments that the parser rejected. Accepting a complete ordered response let the policy open a detail page. That run read the amount but abstained because the cropped price field contained no product image. The next run asked the crop reader to transcribe the amount and asked an independent model call to verify the photo and the amount. It submitted one wrong answer. Both the destination and price failed the native evaluator, including when the on-screen amount was tested verbatim in the local string evaluator.
+
+The current guard requires a visible selfie cue during confirmation. A close-up of a ring on a hand alone does not establish a selfie. The reader also handles a dollar sign that OCR puts in a separate adjacent box. These tasks remain development cases. Replay a recorded run with its recorded source revision so that the auditor applies the rules used by that policy.
+
+| CUDA run | Evidence policy change | Native full scores, control / evidence | Wrong submissions, control / evidence |
+| --- | --- | ---: | ---: |
+| 004 | Category search and price-ordered pagination | 0/3 / 0/3 | 0 / 0 |
+| 006 | Ordered card judgments and split OCR currency labels | 0/3 / 0/3 | 0 / 0 |
+| 007 | Separate price transcription and visual confirmation | 0/3 / 0/3 | 0 / 1 |
+| 008 | Require a visible selfie cue before confirming | 0/3 / 0/3 | 0 / 0 |
+
+Run 008 used five model calls on task 84. The confirmer transcribed the amount again, reported no selfie cue, and withheld the answer. On the archived wrong candidate from run 007, a separate CUDA call reproduced the same abstention. The development success target remains open.
 
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
