@@ -11,7 +11,7 @@ from PIL import Image
 from gui_recover.actions import ActionError, parse_action
 from gui_recover.answer_evidence import (
     REFERENCE_CONTACT_REGION, REFERENCE_NAVIGATION, REFERENCE_SEARCH, REFERENCE_SEARCH_ABSTAINED,
-    confirmation_image, contact_from_evidence, evidence_answer, evidence_answers_agree, native_crop,
+    confirmation_image, confirmed_evidence_answer, contact_from_evidence, evidence_answer, native_crop,
     parse_evidence_location, parse_selfie_price_confirmation, reference_contact_box, reference_search_action,
     visible_contact_request,
 )
@@ -415,13 +415,13 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
             else:
                 if independent is None:
                     status = "evidence_verify_abstained"
-                elif not evidence_answers_agree(candidate, independent, tie.cents if tie is not None else None):
-                    status = "evidence_verify_disagreed"
                 else:
-                    status = "evidence_verify_agreed"
+                    confirmed = confirmed_evidence_answer(candidate, independent, price_crop=price_scan is not None,
+                                                          expected_cents=tie.cents if tie is not None else None)
+                    status = "evidence_verify_agreed" if confirmed is not None else "evidence_verify_disagreed"
             if status == "evidence_verify_agreed":
                 action = parse_action(raw)
-                require(action.action == "ANSWER" and action.value == candidate, "Submission differs from agreed answer")
+                require(action.action == "ANSWER" and action.value == confirmed, "Submission differs from agreed answer")
                 answers.add(step)
             else:
                 require(raw is None, "Answer reached the browser without agreement")

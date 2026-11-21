@@ -246,10 +246,19 @@ def answer_signature(answer):
     return value
 
 
-def evidence_answers_agree(candidate, independent, expected_cents=None):
+def confirmed_evidence_answer(candidate, independent, *, price_crop=False, expected_cents=None):
     signature = answer_signature(candidate)
-    return (signature == answer_signature(independent)
-            and (expected_cents is None or signature == (Decimal(expected_cents).scaleb(-2),)))
+    if signature != answer_signature(independent):
+        return None
+    if expected_cents is not None and signature != (Decimal(expected_cents).scaleb(-2),):
+        return None
+    if not price_crop:
+        return candidate
+    if not isinstance(signature, tuple) or len(signature) != 1:
+        return None
+    amount, = signature
+    whole = amount.to_integral_value()
+    return format(whole if amount == whole else amount, "f")
 
 
 def parse_selfie_price_confirmation(raw):
@@ -687,11 +696,13 @@ class EvidenceAnswerPolicy:
             self.last_metrics["provider_format"] = "evidence_verify_abstained"
             return None
         tie = self.price_discovery.tie if self.price_discovery is not None else None
-        if not evidence_answers_agree(candidate, answer, tie.cents if tie is not None else None):
+        confirmed = confirmed_evidence_answer(candidate, answer, price_crop=self.price_discovery is not None,
+                                              expected_cents=tie.cents if tie is not None else None)
+        if confirmed is None:
             self.last_metrics["provider_format"] = "evidence_verify_disagreed"
             return None
         self.last_metrics["provider_format"] = "evidence_verify_agreed"
-        return json.dumps(Action("ANSWER", candidate).to_dict(), ensure_ascii=False)
+        return json.dumps(Action("ANSWER", confirmed).to_dict(), ensure_ascii=False)
 
     def verify_links(self, observation, frame, rows, selected, destinations, count):
         canvas = self.actor.prepare_image(observation.screenshot)

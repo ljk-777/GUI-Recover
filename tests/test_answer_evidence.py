@@ -5,7 +5,7 @@ from PIL import Image
 
 from gui_recover.actions import Action, ActionError, parse_action
 from gui_recover.answer_evidence import (EvidenceAnswerPolicy, answer_signature, evidence_answer, evidence_box,
-                                         confirmation_image, evidence_answers_agree, evidence_clipped,
+                                         confirmation_image, confirmed_evidence_answer, evidence_clipped,
                                          evidence_navigation, native_crop)
 from gui_recover.environment import VisualObservation
 from gui_recover.price_discovery import PriceDiscovery, price_request
@@ -58,8 +58,10 @@ def test_independent_answer_signature_matches_formatting_variants():
 
 
 def test_confirmation_cannot_submit_an_amount_outside_the_verified_price_tie():
-    assert evidence_answers_agree("100.00", "$100", expected_cents=10000)
-    assert not evidence_answers_agree("101.00", "$101", expected_cents=10000)
+    assert confirmed_evidence_answer("100.00", "$100", price_crop=True, expected_cents=10000) == "100"
+    assert confirmed_evidence_answer("101.00", "$101", price_crop=True, expected_cents=10000) is None
+    assert confirmed_evidence_answer("1,234.50", "$1234.5", price_crop=True) == "1234.50"
+    assert confirmed_evidence_answer("100.00", "$100") == "100.00"
 
 
 def test_ranked_price_crop_accepts_one_redundant_evidence_wrapper_only():
@@ -231,6 +233,6 @@ def test_ranked_price_reader_transcribes_before_independent_photo_confirmation(c
     answer = policy.predict(obs, [])
     assert target in prompts[1] and "upper-left overview" in prompts[1]
     if expected:
-        assert parse_action(answer) == Action("ANSWER", "12.00")
+        assert parse_action(answer) == Action("ANSWER", "12")
     else:
         assert answer is None
