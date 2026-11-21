@@ -27,7 +27,8 @@ from gui_recover.visible_links import agreed_listing_answer, link_answer_count, 
 from gui_recover.visual_text_audit import checked_file, read_json, require
 from run_visualwebarena_live import (
     ANSWER_STUDIES, CONFIRM_MODES, EVIDENCE_STUDIES, HOLDOUT_PROTOCOL_SHA256, HOLDOUT_TASK_SET,
-    INPUT_HOLDOUT_TASK_SET, INPUT_MEDIA_SHA256, INPUT_PROTOCOL_SHA256, LINK_MODES, NAVIGATION_CONTEXT_MODES,
+    INPUT_HOLDOUT_TASK_SET, INPUT_MEDIA_SHA256, INPUT_PROTOCOL_SHA256, INPUT_RETRIEVAL_TASK_SET, INPUT_TASK_SETS,
+    LINK_MODES, NAVIGATION_CONTEXT_MODES,
     OCR_MODES, STUDY_MODES, TASK_SETS, exact_vwa_success, holdout_profile, replace_keyword_code, url_origin,
 )
 
@@ -599,7 +600,7 @@ def audit(directory):
     if task_set == HOLDOUT_TASK_SET:
         require(summary.get("protocol_sha256") == HOLDOUT_PROTOCOL_SHA256
                 and holdout_profile(study, budget, summary["model"]), "Run differs from the locked holdout protocol")
-    use_inputs = task_set == INPUT_HOLDOUT_TASK_SET
+    use_inputs = task_set in INPUT_TASK_SETS
     if use_inputs:
         require(summary.get("protocol_sha256") == INPUT_PROTOCOL_SHA256
                 and summary.get("reference_files_sha256") == INPUT_MEDIA_SHA256
@@ -694,6 +695,10 @@ def audit(directory):
                     "fewer_wrong_submissions_than_control": wrong[candidate] < wrong["answer-check"]}
             report.update(protocol_sha256=summary["protocol_sha256"], acceptance_checks=gate,
                           max_observed_model_calls=peak_calls, target_met=all(gate.values()))
+        if task_set == INPUT_RETRIEVAL_TASK_SET:
+            peak_calls = max(record["counts"]["model_calls"] for records in studies.values() for record in records)
+            require(peak_calls <= 8, "Development replay exceeded the model call budget")
+            report.update(scope="previously observed development tasks", max_observed_model_calls=peak_calls)
         if task_set in ("evidence-transfer", "evidence-confirm-transfer", "evidence-context-transfer"):
             candidate = modes[-1]
             report["target_met"] = (len(task_ids) == 8 and budget == 8

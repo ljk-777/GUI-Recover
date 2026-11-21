@@ -32,6 +32,8 @@ TRANSFER_TASKS = (11, 12, 22, 49, 119, 128, 148, 186, 221, 222)
 HOLDOUT_TASK_SET = "evidence-links-holdout"
 HOLDOUT_PROTOCOL_SHA256 = "df60ebc2e7cb257d63b22a1d6eac4322e5ea53eed75f695850efcc8d51407629"
 INPUT_HOLDOUT_TASK_SET = "evidence-cards-input-holdout"
+INPUT_RETRIEVAL_TASK_SET = "evidence-cards-reference-dev"
+INPUT_TASK_SETS = (INPUT_HOLDOUT_TASK_SET, INPUT_RETRIEVAL_TASK_SET)
 INPUT_PROTOCOL_SHA256 = "d97cc17118a061eb822879c109bdd6202431f60a41ad4dc0d1970e45ca2087fe"
 INPUT_MEDIA_SHA256 = "88a7fcad2505d581b266427896265c71367cbc067ed1da461eba127a45b20f58"
 INPUT_CROSS_SITE_TASKS = (36, 233)
@@ -56,6 +58,7 @@ TASK_SETS = {
     "evidence-card-diagnostic": (34, 106),
     HOLDOUT_TASK_SET: (6, 7, 34, 35, 38, 39, 106, 108),
     INPUT_HOLDOUT_TASK_SET: (36, 102, 136, 137, 138, 140, 142, 233),
+    INPUT_RETRIEVAL_TASK_SET: (137, 140),
 }
 STUDY_MODES = {
     "visual": ("none", "feedback"),
@@ -126,7 +129,7 @@ def registered_start_sites(start_url):
     return sites
 
 
-def input_holdout_archive(directory):
+def input_holdout_archive(directory, task_set=INPUT_HOLDOUT_TASK_SET):
     """Authenticate the registration and exact official task table before any rollout."""
     protocol_bytes = (directory / "cohort.json").read_bytes()
     if hashlib.sha256(protocol_bytes).hexdigest() != INPUT_PROTOCOL_SHA256:
@@ -165,7 +168,7 @@ def input_holdout_archive(directory):
                        if set(item["start_sites"]) != {"classifieds"})
     if cross_site != INPUT_CROSS_SITE_TASKS:
         raise ValueError("The registered cross-site start pages no longer match the staged schedule")
-    return archive, input_manifest
+    return archive, {str(task_id): input_manifest[str(task_id)] for task_id in TASK_SETS[task_set]}
 
 
 def url_origin(url):
@@ -371,15 +374,15 @@ def run_study(actor, *, out, study, task_set, max_steps, reference_archive=None,
               input_phase="all"):
     if task_set == HOLDOUT_TASK_SET and not holdout_profile(study, max_steps, actor.config):
         raise ValueError("The locked cohort requires the registered 8-decision Qwen 7B NF4 comparison")
-    use_inputs = task_set == INPUT_HOLDOUT_TASK_SET
+    use_inputs = task_set in INPUT_TASK_SETS
     if use_inputs and (reference_archive is None or input_manifest is None
                        or not holdout_profile(study, max_steps, actor.config, "evidence-cards")):
-        raise ValueError("The new holdout requires its media archive and registered 8-decision comparison")
+        raise ValueError("Reference-image studies require the media archive and registered 8-decision profile")
     if use_inputs and input_phase != "classifieds":
         backend_origins = holdout_backend_origins(input_manifest)
     staged = input_phase != "all"
     if staged:
-        if not use_inputs or input_phase not in ("classifieds", "finish"):
+        if task_set != INPUT_HOLDOUT_TASK_SET or input_phase not in ("classifieds", "finish"):
             raise ValueError("Staged execution is only available for the registered image-and-tab holdout")
         task_ids = stage_input_holdout(out, input_phase, actor.config, input_manifest)
     else:
@@ -502,16 +505,16 @@ def main():
     if args.task_set == HOLDOUT_TASK_SET and (args.study != "evidence-links" or args.max_steps != 8
                                                or not args.qwen_7b_4bit):
         parser.error("The locked cohort needs --study evidence-links --max-steps 8 --qwen-7b-4bit")
-    if args.task_set == INPUT_HOLDOUT_TASK_SET and (args.cohort_dir is None or args.study != "evidence-cards"
-                                                    or args.max_steps != 8 or not args.qwen_7b_4bit):
-        parser.error("The input holdout needs --cohort-dir, --study evidence-cards, --max-steps 8, and --qwen-7b-4bit")
+    if args.task_set in INPUT_TASK_SETS and (args.cohort_dir is None or args.study != "evidence-cards"
+                                            or args.max_steps != 8 or not args.qwen_7b_4bit):
+        parser.error("Reference-image studies need --cohort-dir, --study evidence-cards, --max-steps 8, and --qwen-7b-4bit")
     if args.input_phase != "all" and args.task_set != INPUT_HOLDOUT_TASK_SET:
         parser.error("--input-phase is only used by the registered image-and-tab holdout")
     if args.qwen_7b_4bit and (args.actor != "qwen" or args.device != "cuda"):
         parser.error("The Qwen 7B 4-bit profile requires --actor qwen --device cuda")
     probe_instance()
-    reference_archive, input_manifest = (input_holdout_archive(args.cohort_dir)
-                                         if args.task_set == INPUT_HOLDOUT_TASK_SET else (None, None))
+    reference_archive, input_manifest = (input_holdout_archive(args.cohort_dir, args.task_set)
+                                         if args.task_set in INPUT_TASK_SETS else (None, None))
     if args.task_set == INPUT_HOLDOUT_TASK_SET and args.input_phase != "classifieds":
         for site in holdout_backend_origins(input_manifest):
             if site != "classifieds":

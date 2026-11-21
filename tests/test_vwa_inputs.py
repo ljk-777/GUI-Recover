@@ -267,3 +267,7 @@ def test_reference_contact_localization_requires_one_aligned_publisher_email():
     assert reference_contact_box(goal, [email]) is None
     assert reference_contact_box(goal, [heading, email, email]) is None
     assert reference_contact_box(goal, [heading, {**email, "bounds": [2, 75, 25, 85]}]) is None
+    label = {"text": "E-mail:", "bounds": [30, 75, 50, 85]}
+    address = {"text": "demo@example.com", "bounds": [30, 84, 85, 94]}
+    assert reference_contact_box(goal, [heading, label, address]) == [30, 75, 85, 94]
+    assert reference_contact_box(goal, [heading, label, {**address, "bounds": [30, 105, 85, 115]}]) is None

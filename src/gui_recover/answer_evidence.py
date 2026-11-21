@@ -266,15 +266,22 @@ def reference_contact_box(goal, rows):
     if not (_CONTACT.search(goal) and _EMAIL_REQUEST.search(goal)):
         return None
     headings = [row["bounds"] for row in rows if row["text"].casefold() == "contact publisher"]
-    addresses = [row["bounds"] for row in rows
-                 if re.match(r"^e-?mail\s*:", row["text"], re.IGNORECASE) and _EMAIL.search(row["text"])]
-    if len(headings) != 1 or len(addresses) != 1:
+    fields = [row for row in rows if re.match(r"^e-?mail\s*:", row["text"], re.IGNORECASE)]
+    if len(headings) != 1 or len(fields) != 1:
         return None
-    heading, address = headings[0], addresses[0]
-    if (0 < address[1] - heading[3] <= 12 * (heading[3] - heading[1])
-            and address[0] < heading[2] and address[2] > heading[0]):
-        return address
-    return None
+    heading, field = headings[0], fields[0]
+    left, top, right, bottom = field["bounds"]
+    if not (0 < top - heading[3] <= 12 * (heading[3] - heading[1]) and left < heading[2] and right > heading[0]):
+        return None
+    if _EMAIL.search(field["text"]):
+        return field["bounds"]
+    height = bottom - top
+    following = [row["bounds"] for row in rows if _EMAIL.fullmatch(row["text"])
+                 and abs(row["bounds"][0] - left) <= height and top < row["bounds"][1] <= bottom + height]
+    if len(following) != 1:
+        return None
+    address = following[0]
+    return [min(left, address[0]), top, max(right, address[2]), max(bottom, address[3])]
 
 
 def contact_from_evidence(raw, goal):
