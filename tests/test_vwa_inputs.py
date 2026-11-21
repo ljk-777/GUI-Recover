@@ -10,7 +10,7 @@ import pytest
 from PIL import Image, ImageDraw
 
 from gui_recover.actions import ActionError, compile_action, parse_action
-from gui_recover.answer_evidence import EvidenceAnswerPolicy
+from gui_recover.answer_evidence import EvidenceAnswerPolicy, reference_contact_box
 from gui_recover.environment import VisualObservation, frame_key
 from gui_recover.listing_cards import reference_result_action, reference_title_region
 from gui_recover.qwen_grounding import QwenGroundingPolicy, normalize_qwen_action
@@ -233,3 +233,37 @@ def test_reference_result_navigation_requires_complete_scope_and_only_breaks_tie
     assert reference_result_action(screen, reference, receipt, site, rows, "jacket",
                                    "Find the lister of this exact item.") is None
     assert reference_result_action(screen, reference, receipt, site, rows, "boots", latest) is None
+
+
+def test_reference_result_refines_only_a_complete_clear_miss_with_a_visible_keyword_field():
+    site = "http://localhost:19980"
+    screen = Image.new("RGB", (300, 160), "white")
+    reference = Image.new("RGB", (64, 45), "navy")
+    ImageDraw.Draw(reference).rectangle((13, 8, 48, 37), fill="orange")
+    screen.paste(Image.new("RGB", (80, 67), "green"), (205, 20))
+    rows = [{"text": text, "bounds": [10, 10 + index * 15, 100, 20 + index * 15]}
+            for index, text in enumerate(("Search results: brand model type", "Sort by: Newly listed",
+                                          "1 - 1 of 30 listings", "Your search", "brand model type", "Apply"))]
+    receipt = {"source_pixels": pixel_hash(screen), "scroll_top": 0, "next": None, "grid": None,
+               "cards": [{"destination": f"{site}/index.php?page=item&id=1", "title": [205, 90, 285, 100],
+                          "image": [205, 20, 285, 87]}]}
+    goal = "Find the most recent lister of this exact item."
+    args = screen, reference, receipt, site, rows, "brand model type", goal
+    assert reference_result_action(*args) is None
+    action = reference_result_action(*args, refinement_size=screen.size)
+    assert (action.action, action.value, action.position) == ("SEARCH_REPLACE", "brand", (55 / 300, 75 / 160))
+    assert parse_action(json.dumps(action.to_dict())) == action
+    with pytest.raises(ActionError, match="Classifieds adapter"):
+        compile_action(action, *screen.size)
+    rows.pop()
+    assert reference_result_action(*args, refinement_size=screen.size) is None
+
+
+def test_reference_contact_localization_requires_one_aligned_publisher_email():
+    heading = {"text": "Contact publisher", "bounds": [30, 10, 60, 20]}
+    email = {"text": "E-mail: demo@example.com", "bounds": [30, 75, 85, 85]}
+    goal = "Tell me the email of the lister of this exact item."
+    assert reference_contact_box(goal, [heading, email]) == email["bounds"]
+    assert reference_contact_box(goal, [email]) is None
+    assert reference_contact_box(goal, [heading, email, email]) is None
+    assert reference_contact_box(goal, [heading, {**email, "bounds": [2, 75, 25, 85]}]) is None

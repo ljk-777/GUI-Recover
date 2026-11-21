@@ -9,7 +9,10 @@ from PIL import Image, ImageDraw
 
 from .actions import Action, ActionError
 from .environment import frame_key
-from .listing_cards import ranked_photo_request, reference_result_action, reference_title_region, reference_title_request
+from .listing_cards import (
+    ranked_photo_request, reference_result_action, reference_result_destination, reference_title_region,
+    reference_title_request,
+)
 from .qwen_grounding import ask_observation, native_action_after_note, normalize_qwen_action, parse_visible_answer, read_reply
 from .ranked_cards import RankedCardEvidence
 from .screen_text import empty_keyword_field, exact_initial_search, from_readable_control, keyword_search, listing_detail
@@ -28,6 +31,13 @@ REFERENCE_SEARCH = "evidence_reference_search"
 REFERENCE_SEARCH_ABSTAINED = "evidence_reference_search_abstained"
 REFERENCE_RESULTS_EXPAND = "evidence_reference_results_expand"
 REFERENCE_RESULTS_OPEN = "evidence_reference_results_open"
+REFERENCE_RESULTS_REFINE = "evidence_reference_results_refine"
+REFERENCE_CONTACT_REGION = "evidence_reference_contact_region"
+REFERENCE_NAVIGATION = {
+    "LISTING_GRID": REFERENCE_RESULTS_EXPAND,
+    "CLICK": REFERENCE_RESULTS_OPEN,
+    "SEARCH_REPLACE": REFERENCE_RESULTS_REFINE,
+}
 
 
 def reference_search_prompt(goal):
@@ -251,6 +261,22 @@ def visible_contact_request(goal, rows):
                 and any(row["text"].casefold() == "latest listings" for row in rows))
 
 
+def reference_contact_box(goal, rows):
+    """Find one visible email row in the publisher section of the matched item."""
+    if not (_CONTACT.search(goal) and _EMAIL_REQUEST.search(goal)):
+        return None
+    headings = [row["bounds"] for row in rows if row["text"].casefold() == "contact publisher"]
+    addresses = [row["bounds"] for row in rows
+                 if re.match(r"^e-?mail\s*:", row["text"], re.IGNORECASE) and _EMAIL.search(row["text"])]
+    if len(headings) != 1 or len(addresses) != 1:
+        return None
+    heading, address = headings[0], addresses[0]
+    if (0 < address[1] - heading[3] <= 12 * (heading[3] - heading[1])
+            and address[0] < heading[2] and address[2] > heading[0]):
+        return address
+    return None
+
+
 def contact_from_evidence(raw, goal):
     """Recover one literal contact fact from a validated evidence reply."""
     if not (_CONTACT.search(goal) and _EMAIL_REQUEST.search(goal)):
@@ -281,6 +307,8 @@ class EvidenceAnswerPolicy:
         self.ranked_evidence = RankedCardEvidence(listing_site) if ranked_capture is not None else None
         self.ranked_request = None
         self.reference_query = None
+        self.reference_refined = False
+        self.reference_destination = None
         self.checked_frames = set()
         self.pending_crop = None
         self.pending_answer = None
@@ -300,6 +328,8 @@ class EvidenceAnswerPolicy:
         self.navigation_context = None
         self.ranked_request = None
         self.reference_query = None
+        self.reference_refined = False
+        self.reference_destination = None
         if self.ranked_capture is not None:
             self.ranked_evidence = RankedCardEvidence(self.listing_site)
 
@@ -315,8 +345,10 @@ class EvidenceAnswerPolicy:
 
     def locate(self, observation, frame, history):
         reference = None
+        active_url = None
         if self.ranked_capture is not None and len(observation.reference_images) == 1 and observation.tabs:
-            here = urlsplit(observation.tabs[observation.active_tab][1])
+            active_url = observation.tabs[observation.active_tab][1]
+            here = urlsplit(active_url)
             site = urlsplit(self.listing_site)
             if (here.scheme, here.netloc) == (site.scheme, site.netloc):
                 reference = observation.reference_images[0]
@@ -362,14 +394,33 @@ class EvidenceAnswerPolicy:
         link_count = link_answer_count(observation.goal) if self.listing_preview is not None else None
         if self.screen_reader is not None:
             rows = self.screen_reader(observation.screenshot, canvas.size)
+            if self.reference_destination is not None and active_url == self.reference_destination:
+                box = reference_contact_box(observation.goal, rows)
+                if box is not None:
+                    crop, bounds = native_crop(observation.screenshot, canvas.size, box)
+                    self.pending_crop = frame, crop, bounds
+                    self.actor.last_metrics = {
+                        "model_invocations": 0, "provider_output": None, "provider_format": REFERENCE_CONTACT_REGION,
+                        "evidence_stage": "locate", "evidence_frame": frame, "screen_text": rows,
+                        "provider_image_size": list(canvas.size), "evidence_bounds": list(bounds),
+                        "peak_cuda_allocated_bytes": 0,
+                    }
+                    return None
             if reference is not None and self.reference_query is not None:
                 receipt = self.ranked_capture()
                 action = reference_result_action(observation.screenshot, reference, receipt, self.listing_site,
-                                                 rows, self.reference_query, observation.goal)
+                                                 rows, self.reference_query, observation.goal,
+                                                 refinement_size=None if self.reference_refined else canvas.size)
                 if action is not None:
-                    status = REFERENCE_RESULTS_EXPAND if action.action == "LISTING_GRID" else REFERENCE_RESULTS_OPEN
+                    if action.action == "SEARCH_REPLACE":
+                        self.reference_query = action.value
+                        self.reference_refined = True
+                    elif action.action == "CLICK":
+                        self.reference_destination = reference_result_destination(
+                            receipt, observation.screenshot.size, action)
                     self.actor.last_metrics = {
-                        "model_invocations": 0, "provider_output": None, "provider_format": status,
+                        "model_invocations": 0, "provider_output": None,
+                        "provider_format": REFERENCE_NAVIGATION[action.action],
                         "evidence_stage": "locate", "evidence_frame": frame, "screen_text": rows,
                         "provider_image_size": list(canvas.size), "reference_card_receipt": receipt,
                         "peak_cuda_allocated_bytes": 0,

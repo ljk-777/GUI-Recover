@@ -190,6 +190,11 @@ def expand_listing_view():
     page.set_viewport_size({"width": page.viewport_size["width"], "height": 1800})
 
 
+def replace_keyword_code(action, size):
+    click = compile_action(Action("CLICK", position=action.position), *size)
+    return f"{click}\nkeyboard_press('Control+a')\nkeyboard_type({action.value!r})\nkeyboard_press('Enter')"
+
+
 class VisualWebArenaEnvironment(MiniwobEnvironment):
     """Use BrowserGym's screenshot and action contract with native VWA answers."""
 
@@ -292,6 +297,17 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
                 raise ValueError("Listing grid action must point to a visible grid control")
             code = compile_action(Action("CLICK", position=checked.position), *self.obs.screenshot.size)
             code += "\nexpand_listing_view()"
+        elif checked.action == "SEARCH_REPLACE":
+            page = self.env.unwrapped.page
+            field = (self.enable_card_view and self.obs is not None
+                     and url_origin(page.url) == url_origin(os.environ["VWA_CLASSIFIEDS"])
+                     and page.evaluate("""([x, y]) =>
+                         document.elementFromPoint(x * innerWidth, y * innerHeight)
+                             ?.matches('input[name="sPattern"]:enabled') ?? false
+                     """, list(checked.position)))
+            if not field:
+                raise ValueError("Search replacement must point to a visible Classifieds keyword field")
+            code = replace_keyword_code(checked, self.obs.screenshot.size)
         else:
             code = compile_action(checked, *self.obs.screenshot.size)
         return self._step_code(code)

@@ -8,6 +8,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from .actions import Action, ActionError
 from .qwen_grounding import read_reply
+from .screen_text import narrow_keyword_search
 from .verification import pixel_hash
 from .visible_links import link_answer_count, listing_destination
 
@@ -144,8 +145,19 @@ def reference_title_request(goal):
     return bool(_TITLE.search(goal))
 
 
-def reference_result_action(screen, reference, receipt, site, rows, query, goal):
-    """Expand a result page or open a visually grounded listing on its verified first page."""
+def _title_point(card, size):
+    left, top, right, bottom = card["title"]
+    return ((left + right) / (2 * size[0]), (top + bottom) / (2 * size[1]))
+
+
+def reference_result_destination(receipt, size, action):
+    """Bind the selected visible title to its recorded destination."""
+    matches = [card["destination"] for card in receipt["cards"] if _title_point(card, size) == action.position]
+    return matches[0] if len(matches) == 1 else None
+
+
+def reference_result_action(screen, reference, receipt, site, rows, query, goal, *, refinement_size=None):
+    """Expand, inspect or refine a verified first page of visible results."""
     if _EXACT_ITEM.search(goal) is None or _MULTIPLE_ITEMS.search(goal) is not None:
         return None
     scope = visible_result_range(rows, query)
@@ -167,12 +179,13 @@ def reference_result_action(screen, reference, receipt, site, rows, query, goal)
         return None
     distances = [float(np.abs(wanted - pixels(screen.crop(card["image"]))).mean()) for card in cards]
     matches = [index for index, distance in enumerate(distances) if distance <= 0.055]
-    if not matches or (len(matches) > 1 and _RECENT.search(goal) is None):
-        return None
     if any(0.055 < distance < 0.105 for distance in distances):
         return None
-    left, top, right, bottom = cards[matches[0]]["title"]
-    return Action("CLICK", position=((left + right) / (2 * screen.width), (top + bottom) / (2 * screen.height)))
+    if not matches:
+        return narrow_keyword_search(query, rows, refinement_size) if refinement_size is not None else None
+    if len(matches) > 1 and _RECENT.search(goal) is None:
+        return None
+    return Action("CLICK", position=_title_point(cards[matches[0]], screen.size))
 
 
 def reference_title_region(screen, reference, receipt, site):

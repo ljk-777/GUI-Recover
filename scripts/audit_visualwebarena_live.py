@@ -9,13 +9,14 @@ from PIL import Image
 
 from gui_recover.actions import ActionError, parse_action
 from gui_recover.answer_evidence import (
-    REFERENCE_RESULTS_EXPAND, REFERENCE_RESULTS_OPEN, REFERENCE_SEARCH, REFERENCE_SEARCH_ABSTAINED,
+    REFERENCE_CONTACT_REGION, REFERENCE_NAVIGATION, REFERENCE_SEARCH, REFERENCE_SEARCH_ABSTAINED,
     answer_signature, confirmation_image, contact_from_evidence, evidence_answer, native_crop,
-    parse_evidence_location, reference_search_action, visible_contact_request,
+    parse_evidence_location, reference_contact_box, reference_search_action, visible_contact_request,
 )
 from gui_recover.environment import VisualObservation, frame_key
 from gui_recover.listing_cards import (
-    RESULT_VIEW_HEIGHT, ranked_photo_request, reference_result_action, reference_title_region, reference_title_request,
+    RESULT_VIEW_HEIGHT, ranked_photo_request, reference_result_action, reference_result_destination,
+    reference_title_region, reference_title_request,
 )
 from gui_recover.qwen_grounding import native_action_after_note, parse_visible_answer, read_reply
 from gui_recover.ranked_cards import RankedCardEvidence
@@ -27,7 +28,7 @@ from gui_recover.visual_text_audit import checked_file, read_json, require
 from run_visualwebarena_live import (
     ANSWER_STUDIES, CONFIRM_MODES, EVIDENCE_STUDIES, HOLDOUT_PROTOCOL_SHA256, HOLDOUT_TASK_SET,
     INPUT_HOLDOUT_TASK_SET, INPUT_MEDIA_SHA256, INPUT_PROTOCOL_SHA256, LINK_MODES, NAVIGATION_CONTEXT_MODES,
-    OCR_MODES, STUDY_MODES, TASK_SETS, exact_vwa_success, holdout_profile, url_origin,
+    OCR_MODES, STUDY_MODES, TASK_SETS, exact_vwa_success, holdout_profile, replace_keyword_code, url_origin,
 )
 
 
@@ -108,6 +109,8 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
     link_count = link_answer_count(goal) if listing_site is not None else None
     ranked_request = ranked_photo_request(goal) if use_ranked_cards else None
     reference_query = None
+    reference_refined = False
+    reference_destination = None
     scan = None
     for prediction in predictions:
         step = prediction["step"]
@@ -187,20 +190,45 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                     reference_query = action.value
                 stages["reference_search"] += 1
                 continue
-            if metrics["provider_format"] in (REFERENCE_RESULTS_EXPAND, REFERENCE_RESULTS_OPEN):
+            if metrics["provider_format"] == REFERENCE_CONTACT_REGION:
+                require(use_ranked_cards and use_screen_text and reference_destination is not None
+                        and tabs and tabs["tabs"][tabs["active_tab"]][1] == reference_destination
+                        and raw is None and reply is None,
+                        "Contact localization requires a visibly matched item detail")
+                size = metrics["provider_image_size"]
+                rows = metrics["screen_text"]
+                verify_ocr_rows(rows, size)
+                box = reference_contact_box(goal, rows)
+                require(box is not None, "Expected a visible publisher email")
+                with Image.open(directory / f"{index:04d}.png") as screen:
+                    crop, bounds = native_crop(screen, size, box)
+                    require(list(bounds) == metrics["evidence_bounds"], "Contact crop differs from the visible email row")
+                    pending = frame, list(bounds), pixel_hash(crop)
+                stages["reference_contact_region"] += 1
+                continue
+            if metrics["provider_format"] in REFERENCE_NAVIGATION.values():
                 require(use_ranked_cards and use_screen_text and reference_query is not None and len(reference_images) == 1
                         and reply is None and raw is not None and tabs
                         and url_origin(tabs["tabs"][tabs["active_tab"]][1]) == listing_site,
                         "Reference navigation requires the original image query and matching site")
                 rows = metrics["screen_text"]
-                verify_ocr_rows(rows, metrics["provider_image_size"])
+                size = metrics["provider_image_size"]
+                receipt = metrics["reference_card_receipt"]
+                verify_ocr_rows(rows, size)
                 with Image.open(directory / f"{index:04d}.png") as screen:
-                    action = reference_result_action(screen, reference_images[0], metrics["reference_card_receipt"],
-                                                     listing_site, rows, reference_query, goal)
-                require(action is not None and action == parse_action(raw), "Result action differs from the visible cards")
-                status = REFERENCE_RESULTS_EXPAND if action.action == "LISTING_GRID" else REFERENCE_RESULTS_OPEN
+                    action = reference_result_action(screen, reference_images[0], receipt, listing_site, rows,
+                                                     reference_query, goal,
+                                                     refinement_size=None if reference_refined else size)
+                    require(action is not None and action == parse_action(raw),
+                            "Result action differs from the visible cards")
+                    if action.action == "CLICK":
+                        reference_destination = reference_result_destination(receipt, screen.size, action)
+                if action.action == "SEARCH_REPLACE":
+                    reference_refined = True
+                    reference_query = action.value
+                status = REFERENCE_NAVIGATION[action.action]
                 require(metrics["provider_format"] == status, "Unexpected reference navigation stage")
-                stages["reference_results_expand" if action.action == "LISTING_GRID" else "reference_results_open"] += 1
+                stages[status.removeprefix("evidence_")] += 1
                 continue
             size = metrics["provider_image_size"]
             require(("screen_text" in metrics) == use_screen_text, "Unexpected OCR mode")
@@ -385,7 +413,7 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         formats[provider_format] += 1
         is_shortcut = direct_navigation and use_screen_text and provider_format == "evidence_exact_search" and step == 0
         reference_region = use_browser_context and use_ranked_cards and provider_format in (
-            "evidence_reference_region", REFERENCE_RESULTS_EXPAND, REFERENCE_RESULTS_OPEN,
+            "evidence_reference_region", REFERENCE_CONTACT_REGION, *REFERENCE_NAVIGATION.values(),
         )
         ranked = use_ranked_cards and metrics.get("evidence_stage") == "ranked_cards"
         require(metrics["model_invocations"] in ((0, 1) if ranked else (0 if is_shortcut or reference_region else 1,)),
@@ -442,6 +470,13 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
         if action["action"] == "LISTING_GRID":
             require(use_ranked_cards and event["size"][1] == RESULT_VIEW_HEIGHT
                     and event["executed_code"].endswith("\nexpand_listing_view()"), "Grid viewport was not expanded")
+        if action["action"] == "SEARCH_REPLACE":
+            before = frame_before_prediction[event["step"]]
+            require(use_ranked_cards and use_browser_context
+                    and predictions[event["step"]]["metrics"]["provider_format"] == REFERENCE_NAVIGATION["SEARCH_REPLACE"]
+                    and event["executed_code"] == replace_keyword_code(parse_action(predictions[event["step"]]["raw"]),
+                                                                       [events[0], *transitions][before]["size"]),
+                    "Search replacement did not execute the recorded keyword action")
         if action["action"] == "TAB_FOCUS":
             before = frame_before_prediction[event["step"]]
             target = int(action["value"]) - 1
