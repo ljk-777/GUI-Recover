@@ -12,8 +12,7 @@ from gui_recover.actions import ActionError, parse_action
 from gui_recover.answer_evidence import (
     REFERENCE_CONTACT_REGION, REFERENCE_NAVIGATION, REFERENCE_SEARCH, REFERENCE_SEARCH_ABSTAINED,
     REFERENCE_TITLE_AMBIGUOUS, REFERENCE_TITLE_CROP, REFERENCE_TITLE_HEADING, REFERENCE_TITLE_OPEN,
-    breadcrumb_ocr_image, checked_listing_confirmation, confirmation_image, confirmation_outcome,
-    contact_from_evidence, evidence_answer,
+    breadcrumb_ocr_image, confirmation_image, confirmation_outcome, contact_from_evidence, evidence_answer,
     listing_fact_reread_image, listing_price_ocr_image, native_crop,
     parse_evidence_location, reference_contact_box, reference_search_action,
     visible_contact_request,
@@ -568,6 +567,9 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
             checked = candidate
             listing_price_checked = "listing_price_check" in metrics
             if listing_price_checked:
+                # Prior policies do not provide this helper and never record this receipt.
+                from gui_recover.answer_evidence import checked_listing_confirmation
+
                 require(isinstance(candidate, ListingFacts) and candidate.field == "city",
                         "Price OCR check requires a price-and-city candidate")
                 rows = replay_price_ocr(directory / f"{index:04d}.png", candidate, metrics["listing_price_check"])
