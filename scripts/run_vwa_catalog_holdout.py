@@ -16,7 +16,7 @@ from gui_recover.runner import render_replay, run_episode, write_json
 from gui_recover.screen_text import RapidScreenReader
 from gui_recover.verification import pixel_hash
 from gui_recover.vwa_inputs import CATALOG_SERIES_IDS, LocalReferenceArchive
-from prepare_vwa_catalog_holdout import CITY_WORD_COUNTS, FAMILIES, OWN_INDEX, encoded, fingerprint
+from prepare_vwa_catalog_holdout import CATALOG_POOL_PAGES, CITY_WORD_COUNTS, FAMILIES, OWN_INDEX, encoded, fingerprint
 from run_visualwebarena_live import VisualWebArenaEnvironment, exact_vwa_success, holdout_profile, probe_instance
 
 
@@ -68,6 +68,8 @@ def load_cohort(directory, digest, homepage):
     ids = CATALOG_SERIES_IDS.get(protocol["sample_key"])
     if ids is None or protocol.get("task_ids") != list(ids) or any(protocol.get(key) != value for key, value in PROFILE.items()):
         raise ValueError("Unexpected independent evaluation profile")
+    if protocol.get("catalog_pages_per_category") != CATALOG_POOL_PAGES.get(protocol["sample_key"]):
+        raise ValueError("Unexpected catalog sampling depth")
     minimum_photo_distance = protocol.get("minimum_reference_photo_distance")
     if ((ids[0] >= 10301 or minimum_photo_distance is not None)
             and minimum_photo_distance != REFERENCE_PHOTO_CLEAR_DISTANCE):

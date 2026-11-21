@@ -26,6 +26,7 @@ RANGE = re.compile(r"([\d,]+)\s*-\s*([\d,]+)\s+of\s+([\d,]+)\s+listings\b", re.I
 SAFE_TITLE = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ,'.&/-]{5,55}")
 OWN_INDEX = re.compile(r"^/index\.php\?page=item&id=([1-9][0-9]*)$")
 CITY_WORD_COUNTS = {"gui-recover-catalog-holdout-v4": (2, 1)}
+CATALOG_POOL_PAGES = {"gui-recover-catalog-holdout-v4": 12}
 
 
 def encoded(value):
@@ -170,6 +171,7 @@ def freeze(site, excluded, output, *, series=1):
     key = f"gui-recover-catalog-holdout-v{series}"
     ids = CATALOG_SERIES_IDS[key]
     city_word_counts = CITY_WORD_COUNTS.get(key)
+    pages = CATALOG_POOL_PAGES.get(key, 4)
 
     def sample_key(value):
         return fingerprint(f"{key}\n{value}".encode())
@@ -178,7 +180,7 @@ def freeze(site, excluded, output, *, series=1):
     pool = {}
     pool_digests = {}
     for category in CATEGORIES:
-        for page in range(1, 5):
+        for page in range(1, pages + 1):
             path, _, cards, digest = catalog.results(sCategory=category, sOrder="dt_pub_date", iOrderType="desc", iPage=page)
             pool_digests[path] = digest
             for card in cards:
@@ -290,6 +292,8 @@ def freeze(site, excluded, output, *, series=1):
     }
     if city_word_counts:
         protocol["detail_city_word_counts_capped_at_two"] = list(city_word_counts)
+    if key in CATALOG_POOL_PAGES:
+        protocol["catalog_pages_per_category"] = pages
     for name, payload in (("cohort.json", protocol), ("tasks.json", specs), ("source-evidence.json", evidence),
                           ("reference-media.json", media_record)):
         (output / name).write_bytes(encoded(payload) + b"\n")
