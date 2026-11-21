@@ -1,81 +1,63 @@
 # GUI-Recover
 
-Fault injection, visual recovery experiments, and traceable evaluation for GUI agents.
+**A visual recovery and evaluation toolkit for browser agents.** Compare what happens when an agent continues, checks the screen, or retries after a missed click, wrong input, or unsupported answer.
 
-GUI-Recover compares whether browser agents should continue, recheck, or retry after an input error. Each matched run records native screenshots, executed actions, exact task outcomes, and recovery costs.
+An action can run without having its intended effect. A click can leave the page unchanged, a field can contain the wrong text, and an answer can sound plausible before the agent reaches the relevant listing. GUI-Recover makes those failures reproducible, tests bounded recovery strategies against matched baselines, and saves the evidence for each decision.
 
-[Download v0.2.0rc3](https://github.com/ljk-777/GUI-Recover/releases/tag/v0.2.0rc3) · [See the tail-space example](docs/TAIL_PROBE_PORTABILITY.md) · [Reproduce the multistep benchmark](docs/MULTISTEP_RECOVERY.md)
+[Download v0.2.0rc3](https://github.com/ljk-777/GUI-Recover/releases/tag/v0.2.0rc3) · [Run the CPU demo](#quick-start) · [Review the benchmark protocols](docs/MULTISTEP_RECOVERY.md) · [Browse saved examples](examples/README.md)
 
-The CPU demo reveals an otherwise invisible trailing space with a reversible selection and verifies the submitted text.
+<a name="安装与本地验收"></a>
+
+## Quick start
+
+From the repository root, use Python 3.11 and Chromium. The demo builds its own fixtures and runs on CPU.
 
 ```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
 python -m pip install -e .
 python -m playwright install chromium
 gui-recover demo-tail-probe --out runs/cpu-tail-demo
 ```
 
-The demo creates its own light and dark single-line and multiline controls. See [CPU demo and native latency comparison](docs/TAIL_PROBE_PORTABILITY.md) for the scope and artifacts.
+**Try an error the first screenshot cannot reveal.** The clean input and the input with a trailing space have identical initial screenshots. A reversible selection exposes either the last glyph or a blank space. The published demo completed 24 exact submissions on each of macOS and Linux, with zero clean-field rewrites in each run. The output contains the selected and restored PNGs, screenshot hashes, and exact submission results. Use a fresh output directory for each run. [Demo protocol and verified outputs](docs/TAIL_PROBE_PORTABILITY.md)
 
-[RC3 发布验收](docs/RELEASE_CANDIDATE.md#020rc3-验收) · [RC3 自动化测试](https://github.com/ljk-777/GUI-Recover/actions/runs/44691667863)
+| Clean input selects the last glyph | Corrupted input selects a trailing space |
+| --- | --- |
+| ![Dark textarea with its final glyph selected](examples/rc3-tail-selection/clean-selected.png) | ![Dark textarea with the trailing blank space selected](examples/rc3-tail-selection/trailing-selected.png) |
 
-- **模型与环境接口**：视觉策略只接收任务文字、截图、动作历史和执行错误。
-- **可复现故障**：漏点击、坐标偏移、漏输入、部分输入和错误文字。
-- **有限恢复**：弱视觉反馈，以及脚本规划基线上的输入出现检查与最多一次补输入。
-- **审计证据**：PNG/JSONL/HTML、截图哈希、固定版本、成功率和真实模型调用统计。
+[Shared initial screenshot](examples/rc3-tail-selection/before.png) · [Frame provenance](examples/rc3-tail-selection/provenance.json)
 
-Alpha 的输入检查只验证白底、初始为空的输入框里是否出现文字笔画。Alpha 的脚本规划覆盖三种 MiniWoB 指令语法，使用独立的评测口径。
-详见 [发布验证与已知限制](docs/RELEASE_VALIDATION.md)。历史实验及负面结果也保留在 docs/ 中。
+For a MiniWoB++ environment smoke test, run `bash scripts/demo_cpu.sh runs/miniwob-smoke`. It sets up the pinned environment and Chromium and uses a privileged diagnostic oracle with an expected 3/3 on `click-test`. Open `runs/miniwob-smoke/click-test-0/replay.html` to inspect the screenshots and executed actions. Ubuntu setup and mirror instructions are in the [server guide](docs/SERVER.md).
 
-MiniWoB Enter Text 的配对实验中，截图字形核验修复了 18/18 个注入的可见文本错误，正常输入 6/6 成功且没有触发重输。普通 CPU 可复核保存的轨迹。见 [正式结果与适用范围](docs/VISUAL_TEXT_CONTENT.md#正式结果)。
+## What GUI-Recover measures
 
-```text
-MiniWoB reset → 任务文本 + 截图 → Policy.predict → 严格动作解析
-      ↑                                             ↓
-      └──── 新截图 + 环境奖励 ← BrowserGym step ← 坐标动作
-                             ↓
-                 JSONL 轨迹 + PNG + 成功率 + HTML 查看
-```
+- **MiniWoB++ input and action recovery.** BrowserGym resets each task and executes bounded coordinate and keyboard actions. Fault injection simulates missed or offset clicks and dropped, partial, or wrong text. Recovery strategies can recheck screenshots, inspect a localized change, or retry a bounded action. ShowUI supplies visual grounding for the model-backed runs.
+- **VisualWebArena answer verification.** For supported Classifieds tasks, the Qwen study can search from a reference image, inspect visible results, read a screenshot crop from the matching listing, and check the candidate in a second model call before submitting. Paired strategies share a model and per-episode budget. The evaluator retains native task scoring.
+- **Evidence from each run.** Episodes save proposed and executed actions, raw model outputs, PNGs, rewards, and model-call counts. The summary records the evaluation setup and outcomes. The HTML viewer walks through saved frames, and the CPU auditors reconstruct supported decisions and scores from saved artifacts.
 
-## 模块与验收
+The visual policies use rendered screenshots and task inputs. VisualWebArena's listing adapter can also use hit-tested geometry and destinations for visible cards. The default MiniWoB++ policy receives task text, pixels, and action history. [Evaluation scope and negative results](docs/MULTISTEP_RECOVERY.md) · [Example recovery trace](examples/recovered/replay.html) · [Example wrong-input trace](examples/wrong-input/replay.html)
 
-| 模块 | 原理 | 验收 |
-|---|---|---|
-| 环境 | BrowserGym MiniWoB Gymnasium reset/step | 固定 seed 能重置，按钮点击后获得终止奖励 |
-| 视觉策略 | ShowUI-2B，任务 + 当前截图 + 最近 8 步历史 | 服务器生成合法单步动作，成功执行至少一条轨迹 |
-| 动作 | 归一化坐标 → 截图像素 → BrowserGym 内部缩放 | 1.5 倍截图下仍能点击；拒绝越界、NaN 和代码 |
-| 记录 | 每次重置和执行后保存 PNG；逐行写事件 | 原始输出、执行动作、奖励、终止标志、截图哈希可追溯 |
-| 评测 | 按 task/seed 汇总环境终止结果 | 失败和异常留在分母，ANSWER 不等于成功 |
+## Selected results
 
-`src/gui_recover/` 分为 `environment.py`、`policies.py`、`actions.py`、`runner.py`、`cli.py`。
-模型接口不包含 DOM、元素 ID、环境奖励或成功标记。`oracle-smoke` 是独立的 DOM 特权诊断策略，且只允许 `click-test`。
+| Experiment | Paired outcome | Evidence |
+| --- | --- | --- |
+| MiniWoB++ Enter Text with injected visible text errors | Glyph verification repaired 18/18 visible errors across six layouts. All six clean inputs succeeded with zero rewrites. | [Protocol and outcomes](docs/VISUAL_TEXT_CONTENT.md#正式结果) · [Result data](examples/visual-text-content-results.json) |
+| Native MiniWoB++ text task variants on one RTX 4090 D | Active verification scored 24/24, glyph verification scored 20/24, and unconditional replacement scored 24/24. Active verification made eight fewer rewrites and used eight more browser steps than unconditional replacement. | [Native task evaluation](docs/TAIL_PROBE_PORTABILITY.md#transfer-to-native-miniwob-task-variants) · [Result data](examples/rc3-tail-validation.json) |
+| Two previously observed VisualWebArena Classifieds development tasks | The evidence strategy earned native full credit on 2/2 versus 0/2 for the answer-check baseline. The candidate used three Qwen calls per task. Both strategies made zero wrong submissions. | [Replay instructions](docs/MULTISTEP_RECOVERY.md#replay-reference-image-retrieval-failures) · [Per-task results](examples/vwa-reference-retrieval-development-results.json) |
+| Fresh Classifieds acceptance comparison with seven official tasks and one independent task | Both strategies scored 0/8. The evidence strategy made zero wrong submissions and the baseline made one. The comparison missed the acceptance criteria. | [Protocol and findings](docs/MULTISTEP_RECOVERY.md#run-the-fresh-classifieds-acceptance-comparison) · [Per-task results](examples/vwa-fresh-heldout-results.json) |
 
-## 安装与本地验收
+These results apply to the listed task grammars, fault conditions, and budgets. [Earlier VisualWebArena holdout audit](examples/vwa-input-heldout-results.json)
 
-在项目目录执行，使用 Python 3.11。系统 Python 3.14 不属于本版本支持范围。
+<a name="gpu-最小恢复演示"></a>
 
-```bash
-python3.11 -m venv .venv
-source .venv/bin/activate
-python -m pip install -e '.[dev]'
-bash scripts/setup_miniwob.sh
-python -m playwright install chromium
-bash scripts/demo_cpu.sh
-```
+## Reproduce the MiniWoB++ GPU comparison
 
-Ubuntu 24.04 若缺系统库，使用 `bash scripts/setup_browser_ubuntu24.sh`；Ubuntu 22.04 使用 `python -m playwright install --with-deps chromium`。
-国内下载可设置 `PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple` 和 `PLAYWRIGHT_DOWNLOAD_HOST=https://registry.npmmirror.com/-/binary/playwright`。
-每次使用新的输出目录，防止覆盖实验。
-
-CPU 演示使用 DOM 特权 oracle，只验证执行与记录链路，预期 3/3 成功；它不是 ShowUI 模型成绩。
-输出目录的 `click-test-0/replay.html` 可离线打开。这是轨迹查看器，不是恢复浏览器完整状态的确定性重放器。
-不安装浏览器也可查看 [保存的恢复示例](examples/recovered/replay.html) 和 [内容错误反例](examples/wrong-input/replay.html)。
-
-## GPU 最小恢复演示
-
-选择一张支持 BF16 的 CUDA GPU。在源码或源码包目录运行模型和 MiniWoB 准备脚本，再运行安装后的命令。
+After the CPU setup, use one CUDA GPU with BF16 support. The setup scripts pin the MiniWoB++ checkout and verify the separately downloaded ShowUI-2B weights.
 
 ```bash
 python -m pip install -e '.[showui]'
+bash scripts/setup_miniwob.sh
 python scripts/download_showui.py --out models/ShowUI-2B
 export MINIWOB_URL="file://$PWD/vendor/miniwob-plusplus/miniwob/html/miniwob/"
 export CUDA_VISIBLE_DEVICES=0
@@ -83,70 +65,32 @@ HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 gui-recover text-recovery --model models
 gui-recover audit-text-recovery runs/text-recovery-demo
 ```
 
-默认用单个示范布局执行七种条件和两种恢复策略，共 14 条轨迹。示范可通过 `--seeds` 指定布局，使用自包含输出目录，无需历史实验数据。审计命令可在没有 GPU、模型和浏览器的机器上运行。报告保存在 `summary.json`，每条轨迹下有 PNG 和 JSONL。留出集复现命令和结果见 [视觉文本核验](docs/VISUAL_TEXT_CONTENT.md)。
-
-主动核验演示加入可逆的末尾选区操作。默认同一布局执行七种条件和三条策略，共 21 条轨迹。
+The default demo runs seven conditions with two strategies on one layout. Inspect `summary.json` for aggregate scores and the episode directories for PNG, JSONL, and HTML. Auditing a saved run requires the base package and CPU. The active comparison adds reversible tail selection.
 
 ```bash
 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 gui-recover active-text-recovery --model models/ShowUI-2B --out runs/active-tail-demo
 gui-recover audit-active-text-recovery runs/active-tail-demo
 ```
 
-选区截图及两次按键都保存在轨迹中。见 [主动核验实验](docs/ACTIVE_TEXT_VERIFICATION.md)。
+See [single-card setup](docs/SERVER.md), [visual text verification](docs/VISUAL_TEXT_CONTENT.md), and [active verification](docs/ACTIVE_TEXT_VERIFICATION.md) for the full layouts, budgets, and known failure cases.
 
-Alpha 的输入出现检查仍可复现。
+<details>
+<summary>Reproduce the earlier dropped-input diagnostic</summary>
 
 ```bash
 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 gui-recover run --policy showui-scripted --model models/ShowUI-2B --tasks enter-text --seeds 40 --max-steps 4 --parser mixed --fault drop-input --recovery input-guard --input-guard-version v2 --out runs/recovery-demo
 ```
 
-模型不包含在软件包内，下载脚本会核对固定权重 SHA256。完整实验定义为 `configs/release_v0_2.json`，可用 `scripts/run_matrix.py` 执行。
-该演示使用显式脚本规划和视觉输入检查，输出中的 `scripted_planner` 标记必须保留。
+This diagnostic uses a scripted planner and ShowUI grounding. The input guard checks for the appearance of text pixels within a supported field crop. [Input guard protocol and scope](docs/INPUT_GUARD.md)
 
-## 单张 RTX 4090
+</details>
 
-详见 [服务器操作单](docs/SERVER.md)。模型约 4.42 GB 权重；本次 BF16 单样本、三类简单任务的设备采样显存峰值为 6695 MiB，低于 12032 MiB 配额。
-这是固定图像/生成预算下的推理实测，不能外推到高分辨率长上下文、训练或并发任务。
-模型固定为 `showlab/ShowUI-2B@cabec4fcc48d15ffd3efe0b33ea9bc7d41509d60`。
+## Research and contributions
 
-已实现 CLICK、INPUT、TYPE、HOVER、ENTER、SCROLL、ANSWER。INPUT 为点击后追加输入；TYPE 向已聚焦元素追加输入，两者不隐式清空。
-SELECT、SELECT_TEXT、COPY 暂不支持，出现时计入 invalid_action。只执行一个预测动作，然后重新观察。INPUT 的点击和输入作为同一个逻辑动作。
+- **Run and inspect.** Start with [the command guide](docs/SERVER.md) or [release validation](docs/RELEASE_CANDIDATE.md#020rc3-验收). The model-facing interfaces, paired studies, and known failure cases are described in [the multistep report](docs/MULTISTEP_RECOVERY.md).
+- **Train and compare.** There are [SFT adapter experiments](docs/SFT_RECOVERY.md), a [Gymnasium recovery decision environment](docs/PRE_RL_RECOVERY.md), and [small offline](docs/RECOVERY_OFFLINE_RL.md) and [online RL studies](docs/ONLINE_VISUAL_RECOVERY_RL.md). The reports include regressions and promotion criteria. The default model-backed demos use frozen model weights.
+- **Contribute.** Include a reproducible task and seed, the exact command, and a small trace when opening an issue. See [contribution guidelines](CONTRIBUTING.md), [change history](CHANGELOG.md), and [upstream provenance](docs/UPSTREAM_AUDIT.md).
 
-默认保留初始 prompt 和 strict 解析；`--parser mixed` 可兼容单引号字典中的裸 JSON 常量，仍拒绝代码和多动作。
-`--prompt-profile official-web` / `official-miniwob` 用于自主导航模板诊断，历史结果未改善输入任务，详见 [失败诊断](docs/DIAGNOSIS.md)。
-`--input-guard-version v1` 保留原始信号；v2 忽略独立单像素噪声。布局反例通过 `--visual-variant shifted|dark` 启用，它们是修改后的测试夹具，不是原版 MiniWoB 成绩。
+**中文文档** · [服务器操作单](docs/SERVER.md) · [发布验收](docs/RELEASE_CANDIDATE.md) · [已知限制与反例](docs/RELEASE_VALIDATION.md)
 
-## 评测口径
-
-成功要求同时满足 `terminated`、非 `truncated`、BrowserGym reward 为 1、`DONE_GLOBAL` 为真且 `RAW_REWARD_GLOBAL > 0`，与固定版本的 MiniWoB 二值奖励规则对应。
-保留原始奖励，避免将此口径推广到其他 benchmark；时间截止和步数上限均不算成功。
-汇总是 episode 加权成功率，并提供每个任务的独立分数；运行异常也计入总分母并分类报告。
-manifest 记录模型版本、提示词、依赖、seed、步数预算、Git 版本、环境版本；每步记录推理耗时及 CUDA 峰值。
-冷启动加载时间不计入每步推理耗时。PyTorch allocated/reserved 不等于整张显卡占用，显卡总占用另用服务器工具观察。
-
-## 开源与后续
-
-- [延迟输入的替换恢复](docs/IDEMPOTENT_INPUT_REPAIR.md)：在相同触发和坐标下，替换执行器使延迟输入从 0/6 提升到 6/6；正常与漏输入保持 6/6。
-- [小规模离线强化学习](docs/RECOVERY_OFFLINE_RL.md)：CPU 拟合恢复决策，延迟输入的测试从旧视觉规则 0/4 提高到 4/4，与人工先等规则持平。
-- [强化学习前的恢复底座](docs/PRE_RL_RECOVERY.md)：Gymnasium 接口、精确终局奖励和分区轨迹；视觉方案在未注入故障组 15/16 对继续 10/16，漏输入组 4/4 对 0/4。
-- [双尺度复选框标签匹配](docs/PORTABLE_CHECKBOX_LABELS.md)：修复两例历史漏判，Linux 和 macOS 的离线判断一致；新布局正常点击 0/20 误触发，相似缺失标签仍有误触发。
-- [目标状态检测与可控恢复](docs/TARGET_STATE_RECOVERY.md)：新方案在 22 次正常中间点击上误触发 0 次，实际恢复 12/14 个自然复选框错误；按钮顺序保持未知。
-- [固定裁剪与正常中间点击对照](docs/CROP_CONTROL_MULTISTEP.md)：固定与自适应 60% 裁剪均恢复 19/24；冻结视觉头在正常中间点击上误触发 39/48。另导出 18 条旧训练分区的验证过的纠错样本。
-- [失败反馈与局部放大的修复对照](docs/CONTEXTUAL_REPAIR.md)：200个新来源产生55个自然错误，组合输入的条件恢复为46/55对plain 2/55；固定混合视觉闭环28/30对27/30。动作模型未训练，检测消融揭示任务终止结构偏差。
-- [视觉动作结果验证与选择性恢复](docs/VISUAL_VERIFICATION.md)：300场景、630变体和300次实际执行；视觉触发36/50，不恢复21/50，先等待重试38/50。健康误触发1/15未过经验门槛，预定子集自然错误恢复0/6，保持原默认模型。
-- [首轮 SFT 训练与重载](docs/SFT_SMOKE.md)：64 对监督、32 次 QLoRA 更新，adapter 已可加载执行；独立定位对照为 23/28 对 23/28，尚无收益，暂不包含自主规划或 RL。
-- [干扰按钮与真实错误前缀的补充实验](docs/SFT_RECOVERY.md)：两组各 128 次 SFT 更新；条件纠错执行为 base 1/12、无历史 SFT 2/12、历史 SFT 3/12，但正常任务为 11/12、8/12、6/12，暂不替换默认模型。
-- [历史提示修复与三种子重训](docs/HISTORY_PROMPT_REPAIR.md)：旧权重调整顺序使新场景 Submit 从 2/12 恢复至 12/12；预设无历史回退的条件纠错为 7/16 对 base 2/16，正常任务均 17/24。平衡重训未通过验证，默认保持原模型。
-- [仓库、许可证和数据核查](docs/UPSTREAM_AUDIT.md)
-- [本地实测验收记录](docs/LOCAL_VALIDATION.md)
-- [单卡服务器实测](docs/SERVER_VALIDATION.md)
-- [失败诊断与接口对照](docs/DIAGNOSIS.md)
-- [V0.2 实验设计](docs/V0.2.md)
-- [V0.2 首轮配对结果](docs/RECOVERY_RESULTS.md)
-- [Grounding 与脚本规划诊断](docs/GROUNDING.md)
-- [漏输入恢复与固定重试对照](docs/INPUT_GUARD.md)
-- [发布验证、安装验收与已知限制](docs/RELEASE_VALIDATION.md)
-- [贡献约定与 Git 操作](CONTRIBUTING.md)
-
-本项目采用 Apache-2.0；第三方代码、权重和数据仍适用各自条款，见 [第三方说明](THIRD_PARTY.md)。没有把上游源码、模型权重或大数据集放进本仓库。
-独立包通过接口组合三个项目，便于后续单独发布；有可复现的上游问题时，再在对应 fork 中准备小范围 PR。
+GUI-Recover is licensed under [Apache-2.0](LICENSE) and builds on ShowUI, BrowserGym, MiniWoB++, and VisualWebArena. Model weights, datasets, and upstream assets are governed by their respective terms. [Credits and third-party licenses](THIRD_PARTY.md)
