@@ -446,6 +446,8 @@ The current guard requires a visible selfie cue during confirmation. A close-up 
 | 009 | Verify tied-price coverage and resume the original ranking | 0/3 / 0/3 | 0 / 0 |
 | 010 | Retry a malformed photo response on the same panel | 0/3 / 0/3 | 0 / 0 |
 | 011 | Retry an explicit multiple-people criterion as visible counts | 0/3 / 0/3 | 0 / 0 |
+| 012 | Normalize the confirmed whole-dollar amount | 0/3 / 1/3 | 0 / 0 |
+| 013 | Shortlist colored hardcover candidates and verify the binding | 0/3 / 2/3 | 0 / 0 |
 
 Run 008 used five model calls on task 84. The confirmer transcribed the amount again, reported no selfie cue, and withheld the answer. On the archived wrong candidate from run 007, a separate CUDA call reproduced the same abstention. The development success target remains open.
 
@@ -463,7 +465,17 @@ Run 011 reproduced those counts on task 99 and opened the third candidate. The p
 
 The first isolated task 99 pair reached submission. Its listing passed the native URL rule. The submitted value `2995.00` failed the native text rule, and `2995` passed the same rule in a local scorer check. The price policy now serializes confirmed whole-dollar amounts as integers and preserves fractional amounts.
 
-The second isolated task 99 pair received native scores of 0/1 for the control and 1/1 for the evidence policy, with zero wrong submissions in either arm. The successful episode submitted `2995` after seven model calls and 12 decisions. This result covers one previously observed task. The three-task development acceptance target remains open.
+The second isolated task 99 pair received native scores of 0/1 for the control and 1/1 for the evidence policy, with zero wrong submissions in either arm. The successful episode submitted `2995` after seven model calls and 12 decisions. Run 012 reproduced that success in the full three-task comparison.
+
+### Verify a colored hardcover
+
+The original policy identified the Harry Potter title in a high-ranked photo on task 82, then rejected the listing without checking its cover color and binding. A CUDA probe on the archived panel found the second card using an ordered array of cover judgments. The same probe produced the same candidate with a separate shortlist prompt.
+
+For an explicit colored hardcover request, the gallery can open the first plausible candidate. Confirmation uses a larger view of the upper portion of the detail page. It requires a matching cover color, visible hardcover binding, and an independently transcribed amount. This keeps the title and gallery judgment from standing in for the detail photo.
+
+Run 013 passed the three-task development gate. Task 82 submitted `1100` after four calls and eight decisions. Task 99 retained its native full score after seven calls and 12 decisions. Task 84 abstained after five calls. The control scored zero, and neither strategy submitted a wrong answer.
+
+These three cases were previously observed. The pinned official registry and existing runs were checked for untouched, read-only Classifieds answer tasks using deterministic native rules. That inventory found no remaining tasks under those rules and found ten untouched tasks with native fuzzy text scoring that requires an external judge.
 
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
