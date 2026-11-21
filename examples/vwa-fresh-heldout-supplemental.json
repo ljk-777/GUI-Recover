@@ -1,0 +1,24 @@
+{
+  "eval": {
+    "eval_types": [
+      "string_match"
+    ],
+    "reference_answers": {
+      "must_include": [
+        "20 |OR| 20.00",
+        "Glen Allen"
+      ]
+    }
+  },
+  "geolocation": {
+    "latitude": 40.68,
+    "longitude": -74.0
+  },
+  "intent": "Search for \"Mishimoto Weighted Shift Knob\" and tell me the listing price and the city shown for the item with that exact title.",
+  "require_reset": false,
+  "sites": [
+    "classifieds"
+  ],
+  "start_url": "__CLASSIFIEDS__",
+  "task_id": 10001
+}

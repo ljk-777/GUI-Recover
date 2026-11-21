@@ -27,9 +27,9 @@ from gui_recover.visible_links import agreed_listing_answer, link_answer_count, 
 from gui_recover.visual_text_audit import checked_file, read_json, require
 from run_visualwebarena_live import (
     ANSWER_STUDIES, CONFIRM_MODES, EVIDENCE_STUDIES, HOLDOUT_PROTOCOL_SHA256, HOLDOUT_TASK_SET,
-    INPUT_HOLDOUT_TASK_SET, INPUT_MEDIA_SHA256, INPUT_PROTOCOL_SHA256, INPUT_RETRIEVAL_TASK_SET, INPUT_TASK_SETS,
-    LINK_MODES, NAVIGATION_CONTEXT_MODES,
-    OCR_MODES, STUDY_MODES, TASK_SETS, exact_vwa_success, holdout_profile, replace_keyword_code, url_origin,
+    FRESH_HOLDOUT_TASK_SET, INPUT_HOLDOUT_TASK_SET, INPUT_RETRIEVAL_TASK_SET, INPUT_TASK_SETS,
+    LINK_MODES, NAVIGATION_CONTEXT_MODES, OCR_MODES, STUDY_MODES, SUPPLEMENTAL_TASK_ID, TASK_SETS,
+    exact_vwa_success, holdout_profile, input_fingerprints, replace_keyword_code, url_origin,
 )
 
 
@@ -602,12 +602,15 @@ def audit(directory):
                 and holdout_profile(study, budget, summary["model"]), "Run differs from the locked holdout protocol")
     use_inputs = task_set in INPUT_TASK_SETS
     if use_inputs:
-        require(summary.get("protocol_sha256") == INPUT_PROTOCOL_SHA256
-                and summary.get("reference_files_sha256") == INPUT_MEDIA_SHA256
+        protocol_hash, media_hash = input_fingerprints(task_set)
+        require(summary.get("protocol_sha256") == protocol_hash
+                and summary.get("reference_files_sha256") == media_hash
                 and summary.get("browser_context") is True and holdout_profile(study, budget, summary["model"], "evidence-cards"),
                 "Run differs from the registered input holdout")
         require(set(summary["input_manifest"]) == {str(task_id) for task_id in task_ids},
                 "Input manifest differs from the registered task set")
+        if task_set == FRESH_HOLDOUT_TASK_SET:
+            require("backend_origins" in summary, "Fresh holdout must record its actual backend origins")
         if "backend_origins" in summary:
             origins = summary["backend_origins"]
             registered_sites = {site for entry in summary["input_manifest"].values() for site in entry["start_sites"]}
@@ -670,6 +673,8 @@ def audit(directory):
                 require(observed == wanted, "Browser reset opened an unexpected origin")
             by_task[task_id]["reference_images"] = len(pixels)
             by_task[task_id]["initial_tabs"] = len(state["tabs"])
+        if task_set == FRESH_HOLDOUT_TASK_SET:
+            by_task[task_id]["source"] = "independent" if task_id == SUPPLEMENTAL_TASK_ID else "official"
     formats = {}
     for mode, records in studies.items():
         counts = {key: sum(record["counts"][key] for record in records) for key in records[0]["counts"]}
@@ -686,7 +691,7 @@ def audit(directory):
             task["answer_outcome"][mode] for task in by_task.values())) for mode in modes}
         successes = {mode: summary["strategies"][mode]["successes"] for mode in modes}
         report["wrong_submissions"] = wrong
-        if task_set in (HOLDOUT_TASK_SET, INPUT_HOLDOUT_TASK_SET):
+        if task_set in (HOLDOUT_TASK_SET, INPUT_HOLDOUT_TASK_SET, FRESH_HOLDOUT_TASK_SET):
             candidate = modes[-1]
             peak_calls = max(record["counts"]["model_calls"] for records in studies.values() for record in records)
             require(peak_calls <= 8, "Locked holdout exceeded the model call budget")
@@ -695,6 +700,12 @@ def audit(directory):
                     "fewer_wrong_submissions_than_control": wrong[candidate] < wrong["answer-check"]}
             report.update(protocol_sha256=summary["protocol_sha256"], acceptance_checks=gate,
                           max_observed_model_calls=peak_calls, target_met=all(gate.values()))
+        if task_set == FRESH_HOLDOUT_TASK_SET:
+            report["native_successes_by_source"] = {
+                source: {mode: sum(entry["strategies"][mode]["success"] for entry in by_task.values()
+                                   if entry["source"] == source) for mode in modes}
+                for source in ("official", "independent")
+            }
         if task_set == INPUT_RETRIEVAL_TASK_SET:
             peak_calls = max(record["counts"]["model_calls"] for records in studies.values() for record in records)
             require(peak_calls <= 8, "Development replay exceeded the model call budget")

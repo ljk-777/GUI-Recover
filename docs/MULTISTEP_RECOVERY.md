@@ -388,4 +388,30 @@ On an RTX 4090 D, the evidence policy received native full credit on both develo
 
 [Development scores, decision counts and archive checksum](../examples/vwa-reference-retrieval-development-results.json)
 
+### Run the fresh Classifieds acceptance comparison
+
+The registration fixes seven unused official Classifieds tasks and one independently sampled catalog task. The supplemental task was drawn from the pinned catalog by hash order after filtering for a unique title, a visible city and a whole-dollar price. The same native BrowserGym evaluator checks its two visible answer components. Existing official tasks retain their original string and URL requirements, and the cross-site pair opens the real Shopping fixture. The report shows official and supplemental scores separately.
+
+Prepare the frozen cohort from the same upstream checkout used for the earlier input holdout. Supply the exact supplemental task definition. The runner checks the registered row digest and reference image digest before it opens a task.
+
+~~~bash
+python scripts/prepare_vwa_fresh_holdout.py --upstream /path/to/visualwebarena \
+  --supplemental examples/vwa-fresh-heldout-supplemental.json --out runs/vwa-fresh-cohort
+python scripts/run_visualwebarena_live.py --actor qwen --qwen-7b-4bit \
+  --model models/Qwen2.5-VL-7B-Instruct --study evidence-cards \
+  --task-set evidence-cards-fresh-holdout --cohort-dir runs/vwa-fresh-cohort \
+  --max-steps 8 --out runs/visualwebarena-fresh
+python scripts/audit_visualwebarena_live.py runs/visualwebarena-fresh \
+  --out runs/visualwebarena-fresh-audit.json
+~~~
+
+If only the Classifieds backend is ready, add `--input-phase classifieds` to complete the seven single-site pairs. Once Shopping passes login and catalog smoke checks at its own origin, run the same command with `--input-phase finish`. Both phases use the frozen code, model, registered task rows, and local reference archive. The comparison requires at least two native successes, more successes than the control, and fewer wrong submissions than the control.
+
+The first frozen comparison completed all 16 trajectories and archived 95 screenshots. Both strategies scored 0/7 on the official tasks and 0/1 on the supplemental task. The control submitted one wrong answer. The evidence policy submitted no answers and took 32 scroll actions across eight episodes without reaching a crop read. The cross-site pair started with a one-pixel difference after the Shopping backend passed its native login, catalog search, and product photo checks. The CPU auditor reproduced the server report.
+
+The shorter development replay also reproduced one known first-frame error on task 221. The answer-check control submitted a wrong answer on its first prediction. The evidence policy located, read, and confirmed a crop in three Qwen calls and received full credit. The scores above show the remaining gap in finding evidence on unfamiliar pages.
+
+[Frozen input registration](../examples/vwa-fresh-heldout-protocol.json)
+[Per-task scores and archived evidence checksum](../examples/vwa-fresh-heldout-results.json)
+
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
