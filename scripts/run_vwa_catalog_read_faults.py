@@ -7,7 +7,7 @@ import re
 import tempfile
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from pathlib import Path
 
 import gui_recover
@@ -15,6 +15,7 @@ from audit_visualwebarena_live import audit_episode
 from gui_recover.answer_evidence import EvidenceAnswerPolicy, REFERENCE_TITLE_HEADING
 from gui_recover.listing_cards import is_listing_breadcrumb
 from gui_recover.listing_facts import LISTING_FACTS_REGION, ListingFacts, main_listing_price
+from gui_recover.price_discovery import _displayed_cents
 from gui_recover.qwen_grounding import QwenGroundingPolicy, read_reply
 from gui_recover.runner import render_replay, run_episode, write_json
 from gui_recover.screen_text import RapidScreenReader
@@ -95,11 +96,8 @@ def matching_price_reply(stage, reply, original_cents, injected_cents):
     data = read_reply(reply, parse_float=Decimal)
     require(isinstance(data, dict) and set(data) == {key, "dollars"} and isinstance(data[key], str)
             and type(data["dollars"]) in (str, int, Decimal), "Expected an intact price and city reply")
-    try:
-        dollars = Decimal(str(data["dollars"]))
-    except InvalidOperation as exc:
-        raise ValueError("Expected a decimal amount in the model reply") from exc
-    require(dollars.is_finite() and dollars == Decimal(original_cents) / 100,
+    amount = str(data["dollars"]).strip()
+    require(_displayed_cents(amount if "$" in amount else amount + " $") == original_cents,
             "The model must originally read the unmodified price")
     return json.dumps({key: data[key], "dollars": format(Decimal(injected_cents) / 100, ".2f")}, ensure_ascii=False)
 
@@ -130,19 +128,24 @@ class FaultCase:
         return f"visualwebarena.{self.case['task_id']}"
 
 
+class FaultAnchorUnavailable(ValueError):
+    """The clean episode did not reach the registered injection checkpoint."""
+
+
 def clean_target(directory, fault):
     metrics = list(prediction_metrics(directory))
     if fault in OCR_FAULT_TARGETS:
         candidates = [step for step in metrics if step["provider_format"] == OCR_FAULT_TARGETS[fault]
                       and "reference_title_breadcrumb" not in step]
-        require(len(candidates) == 1, "Clean episode must have one OCR read at the registered evidence stage")
+        if len(candidates) != 1:
+            raise FaultAnchorUnavailable("Clean episode must have one OCR read at the registered evidence stage")
         step, = candidates
         changed_ocr(fault, step["screen_text"])
         if fault in PRICE_REPLY_FAULTS:
             confirmation = next((item for item in metrics if item.get("evidence_stage") == "confirm"), None)
-            require(confirmation is not None and confirmation["provider_format"] == "evidence_verify_agreed"
-                    and confirmation["evidence_frame"] == step["evidence_frame"],
-                    "Expected a successful first model read on the same screen")
+            if (confirmation is None or confirmation["provider_format"] != "evidence_verify_agreed"
+                    or confirmation["evidence_frame"] != step["evidence_frame"]):
+                raise FaultAnchorUnavailable("Expected a successful first model read on the same screen")
             step = {**step, "clean_confirmation": confirmation["provider_output"]}
     else:
         step = next((step for step in metrics if step.get("evidence_stage") == "confirm"), None)
@@ -160,7 +163,7 @@ def audit_evidence(directory, plan):
                          use_ranked_cards=True, use_browser_context=True, model_budget=PROFILE["max_model_calls"])
 
 
-def load_study(cohort, digest, fault_plan, clean_run):
+def load_study(cohort, digest, fault_plan, clean_run, *, allow_unexecuted=False):
     _, cases, references = load_cohort(cohort, digest, os.getenv("VWA_HOMEPAGE", "__HOMEPAGE__"))
     registration = read_json(fault_plan)
     require(isinstance(registration, dict), "Fault plan must be a JSON object")
@@ -179,6 +182,7 @@ def load_study(cohort, digest, fault_plan, clean_run):
             "clean_plan_sha256": fingerprint((clean_run / "run-plan.json").read_bytes()),
             "clean_trajectory_sha256": {}, "model": clean["model"], "listing_origin": clean["listing_origin"]}
     selected = []
+    unexecuted = {}
     for case in cases:
         task = str(case["task_id"])
         if task not in faults:
@@ -187,10 +191,21 @@ def load_study(cohort, digest, fault_plan, clean_run):
         audited = audit_evidence(directory, plan)
         with references(case["image"]) if case["image"] else nullcontext() as reference:
             images = [pixel_hash(reference.convert("RGB"))] if reference is not None else []
-        require(audited["row"]["success"] and audited["reset"] == (case["intent"], PROFILE["seed"])
-                and audited["reset_context"][1] == images, "Expected a successful clean episode for the sealed task")
+        require(audited["reset"] == (case["intent"], PROFILE["seed"]) and audited["reset_context"][1] == images,
+                "Clean episode differs from the sealed task")
         plan["clean_trajectory_sha256"][task] = fingerprint((directory / "trajectory.jsonl").read_bytes())
-        selected.append(FaultCase(case, faults[task], audited, clean_target(directory, faults[task])))
+        try:
+            if not audited["row"]["success"]:
+                raise FaultAnchorUnavailable(f"Clean episode did not succeed: {audited['row']['reason']}")
+            target = clean_target(directory, faults[task])
+        except FaultAnchorUnavailable as exc:
+            if not allow_unexecuted:
+                raise
+            unexecuted[task] = str(exc)
+            continue
+        selected.append(FaultCase(case, faults[task], audited, target))
+    if allow_unexecuted:
+        plan["unexecuted"] = unexecuted
     return plan, selected, references
 
 
@@ -265,25 +280,32 @@ def audit_fault(directory, case, plan):
     require(proof["fault"] == kind, "Recorded fault differs from the fault plan")
     metrics = list(prediction_metrics(directory))
     same_frame = [step for step in metrics if step.get("evidence_frame") == target["evidence_frame"]]
+    row = checked["row"]
+    delivery = "complete"
     if kind in OCR_FAULT_TARGETS:
         expected, expected_proof = changed_ocr(kind, target["screen_text"])
         if kind in PRICE_REPLY_FAULTS:
             stage = PRICE_REPLY_FAULTS[kind]
             reply = proof.get("reply")
-            require(isinstance(reply, dict) and reply.get("stage") == stage, "Missing the registered model reply fault")
-            raw = reply["original_reply"]
             initial = [step for step in same_frame if step.get("evidence_stage") == "confirm"
                        and "listing_fact_reread_sha256" not in step]
             selected = initial if stage == "initial" else [
                 step for step in same_frame if "listing_fact_reread_sha256" in step
             ]
-            require(len(selected) == 1 and len(initial) == 1, "Expected one confirmation at the registered stage")
-            unmodified = raw if stage == "initial" else initial[0]["provider_output"]
-            require(read_reply(unmodified) == read_reply(target["clean_confirmation"])
-                    and selected[0]["provider_output"] == reply["injected_reply"],
-                    "The matching price fault must change only the registered confirmation")
-            expected_proof["reply"] = {"stage": stage, "original_reply": raw,
-                                       "injected_reply": inject_matching_price(kind, target, raw)}
+            if (reply is None and stage == "isolated" and "unexecuted" in plan and len(initial) == 1 and not selected
+                    and row["reason"] == "evidence_abstained" and row["answers_submitted"] == 0
+                    and read_reply(initial[0]["provider_output"]) == read_reply(target["clean_confirmation"])):
+                delivery = "second_read_not_reached"
+            else:
+                require(isinstance(reply, dict) and reply.get("stage") == stage, "Missing the registered model reply fault")
+                raw = reply["original_reply"]
+                require(len(selected) == 1 and len(initial) == 1, "Expected one confirmation at the registered stage")
+                unmodified = raw if stage == "initial" else initial[0]["provider_output"]
+                require(read_reply(unmodified) == read_reply(target["clean_confirmation"])
+                        and selected[0]["provider_output"] == reply["injected_reply"],
+                        "The matching price fault must change only the registered confirmation")
+                expected_proof["reply"] = {"stage": stage, "original_reply": raw,
+                                           "injected_reply": inject_matching_price(kind, target, raw)}
         require(proof == expected_proof
                 and sum(step.get("evidence_stage") == "locate" and step.get("screen_text") == expected for step in same_frame) == 1,
                 "Expected one registered OCR change and the rest of the original rows")
@@ -294,9 +316,11 @@ def audit_fault(directory, case, plan):
         require(read_reply(raw) == read_reply(target["provider_output"]) and altered == changed_reply(kind, raw)
                 and first_confirmation in same_frame and first_confirmation.get("provider_output") == altered,
                 "Expected one changed confirmation field from the clean read")
-    row = checked["row"]
-    return {**{key: row[key] for key in ("success", "reason", "answers_submitted", "predictions", "model_calls")},
-            "fault": kind, "evidence_stages": checked["evidence_stages"]}
+    result = {**{key: row[key] for key in ("success", "reason", "answers_submitted", "predictions", "model_calls")},
+              "fault": kind, "evidence_stages": checked["evidence_stages"]}
+    if "unexecuted" in plan:
+        result["fault_delivery"] = delivery
+    return result
 
 
 def audit_fault_run(out, plan, cases):
@@ -315,6 +339,8 @@ def audit_fault_run(out, plan, cases):
               "native_successes": sum(row["success"] for row in rows.values()),
               "wrong_submissions": sum(row["answers_submitted"] > 0 and not row["success"] for row in rows.values()),
               "model_calls": sum(row["model_calls"] for row in rows.values())}
+    if "unexecuted" in plan:
+        report.update(registered_task_count=len(plan["faults"]), unexecuted=plan["unexecuted"])
     if recorded.get("format") == FORMAT and (out / "audit.json").is_file():
         require(read_json(out / "audit.json") == report, "Saved audit differs from the episode traces")
     return report
@@ -401,12 +427,15 @@ def main():
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--prior-run", type=Path)
     parser.add_argument("--model", type=Path)
+    parser.add_argument("--allow-unexecuted", action="store_true",
+                        help="report registered cases without a valid clean injection anchor")
     args = parser.parse_args()
     if args.command == "run" and (args.model is None or not args.model.is_dir()):
         parser.error("Run requires a local --model directory")
     if args.command == "compare" and (args.prior_run is None or args.prior_run.resolve() == args.out.resolve()):
         parser.error("Compare requires a separate --prior-run directory")
-    plan, cases, references = load_study(args.cohort, args.sha256, args.fault_plan, args.clean_run)
+    plan, cases, references = load_study(args.cohort, args.sha256, args.fault_plan, args.clean_run,
+                                         allow_unexecuted=args.allow_unexecuted)
     if args.command == "run":
         report = run_faults(args.out, plan, cases, references, args.model)
     elif args.command == "audit":

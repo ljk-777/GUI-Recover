@@ -13,6 +13,7 @@
   "seed": 0,
   "max_predictions": 12,
   "max_model_calls": 8,
+  "fault_anchor": "Prior clean arm on the same task. A case without a valid clean anchor remains in the registered denominator and fails coverage.",
   "faults": {
     "10501": "change-ocr-price-digit",
     "10502": "change-ocr-price-digit",

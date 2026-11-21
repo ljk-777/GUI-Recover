@@ -70,6 +70,11 @@ def test_correlated_price_fault_changes_only_the_model_amount(faults, stage, key
         faults.matching_price_reply(stage, reply, 2500, 3500)
 
 
+def test_model_price_fault_supports_visible_thousands_and_currency(faults):
+    reply = '{"city":"Oak Park","dollars":"1,025.50 $"}'
+    assert json.loads(faults.matching_price_reply("initial", reply, 102550, 202550))["dollars"] == "2025.50"
+
+
 def test_offline_audit_rejects_an_injected_change_to_the_price(faults, monkeypatch, tmp_path):
     original = '{"city":"Oak Park","dollars":30}'
     altered = faults.changed_reply("shorten-city", original)
