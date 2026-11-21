@@ -22,7 +22,7 @@ from gui_recover.runner import aggregate, render_replay, run_episode, write_json
 from gui_recover.screen_text import RapidScreenReader
 from gui_recover.verification import pixel_hash
 from gui_recover.visible_links import visible_listing_links
-from gui_recover.vwa_inputs import LocalReferenceArchive, contextual_observation, reference_name
+from gui_recover.vwa_inputs import CATALOG_SERIES_IDS, LocalReferenceArchive, contextual_observation, reference_name
 
 
 BACKEND_VARIABLES = ("VWA_CLASSIFIEDS", "VWA_SHOPPING", "VWA_REDDIT", "VWA_WIKIPEDIA",
@@ -44,7 +44,7 @@ INPUT_MEDIA_SHA256 = "88a7fcad2505d581b266427896265c71367cbc067ed1da461eba127a45
 FRESH_PROTOCOL_SHA256 = "c62ac0397ef9a40d718f32194696362691800a95dadf072593a2163aca39e4fe"
 FRESH_MEDIA_SHA256 = "98c1ec76419d982dcecc97169bc74ee21d286804d3a2f75bfb79ae16c1966cab"
 SUPPLEMENTAL_TASK_ID = 10001
-CATALOG_TASK_IDS = tuple(range(10101, 10109))
+CATALOG_TASK_IDS = frozenset(task for ids in CATALOG_SERIES_IDS.values() for task in ids)
 INPUT_CROSS_SITE_TASKS = (36, 233)
 INPUT_SITE_TOKENS = {
     "__CLASSIFIEDS__": "classifieds",

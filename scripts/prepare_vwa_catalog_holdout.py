@@ -15,11 +15,8 @@ from urllib.request import HTTPRedirectHandler, build_opener
 from bs4 import BeautifulSoup
 from PIL import Image
 
+from gui_recover.vwa_inputs import CATALOG_SERIES_IDS
 
-COHORT_IDS = {
-    "gui-recover-catalog-holdout-v1": tuple(range(10101, 10109)),
-    "gui-recover-catalog-holdout-v2": tuple(range(10201, 10209)),
-}
 CATEGORIES = (9, 19, 6)
 FAMILIES = ("detail-price-city", "gallery-reference", "search-reference", "search-highest-price")
 PRICE = re.compile(r"([0-9][0-9,]*)\.00\s*\$")
@@ -123,7 +120,7 @@ def task(task_id, goal, start, expected, *, item=None, image=None):
 
 def freeze(site, excluded, output, *, series=1):
     key = f"gui-recover-catalog-holdout-v{series}"
-    ids = COHORT_IDS[key]
+    ids = CATALOG_SERIES_IDS[key]
 
     def sample_key(value):
         return fingerprint(f"{key}\n{value}".encode())

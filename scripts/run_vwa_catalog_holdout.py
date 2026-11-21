@@ -13,8 +13,8 @@ from gui_recover.qwen_grounding import QwenGroundingPolicy
 from gui_recover.runner import render_replay, run_episode, write_json
 from gui_recover.screen_text import RapidScreenReader
 from gui_recover.verification import pixel_hash
-from gui_recover.vwa_inputs import LocalReferenceArchive
-from prepare_vwa_catalog_holdout import COHORT_IDS, FAMILIES, OWN_INDEX, encoded, fingerprint
+from gui_recover.vwa_inputs import CATALOG_SERIES_IDS, LocalReferenceArchive
+from prepare_vwa_catalog_holdout import FAMILIES, OWN_INDEX, encoded, fingerprint
 from run_visualwebarena_live import VisualWebArenaEnvironment, exact_vwa_success, holdout_profile, probe_instance
 
 
@@ -46,7 +46,7 @@ def load_cohort(directory, digest, homepage):
     if fingerprint(raw) != digest:
         raise ValueError("Cohort digest differs from its registration")
     protocol = json.loads(raw)
-    ids = COHORT_IDS.get(protocol["sample_key"])
+    ids = CATALOG_SERIES_IDS.get(protocol["sample_key"])
     if ids is None or protocol.get("task_ids") != list(ids) or any(protocol.get(key) != value for key, value in PROFILE.items()):
         raise ValueError("Unexpected independent evaluation profile")
     cases = json.loads((directory / "tasks.json").read_bytes())

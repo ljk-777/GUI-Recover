@@ -12,6 +12,12 @@ from urllib.parse import urlsplit, urlunsplit
 from PIL import Image
 
 
+CATALOG_SERIES_IDS = {
+    "gui-recover-catalog-holdout-v1": tuple(range(10101, 10109)),
+    "gui-recover-catalog-holdout-v2": tuple(range(10201, 10209)),
+}
+
+
 def reference_name(value, homepage="__HOMEPAGE__"):
     """Undo BrowserGym's homepage substitution for official relative assets."""
     prefix = homepage.rstrip("/") + "/"
