@@ -1,0 +1,8 @@
+{
+  "cohort_sha256": "6f53c7889915133c6171206695cc851c42a2d99d4cb2b08cfaae0c2504e269bc",
+  "cases": {
+    "10401": "shorten-city",
+    "10403": "omit-breadcrumb",
+    "10407": "change-title-letter"
+  }
+}
