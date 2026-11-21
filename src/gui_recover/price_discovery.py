@@ -204,10 +204,7 @@ def _detail_price_box(rows, expected_cents=None):
 
 def first_ranked_match(reply, count):
     """Choose a match only after all earlier cards were explicitly rejected."""
-    try:
-        decisions = read_card_checks(reply, count, allow_ordered=True)
-    except (ValueError, RecursionError):
-        return None, False
+    decisions = read_card_checks(reply, count, allow_ordered=True)
     for index, value in enumerate(decisions):
         if value is None:
             return None, False
@@ -234,6 +231,8 @@ class PriceDiscovery:
         self.tie = None
         self.covered_prices = {}
         self.resume = None
+        self.retry_panel = None
+        self.retried_photo_response = False
 
     def open_tie(self, active, scope, prices, overlap, rows, size):
         if not prices or not self.boundary_prices:
@@ -317,7 +316,7 @@ class PriceDiscovery:
             if screen.height < RESULT_VIEW_HEIGHT and receipt["grid"] is not None:
                 return finish("price_expand", Action("LISTING_GRID", position=tuple(receipt["grid"])))
             return finish("price_abstained")
-        if self.offset and frame != self.page_frame:
+        if (self.offset or self.retry_panel is not None) and frame != self.page_frame:
             return finish("price_abstained")
         destinations = {card["destination"] for card in cards}
         prices = _card_prices(rows, cards, screen.size, size)
@@ -345,7 +344,13 @@ class PriceDiscovery:
         remaining = [card for card in cards if card["destination"] not in ignored]
         batch = remaining[self.offset:self.offset + BATCH_SIZE]
         if batch:
-            index, clear_miss = self.review_photos(batch, screen, actor, metrics)
+            review = self.review_photos(batch, screen, actor, metrics)
+            if review is None:
+                if not self.retried_photo_response and self.retry_panel is None:
+                    self.retry_panel = metrics["price_panel_pixels"]
+                    return finish("price_photo_retry")
+                return finish("price_abstained")
+            index, clear_miss = review
             if index is not None:
                 selected = batch[index]
                 self.destination = selected["destination"]
@@ -393,6 +398,14 @@ class PriceDiscovery:
 
     def review_photos(self, batch, screen, actor, metrics):
         panel = card_panel([(screen, card) for card in batch])
+        panel_hash = pixel_hash(panel)
+        retry = self.retry_panel is not None
+        if retry:
+            if panel_hash != self.retry_panel:
+                return None
+            self.retry_panel = None
+            self.retried_photo_response = True
+            metrics["price_retried_photo_response"] = True
         example = '{"1":[false,"wooden table"],"2":[true,"person wearing ring"]}'
         condition = ""
         if self.request.requires_selfie_cue:
@@ -400,15 +413,26 @@ class PriceDiscovery:
             example = '{"1":[false,"hand close-up"],"2":[true,"mirror self-portrait"]}'
         if len(batch) == 1:
             example = '{"1":[false,"wooden table"]}'
+        response_format = (
+            f"Return only a JSON array of exactly {len(batch)} entries, in card-number order. "
+            'Each entry is a pair such as [false,"empty doorway"]. '
+            "Use true only for a clear match, and write the visible cue for each card. "
+            "Use null for an uncertain card. Start with [ and omit card numbers and extra text."
+        ) if retry else (
+            f"Return only one JSON object with keys 1 through {len(batch)}. Every entry is "
+            "[true or false, at most three words of visible evidence]. "
+            f"For example, {example}."
+        )
         reply = actor.ask(actor.prepare_image(panel), (
             f"Visual criterion: {self.request.visual_target}.\n"
             f"{condition}"
             "Inspect each numbered listing photo. First identify a concrete visual cue in the photo. "
             "Use that cue to decide whether the item visibly matches, recording false for a clearly unrelated photo. "
-            f"Return only one JSON object with keys 1 through {len(batch)}. Every entry is "
-            "[true or false, at most three words of visible evidence]. "
-            f"For example, {example}."
+            f"{response_format}"
         ))
-        metrics.update(model_invocations=1, provider_output=reply, price_panel_pixels=pixel_hash(panel),
+        metrics.update(model_invocations=1, provider_output=reply, price_panel_pixels=panel_hash,
                        peak_cuda_allocated_bytes=actor.last_metrics.get("peak_cuda_allocated_bytes", 0))
-        return first_ranked_match(reply, len(batch))
+        try:
+            return first_ranked_match(reply, len(batch))
+        except (ValueError, RecursionError):
+            return None

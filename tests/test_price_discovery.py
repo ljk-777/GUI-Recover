@@ -54,11 +54,13 @@ def test_price_match_requires_every_more_extreme_candidate_to_be_checked():
     assert first_ranked_match('{"1":[false,"box"],"2":[true,"hand"],"3":null}', 3) == (1, False)
     assert first_ranked_match('{"1":null,"2":[true,"hand"],"3":[false,"box"]}', 3) == (None, False)
     assert first_ranked_match('{"1":[false,"table"],"2":[false,"box"]}', 2) == (None, True)
-    assert first_ranked_match('{"1":[0,"table"],"2":[true,"hand"]}', 2) == (None, False)
-    assert first_ranked_match('{"1":[true,"hand"]}', 3) == (None, False)
     assert first_ranked_match('[["false","box"],["true","hand"]]', 2) == (1, False)
-    assert first_ranked_match('[["false","box"],["true","hand"]]', 3) == (None, False)
-    assert first_ranked_match('[[false,"box"],["true",""]]', 2) == (None, False)
+    for reply, count in (
+        ('{"1":[0,"table"],"2":[true,"hand"]}', 2), ('{"1":[true,"hand"]}', 3),
+        ('[["false","box"],["true","hand"]]', 3), ('[[false,"box"],["true",""]]', 2),
+    ):
+        with pytest.raises(ActionError):
+            first_ranked_match(reply, count)
 
 
 def test_price_discovery_keeps_order_across_batches_and_crops_the_opened_listing():
@@ -192,3 +194,42 @@ def test_tie_recovery_checks_exact_price_coverage_before_resuming_ranked_results
         assert actor.last_metrics["price_tie_count"] == 3
         assert decide(next_url, "3 - 5 of 5 listings", next_cards) is None
         assert batches == [2, 2, 1]
+
+
+@pytest.mark.parametrize("retry_succeeds", [False, True])
+def test_invalid_photo_reply_gets_one_retry_on_the_same_panel(retry_succeeds):
+    site = "http://localhost:19980"
+    goal = "Find the most expensive book with a purple cover, and tell me how much it costs in dollars."
+    screen = Image.new("RGB", (200, 150))
+    rows = [{"text": text, "bounds": [1, 1, 10, 5]} for text in (
+        "Classifieds > Books", "1 - 2 of 2 listings", "Sort by: Higher price first",
+    )]
+    cards = [
+        {"destination": f"{site}/index.php?page=item&id={index + 1}",
+         "image": [x, 20, x + 55, 70], "title": [x + 5, 75, x + 50, 90]}
+        for index, x in enumerate((15, 90))
+    ]
+    receipt = {"source_pixels": pixel_hash(screen), "scroll_top": 0, "cards": cards, "grid": None, "next": None}
+    url = site + "/index.php?page=search&sCategory=9&sOrder=i_price&iOrderType=desc"
+    observation = VisualObservation(goal, screen, tabs=(("Classifieds", url),))
+    attempts = []
+    malformed = '{"1":false,"2":true,"purple book"}'
+
+    def ask(panel, prompt):
+        attempts.append((pixel_hash(panel), prompt))
+        return '[[false,"blue spine"],[true,"purple cover"]]' if retry_succeeds and len(attempts) == 2 else malformed
+
+    actor = SimpleNamespace(prepare_image=lambda image: image, ask=ask, last_metrics={})
+    discovery = PriceDiscovery(price_request(goal), site)
+    assert discovery.decide(observation, actor, lambda *_: rows, lambda: receipt) == (None, None)
+    assert actor.last_metrics["provider_format"] == "price_photo_retry"
+    assert "stop_after_evidence" not in actor.last_metrics
+    decision, _ = discovery.decide(observation, actor, lambda *_: rows, lambda: receipt)
+    assert len(attempts) == 2 and attempts[0][0] == attempts[1][0]
+    assert "JSON array of exactly 2 entries" in attempts[1][1]
+    assert actor.last_metrics["price_retried_photo_response"] is True
+    if retry_succeeds:
+        assert parse_action(decision).action == "CLICK"
+        assert discovery.destination == cards[1]["destination"]
+    else:
+        assert decision is None and actor.last_metrics["stop_after_evidence"]
