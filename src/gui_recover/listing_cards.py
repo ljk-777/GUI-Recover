@@ -152,9 +152,12 @@ def reference_title_request(goal):
     return bool(_TITLE.search(goal))
 
 
+def is_listing_breadcrumb(row):
+    return row["text"].casefold().startswith("classifieds > ") and row["text"].count(" > ") >= 2
+
+
 def _listing_title_rows(rows, size):
-    crumbs = [row for row in rows if row["text"].casefold().startswith("classifieds > ")
-              and row["text"].count(" > ") >= 2]
+    crumbs = [row for row in rows if is_listing_breadcrumb(row)]
     dates = [row for row in rows if row["text"].casefold().startswith("published date:")]
     if len(crumbs) != 1 or len(dates) != 1:
         return None
@@ -187,6 +190,34 @@ def listing_title_heading(rows, size):
             and not heading.endswith(("…", "..."))):
         return bounds, heading
     return None
+
+
+def listing_breadcrumb_box(rows, size):
+    """Find the band above a large left-aligned detail heading after a missing OCR breadcrumb."""
+    dates = [row["bounds"] for row in rows if row["text"].casefold().startswith("published date:")]
+    if len(dates) != 1 or any(is_listing_breadcrumb(row) for row in rows):
+        return None
+    date = dates[0]
+    heading_lines = [box for row in rows for box in [row["bounds"]]
+                     if box[3] < date[1] and 2 * (box[3] - box[1]) >= 3 * (date[3] - date[1])
+                     and abs(box[0] - date[0]) <= max(8, size[0] // 30)]
+    if not heading_lines:
+        return None
+    left, top, _, bottom = min(heading_lines, key=lambda box: box[1])
+    height = bottom - top
+    if top <= height:
+        return None
+    return max(0, left - height // 2), max(0, top - 3 * height // 2), size[0] - left // 2, top - height // 6
+
+
+def with_listing_breadcrumb(rows, local_rows, box):
+    matched = [row for row in local_rows if is_listing_breadcrumb(row)]
+    if len(matched) != 1:
+        return rows
+    crumb = matched[0]
+    x, y = box[:2]
+    left, top, right, bottom = crumb["bounds"]
+    return [*rows, {"text": crumb["text"], "bounds": [left + x, top + y, right + x, bottom + y]}]
 
 
 @dataclass(frozen=True)

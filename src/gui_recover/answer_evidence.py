@@ -5,14 +5,15 @@ import re
 from urllib.parse import urlsplit
 from decimal import Decimal
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 
 from .actions import Action, ActionError
 from .environment import frame_key
 from .listing_cards import (
-    ReferenceTitleCrop, ambiguous_reference_title, exact_reference_title_request, listing_title_heading, ranked_photo_request,
+    ReferenceTitleCrop, ambiguous_reference_title, exact_reference_title_request, listing_breadcrumb_box,
+    listing_title_heading, ranked_photo_request,
     reference_result_action, reference_result_destination,
-    reference_title_crop, reference_title_open_action, reference_title_region, reference_title_request,
+    reference_title_crop, reference_title_open_action, reference_title_region, reference_title_request, with_listing_breadcrumb,
 )
 from .listing_facts import LISTING_FACTS_ABSTAINED, ListingFacts, listing_fact_decision
 from .price_discovery import SELFIE_PHOTO_REQUIREMENT, PriceDiscovery, cover_color_labels, price_request, same_origin
@@ -106,6 +107,26 @@ def native_crop(screen, size, box, *, pad=True):
         min(screen.height, ((bottom + pad_y) * screen.height + height - 1) // height),
     )
     return screen.crop(bounds), bounds
+
+
+def breadcrumb_ocr_image(screen, size, box):
+    crop, bounds = native_crop(screen, size, box, pad=False)
+    return crop.resize((2 * crop.width, 2 * crop.height), Image.Resampling.LANCZOS), bounds
+
+
+def listing_fact_reread_image(screen, candidate):
+    crops, bounds = [], []
+    for box in (candidate.label_bounds, candidate.price_bounds):
+        size = candidate.canvas_size
+        padded = (max(0, box[0] - 4), max(0, box[1] - 4),
+                  min(size[0], box[2] + 4), min(size[1], box[3] + 4))
+        crop, native_bounds = native_crop(screen, size, padded, pad=False)
+        crops.append(ImageOps.contain(crop.convert("RGB"), (1008, 100), Image.Resampling.LANCZOS))
+        bounds.append(list(native_bounds))
+    panel = Image.new("RGB", (max(crop.width for crop in crops) + 32, sum(crop.height for crop in crops) + 48), "white")
+    panel.paste(crops[0], (16, 16))
+    panel.paste(crops[1], (16, 32 + crops[0].height))
+    return panel, bounds
 
 
 def evidence_clipped(goal, box, size):
@@ -404,6 +425,7 @@ class EvidenceAnswerPolicy:
         self.checked_frames = set()
         self.pending_crop = None
         self.pending_answer = None
+        self.pending_fact_reread = None
         self.pending_links = None
         self.navigation_context = None
 
@@ -416,6 +438,7 @@ class EvidenceAnswerPolicy:
         self.checked_frames.clear()
         self.pending_crop = None
         self.pending_answer = None
+        self.pending_fact_reread = None
         self.pending_links = None
         self.navigation_context = None
         self.ranked_request = None
@@ -547,7 +570,17 @@ class EvidenceAnswerPolicy:
                 return raw
             if exact_title and self.reference_destination is not None and active_url == self.reference_destination:
                 heading = listing_title_heading(rows, canvas.size)
-                recovery = reference_title_crop(rows, canvas.size) if heading is None else None
+                title_rows, breadcrumb_check = rows, None
+                if heading is None:
+                    box = listing_breadcrumb_box(rows, canvas.size)
+                    if box is not None:
+                        detail, native_bounds = breadcrumb_ocr_image(observation.screenshot, canvas.size, box)
+                        local_rows = self.screen_reader(detail, (box[2] - box[0], box[3] - box[1]))
+                        title_rows = with_listing_breadcrumb(rows, local_rows, box)
+                        heading = listing_title_heading(title_rows, canvas.size)
+                        breadcrumb_check = {"bounds": list(native_bounds), "pixels_sha256": pixel_hash(detail),
+                                            "rows": local_rows}
+                recovery = reference_title_crop(title_rows, canvas.size) if heading is None else None
                 if heading is not None or recovery is not None:
                     if recovery is None:
                         box, title = heading
@@ -566,6 +599,8 @@ class EvidenceAnswerPolicy:
                     }
                     if recovery is not None:
                         self.last_metrics["reference_title_missing_number"] = recovery.missing_number
+                    if title_rows is not rows:
+                        self.last_metrics["reference_title_breadcrumb"] = breadcrumb_check
                     return None
             if self.reference_destination is not None and active_url == self.reference_destination:
                 box = reference_contact_box(observation.goal, rows)
@@ -849,8 +884,20 @@ class EvidenceAnswerPolicy:
         confirmed, status = confirmation_outcome(raw, candidate, request, expected_cents=tie.cents if tie is not None else None)
         self.last_metrics["provider_format"] = status
         if confirmed is None and isinstance(candidate, ListingFacts):
-            self.last_metrics["stop_after_evidence"] = True
+            self.pending_fact_reread = frame, candidate
+            self.last_metrics["listing_fact_reread_pending"] = True
         return json.dumps(Action("ANSWER", confirmed).to_dict(), ensure_ascii=False) if confirmed is not None else None
+
+    def reread_listing_facts(self, observation, frame, candidate):
+        panel, bounds = listing_fact_reread_image(observation.screenshot, candidate)
+        raw = self.actor.ask(self.actor.prepare_image(panel), candidate.reread_prompt())
+        answer, status = confirmation_outcome(raw, candidate)
+        self.last_metrics.update(evidence_stage="confirm", evidence_frame=frame, provider_format=status,
+                                 listing_fact_reread_sha256=pixel_hash(panel), listing_fact_reread_bounds=bounds)
+        if answer is None:
+            self.last_metrics["stop_after_evidence"] = True
+            return None
+        return json.dumps(Action("ANSWER", answer).to_dict(), ensure_ascii=False)
 
     def verify_links(self, observation, frame, rows, selected, destinations, count):
         canvas = self.actor.prepare_image(observation.screenshot)
@@ -884,6 +931,11 @@ class EvidenceAnswerPolicy:
                 return self.ranked_evidence.decide(observation, self.ranked_request, self.actor,
                                                    self.screen_reader, self.ranked_capture)
         frame = pixel_hash(observation.screenshot)
+        if self.pending_fact_reread is not None:
+            pending_frame, candidate = self.pending_fact_reread
+            self.pending_fact_reread = None
+            if frame == pending_frame:
+                return self.reread_listing_facts(observation, frame, candidate)
         if self.pending_links is not None:
             pending_frame, rows, indices, destinations, count = self.pending_links
             self.pending_links = None

@@ -12,15 +12,17 @@ from gui_recover.actions import ActionError, parse_action
 from gui_recover.answer_evidence import (
     REFERENCE_CONTACT_REGION, REFERENCE_NAVIGATION, REFERENCE_SEARCH, REFERENCE_SEARCH_ABSTAINED,
     REFERENCE_TITLE_AMBIGUOUS, REFERENCE_TITLE_CROP, REFERENCE_TITLE_HEADING, REFERENCE_TITLE_OPEN,
-    confirmation_image, confirmation_outcome, contact_from_evidence, evidence_answer, native_crop,
+    breadcrumb_ocr_image, confirmation_image, confirmation_outcome, contact_from_evidence, evidence_answer,
+    listing_fact_reread_image, native_crop,
     parse_evidence_location, reference_contact_box, reference_search_action,
     visible_contact_request,
 )
 from gui_recover.environment import VisualObservation, frame_key
 from gui_recover.listing_cards import (
-    RESULT_VIEW_HEIGHT, ReferenceTitleCrop, ambiguous_reference_title, exact_reference_title_request, listing_title_heading, ranked_photo_request,
+    RESULT_VIEW_HEIGHT, ReferenceTitleCrop, ambiguous_reference_title, exact_reference_title_request,
+    listing_breadcrumb_box, listing_title_heading, ranked_photo_request,
     reference_result_action, reference_result_destination, reference_title_crop, reference_title_open_action,
-    reference_title_region, reference_title_request,
+    reference_title_region, reference_title_request, with_listing_breadcrumb,
 )
 from gui_recover.listing_facts import (
     LISTING_FACTS_ABSTAINED, LISTING_FACTS_STAGES, SEARCH_PRICE_NAVIGATION, ListingFacts, listing_fact_decision,
@@ -147,6 +149,7 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
     stages = Counter()
     pending = None
     pending_confirmation = None
+    listing_fact_reread_pending = False
     pending_links = None
     link_count = link_answer_count(goal) if listing_site is not None else None
     ranked_request = ranked_photo_request(goal) if use_ranked_cards else None
@@ -284,6 +287,19 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                         "Full title evidence requires the matched listing detail")
                 rows, size = metrics["screen_text"], metrics["provider_image_size"]
                 verify_ocr_rows(rows, size)
+                if "reference_title_breadcrumb" in metrics:
+                    review = metrics["reference_title_breadcrumb"]
+                    band = listing_breadcrumb_box(rows, size)
+                    require(band is not None, "Breadcrumb reread needs a missing breadcrumb above a visible heading")
+                    with Image.open(directory / f"{index:04d}.png") as screen:
+                        image, native_bounds = breadcrumb_ocr_image(screen, size, band)
+                    require(review["bounds"] == list(native_bounds) and review["pixels_sha256"] == pixel_hash(image),
+                            "Breadcrumb reread differs from the saved screenshot")
+                    verify_ocr_rows(review["rows"], (band[2] - band[0], band[3] - band[1]))
+                    recovered = with_listing_breadcrumb(rows, review["rows"], band)
+                    require(recovered is not rows, "Breadcrumb reread did not produce a unique breadcrumb")
+                    rows = recovered
+                    stages["reference_title_breadcrumb"] += 1
                 isolated = metrics["provider_format"] == REFERENCE_TITLE_CROP
                 if isolated:
                     title = reference_title_crop(rows, size)
@@ -474,26 +490,38 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         else:
             _, bounds, candidate = pending_confirmation
             pending_confirmation = None
-            if isinstance(candidate, ReferenceTitleCrop):
+            isolated_title = isinstance(candidate, ReferenceTitleCrop)
+            isolated_facts = listing_fact_reread_pending
+            listing_fact_reread_pending = False
+            if isolated_title or isolated_facts:
                 with Image.open(directory / f"{index:04d}.png") as screen:
-                    cropped = screen.crop(bounds)
-                    require(metrics["evidence_bounds"] == bounds
-                            and metrics["reference_title_crop_sha256"] == pixel_hash(cropped)
-                            and "evidence_panel_sha256" not in metrics and "evidence_context_sha256" not in metrics,
-                            "Title confirmation must inspect only the recorded heading crop")
+                    if isolated_facts:
+                        require(isinstance(candidate, ListingFacts), "Field reread requires the original compound candidate")
+                        panel, crop_bounds = listing_fact_reread_image(screen, candidate)
+                        require(metrics["listing_fact_reread_bounds"] == crop_bounds
+                                and metrics["listing_fact_reread_sha256"] == pixel_hash(panel),
+                                "Field reread must inspect the original price and label crops")
+                    else:
+                        require(metrics["evidence_bounds"] == bounds
+                                and metrics["reference_title_crop_sha256"] == pixel_hash(screen.crop(bounds)),
+                                "Title confirmation must inspect the recorded heading crop")
+                require("evidence_panel_sha256" not in metrics and "evidence_context_sha256" not in metrics
+                        and "listing_fact_reread_pending" not in metrics,
+                        "Isolated confirmation must be bounded to its crop and may run only once")
                 confirmed, status = confirmation_outcome(reply, candidate)
-                require(metrics["provider_format"] == status, "Title confirmation status differs from the recorded reply")
+                require(metrics["provider_format"] == status, "Isolated confirmation status differs from the recorded reply")
                 require((metrics.get("stop_after_evidence") is True) == (confirmed is None),
-                        "Title disagreement must stop without submission")
+                        "An unresolved isolated confirmation must stop without submission")
                 if confirmed is not None:
                     action = parse_action(raw)
-                    require(action.action == "ANSWER" and action.value == confirmed, "Submitted title differs from the crop")
+                    require(action.action == "ANSWER" and action.value == confirmed, "Submission differs from the verified crop")
                     answers.add(step)
                 else:
-                    require(raw is None, "Title reached the browser without agreement")
-                stages["reference_title_crop_confirm"] += 1
+                    require(raw is None, "An unconfirmed crop read reached the browser")
+                stages["listing_fact_reread" if isolated_facts else "reference_title_crop_confirm"] += 1
                 continue
-            require("reference_title_crop_sha256" not in metrics, "Unexpected isolated title confirmation")
+            require("reference_title_crop_sha256" not in metrics and "listing_fact_reread_sha256" not in metrics,
+                    "Unexpected isolated confirmation")
             context = None
             origin = click_origins.get(index) if click_origins is not None else None
             if origin is not None:
@@ -513,7 +541,12 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                     "Confirmation pixels differ from the recorded viewport and crop")
             tie = price_scan.tie if price_scan is not None else None
             confirmed, status = confirmation_outcome(reply, candidate, request, expected_cents=tie.cents if tie is not None else None)
-            if isinstance(candidate, ListingFacts):
+            if metrics.get("listing_fact_reread_pending") is True:
+                require(isinstance(candidate, ListingFacts) and confirmed is None and not metrics.get("stop_after_evidence"),
+                        "Only unconfirmed compound fields can schedule an isolated reread")
+                pending_confirmation = frame, bounds, candidate
+                listing_fact_reread_pending = True
+            elif isinstance(candidate, ListingFacts):
                 require((metrics.get("stop_after_evidence") is True) == (confirmed is None),
                         "An unresolved compound answer must stop without submission")
             if status == "evidence_verify_agreed":
@@ -602,6 +635,10 @@ def audit_episode(directory, budget, recovery_mode, retry_mode, *, answer_check=
                 require(use_ranked_cards and len(reference_hashes) == 1 and metrics.get("evidence_stage") == "confirm"
                         and "browser_tabs" not in metrics and "reference_pixels" not in metrics,
                         "Isolated title confirmation must exclude tab metadata and reference images")
+            elif "listing_fact_reread_sha256" in metrics:
+                require(use_ranked_cards and not reference_hashes and metrics.get("evidence_stage") == "confirm"
+                        and "browser_tabs" not in metrics and "reference_pixels" not in metrics,
+                        "Isolated field reread must exclude browser metadata")
             else:
                 require(metrics.get("browser_tabs") == tabs and metrics.get("reference_pixels", []) == reference_hashes,
                         "Model inputs differ from the task reference images or active tabs")

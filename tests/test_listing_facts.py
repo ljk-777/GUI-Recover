@@ -1,8 +1,12 @@
-import pytest
-from PIL import Image
+from types import SimpleNamespace
 
-from gui_recover.actions import ActionError
-from gui_recover.listing_facts import LISTING_FACTS_ABSTAINED, ListingFacts, listing_fact_decision
+import pytest
+from PIL import Image, ImageDraw
+
+from gui_recover.actions import Action, ActionError, parse_action
+from gui_recover.answer_evidence import EvidenceAnswerPolicy
+from gui_recover.environment import VisualObservation
+from gui_recover.listing_facts import LISTING_FACTS_ABSTAINED, listing_fact_decision
 from gui_recover.verification import pixel_hash
 
 
@@ -35,7 +39,9 @@ def test_current_listing_checks_price_and_city_from_the_header():
     screen = Image.new("RGB", (1000, 1000))
     rows = detail_rows()
     decision = listing_fact_decision(DETAIL_GOAL, ITEM, SITE, rows, screen.size, screen, None)
-    assert decision.facts == ListingFacts("city", "Oak Park", 8050, (116, 123, 909, 224))
+    assert decision.facts.label_bounds == (116, 207, 452, 224)
+    assert decision.facts.price_bounds == (791, 123, 909, 160)
+    assert decision.facts.bounds == (116, 123, 909, 224)
     verify = decision.facts.confirm
     assert verify('{"city":"Oak Park","dollars":"80.5"}') == ("Oak Park, 80.50 dollars", "evidence_verify_agreed")
     assert verify('{"city":"Oak Park","dollars":80.50}') == ("Oak Park, 80.50 dollars", "evidence_verify_agreed")
@@ -47,6 +53,43 @@ def test_current_listing_checks_price_and_city_from_the_header():
         verify('{"city":"Oak Park","dollars":true}')
     without_location = [line for line in rows if not line["text"].startswith("Location:")]
     assert listing_fact_decision(DETAIL_GOAL, ITEM, SITE, without_location, screen.size, screen, None).status == LISTING_FACTS_ABSTAINED
+
+
+@pytest.mark.parametrize("reread_city", ("Oak Park", "Oak"))
+def test_compound_disagreement_rereads_only_the_two_fields_once(reread_city):
+    screen = Image.new("RGB", (1000, 770), "white")
+    draw = ImageDraw.Draw(screen)
+    draw.rectangle((213, 209, 248, 222), fill="blue")
+    draw.rectangle((815, 130, 880, 153), fill="red")
+    draw.rectangle((460, 168, 512, 196), fill="lime")
+    actor = SimpleNamespace(prepare_image=lambda image: image)
+    calls = []
+
+    def ask(image, prompt, **context):
+        calls.append(context)
+        actor.last_metrics = {"model_invocations": 1}
+        if len(calls) == 1:
+            assert context["observation"].tabs
+            return '{"city":"Oak","dollars":80.50}'
+        assert not context and "first comma" in prompt and "Oak" not in prompt
+        assert image.getchannel("G").getextrema()[0] < 255
+        assert image.getcolors(256) is not None
+        assert (0, 255, 0) not in {color for _, color in image.getcolors(256)}
+        return f'{{"city":"{reread_city}","dollars":80.50}}'
+
+    actor.ask = ask
+    policy = EvidenceAnswerPolicy(actor, confirm=True, screen_reader=lambda *_: detail_rows(),
+                                  listing_site=SITE, ranked_capture=lambda: pytest.fail("Detail page needs no cards"))
+    observation = VisualObservation(DETAIL_GOAL, screen, tabs=(("Detail", ITEM),))
+    assert policy.predict(observation, []) is None
+    assert policy.predict(observation, []) is None
+    assert policy.last_metrics["listing_fact_reread_pending"] is True
+    result = policy.predict(observation, [])
+    assert len(calls) == 2 and policy.pending_fact_reread is None
+    if reread_city == "Oak Park":
+        assert parse_action(result) == Action("ANSWER", "Oak Park, 80.50 dollars")
+    else:
+        assert result is None and policy.last_metrics["stop_after_evidence"] is True
 
 
 def test_keyword_results_bind_unique_highest_price_to_the_selected_detail():

@@ -8,7 +8,7 @@ from gui_recover.answer_evidence import (EvidenceAnswerPolicy, answer_signature,
                                          confirmation_image, confirmed_evidence_answer, evidence_clipped,
                                          evidence_navigation, native_crop, parse_independent_confirmation)
 from gui_recover.environment import VisualObservation
-from gui_recover.listing_cards import listing_title_heading, reference_title_crop
+from gui_recover.listing_cards import listing_breadcrumb_box, listing_title_heading, reference_title_crop, with_listing_breadcrumb
 from gui_recover.price_discovery import PriceDiscovery, price_request
 from gui_recover.qwen_grounding import QwenGroundingPolicy, normalize_qwen_action, parse_visible_answer
 from gui_recover.verification import pixel_hash
@@ -102,6 +102,24 @@ def test_listing_title_requires_all_heading_lines_to_agree_with_the_breadcrumb()
     assert listing_title_heading(rows, (1036, 588)) == ((106, 115, 480, 203), "Vintage silver stone bracelet")
     assert listing_title_heading([rows[0], *rows[2:]], (1036, 588)) is None
     assert listing_title_heading([dict(rows[0], text="Classifieds > Jewelry > Vintage silver..."), *rows[1:]], (1036, 588)) is None
+
+
+def test_missing_breadcrumb_can_be_recovered_from_the_band_above_a_wrapped_heading():
+    size = (1036, 588)
+    rows = [
+        {"text": "Classifieds", "bounds": [111, 5, 204, 27]},
+        {"text": "Example wrapped heading", "bounds": [110, 119, 576, 160]},
+        {"text": "Table", "bounds": [110, 158, 204, 199]},
+        {"text": "Published date: yesterday", "bounds": [116, 228, 276, 245]},
+    ]
+    assert listing_title_heading(rows, size) is None
+    band = listing_breadcrumb_box(rows, size)
+    assert band == (90, 58, 981, 113)
+    local = {"text": "Classifieds > Furniture > Example wrapped heading Table", "bounds": [24, 27, 430, 45]}
+    recovered = with_listing_breadcrumb(rows, [local], band)
+    assert listing_title_heading(recovered, size)[1] == "Example wrapped heading Table"
+    assert listing_breadcrumb_box(recovered, size) is None
+    assert with_listing_breadcrumb(rows, [local, local], band) is rows
 
 
 @pytest.mark.parametrize(("reply", "answered"), [

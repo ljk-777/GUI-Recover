@@ -34,7 +34,14 @@ class ListingFacts:
     field: str
     text: str
     cents: int
-    bounds: tuple[int, int, int, int]
+    label_bounds: tuple[int, int, int, int]
+    price_bounds: tuple[int, int, int, int]
+    canvas_size: tuple[int, int]
+
+    @property
+    def bounds(self):
+        left, right = self.label_bounds, self.price_bounds
+        return (min(left[0], right[0]), min(left[1], right[1]), max(left[2], right[2]), max(left[3], right[3]))
 
     def confirmation_prompt(self):
         description = ("city from the Location line, excluding state and country" if self.field == "city"
@@ -43,6 +50,15 @@ class ListingFacts:
             f"Transcribe the {description} and the asking price from the enlarged crop on the right. "
             f'Return one JSON object with keys "{self.field}" and "dollars". '
             "Use null for unreadable fields. Write the dollar amount as a number or numeric string."
+        )
+
+    def reread_prompt(self):
+        field = ('Copy every word after "Location:" up to the first comma.'
+                 if self.field == "city" else "Copy the complete heading exactly as printed, including any unusual spelling.")
+        return (
+            f"Transcribe the two text crops verbatim. Read the top crop first. {field} "
+            "Read the dollar amount from the bottom crop. "
+            f'Return only JSON with keys "{self.field}" and "dollars". Use null for unreadable text.'
         )
 
     def confirm(self, reply):
@@ -103,9 +119,8 @@ def _detail_facts(rows, size, field, expected=None):
     label = _detail_city(rows, size) if field == "city" else listing_title_heading(rows, size)
     if price is None or label is None or (expected is not None and price[1] != expected):
         return ListingFactDecision(LISTING_FACTS_ABSTAINED)
-    left, right = label[0], price[0]
-    bounds = (min(left[0], right[0]), min(left[1], right[1]), max(left[2], right[2]), max(left[3], right[3]))
-    return ListingFactDecision(LISTING_FACTS_REGION, facts=ListingFacts(field, label[1], price[1], bounds))
+    return ListingFactDecision(LISTING_FACTS_REGION,
+                               facts=ListingFacts(field, label[1], price[1], tuple(label[0]), price[0], tuple(size)))
 
 
 def _highest_result(query, active_url, site, rows, size, screen, capture):
