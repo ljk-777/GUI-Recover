@@ -29,13 +29,13 @@ CITY_WORD_COUNTS = {"gui-recover-catalog-holdout-v4": (2, 1),
                     "gui-recover-catalog-holdout-v5": (1, 2, 1, 2, 1, 2),
                     "gui-recover-catalog-holdout-v6": (1, 2, 1, 2, 1, 2)}
 DETAIL_PRICE_DIGITS = {"gui-recover-catalog-holdout-v6": (3, 2, 2, 3, 3, 2)}
-PRICE_RETRY_COHORT = "gui-recover-catalog-holdout-v7"
+PRICE_RETRY_COHORTS = ("gui-recover-catalog-holdout-v7", "gui-recover-catalog-holdout-v8")
 CATALOG_POOL_PAGES = {"gui-recover-catalog-holdout-v4": 12, "gui-recover-catalog-holdout-v5": 20,
-                      "gui-recover-catalog-holdout-v6": 20, PRICE_RETRY_COHORT: 20}
+                      "gui-recover-catalog-holdout-v6": 20, PRICE_RETRY_COHORTS[0]: 20, PRICE_RETRY_COHORTS[1]: 32}
 
 
 def catalog_families(key):
-    if key in ("gui-recover-catalog-holdout-v5", "gui-recover-catalog-holdout-v6", PRICE_RETRY_COHORT):
+    if key in ("gui-recover-catalog-holdout-v5", "gui-recover-catalog-holdout-v6", *PRICE_RETRY_COHORTS):
         return FAMILIES[:1]
     return FAMILIES
 
@@ -201,7 +201,7 @@ def catalog_pool(catalog, excluded, pages):
 
 def freeze(site, excluded, output, *, series=1):
     key = f"gui-recover-catalog-holdout-v{series}"
-    if key == PRICE_RETRY_COHORT:
+    if key in PRICE_RETRY_COHORTS:
         raise ValueError("Use prepare_vwa_price_retry_holdout.py to screen the price retry cohort")
     ids = CATALOG_SERIES_IDS[key]
     city_word_counts = CITY_WORD_COUNTS.get(key)

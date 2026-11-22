@@ -8,6 +8,21 @@ def row(text, bounds):
     return {"text": text, "bounds": bounds}
 
 
+def test_varied_price_order_preserves_first_hash_match_for_each_amount(monkeypatch):
+    pytest.importorskip("bs4")
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1] / "scripts"))
+    from prepare_vwa_catalog_holdout import Card
+    from prepare_vwa_price_retry_holdout import candidate_order
+
+    cards = [Card(str(index), "Listing", dollars, None) for index, dollars in enumerate((25, 60, 25, 60, 80))]
+    original = candidate_order(cards, "new-cohort")
+    diverse = candidate_order(cards, "new-cohort", varied_prices=True)
+    assert len({card.dollars for card in diverse[:3]}) == 3
+    for amount in (25, 60, 80):
+        assert next(card for card in diverse if card.dollars == amount) == next(card for card in original if card.dollars == amount)
+    assert set(diverse) == set(original)
+
+
 @pytest.mark.parametrize(("cropped_text", "group"), (("80. 0.50 $", "trigger"), ("80.50 $", "control")))
 def test_screening_uses_enlarged_ocr_without_checking_native_retry(monkeypatch, cropped_text, group):
     pytest.importorskip("bs4")

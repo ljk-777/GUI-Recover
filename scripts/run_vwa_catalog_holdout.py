@@ -19,7 +19,7 @@ from gui_recover.screen_text import RapidScreenReader
 from gui_recover.verification import pixel_hash
 from gui_recover.vwa_inputs import CATALOG_SERIES_IDS, LocalReferenceArchive
 from prepare_vwa_catalog_holdout import (
-    CATALOG_POOL_PAGES, CITY_WORD_COUNTS, DETAIL_PRICE_DIGITS, FAMILIES, OWN_INDEX, PRICE_RETRY_COHORT,
+    CATALOG_POOL_PAGES, CITY_WORD_COUNTS, DETAIL_PRICE_DIGITS, FAMILIES, OWN_INDEX, PRICE_RETRY_COHORTS,
     catalog_case_families, catalog_families, encoded, fingerprint,
 )
 from run_visualwebarena_live import VisualWebArenaEnvironment, exact_vwa_success, holdout_profile, probe_instance
@@ -81,6 +81,10 @@ def validate_price_retry_screening(directory, protocol, evidence):
               for record in [attempt for attempt in attempts if attempt["outcome"] == outcome][:count]]
     if len(chosen) != len(evidence):
         raise ValueError("The price retry cohort requires balanced OCR triggers and controls")
+    if "excluded_crop_sha256" in report:
+        hashes = [record["enlarged_ocr"]["pixels_sha256"] for record in chosen]
+        if len(set(hashes)) != len(hashes) or set(hashes).intersection(report["excluded_crop_sha256"]):
+            raise ValueError("The fresh cohort contains an already screened price crop")
     for proof, record in zip(evidence, chosen, strict=True):
         frame = directory / "screening-frames" / f"{proof['task_id']}.png"
         with Image.open(frame) as image:
@@ -127,7 +131,7 @@ def load_cohort(directory, digest, homepage):
                          or tuple(len(str(row["source"]["visible"]["dollars"]))
                                   for row in evidence[:len(price_digits)]) != price_digits):
         raise ValueError("Expected the registered mix of two- and three-digit prices")
-    if sample_key == PRICE_RETRY_COHORT:
+    if sample_key in PRICE_RETRY_COHORTS:
         validate_price_retry_screening(directory, protocol, evidence)
     references = LocalReferenceArchive(directory, protocol["reference_files_sha256"], homepage=homepage)
     used_images = set()

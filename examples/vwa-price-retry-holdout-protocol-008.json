@@ -1,0 +1,39 @@
+{
+  "cohort": "gui-recover-catalog-holdout-v8",
+  "selection": {
+    "registered_order": "Order by SHA-256 of the cohort key and item path, then visit the first listing for each distinct displayed amount before visiting repeat amounts.",
+    "catalog_pages_per_category": 32,
+    "maximum_screened_listings": 144,
+    "triggers": 3,
+    "controls": 3,
+    "trigger_rule": "Whole-page OCR matches the sealed price and city and the enlarged crop cannot parse a price.",
+    "control_rule": "Whole-page OCR matches the sealed price and city and the enlarged crop parses a price.",
+    "exclude_previous_screening_pool": true,
+    "exclude_repeated_crop_pixels": true,
+    "one_x_ocr_used_for_selection": false,
+    "model_inference_used_for_selection": false
+  },
+  "policy_revisions": {
+    "prior": "633f4138222bd78aece5569970da4766727f026e",
+    "current": "d05eab5f094fa0d937c23ef26ad55cc94e95a6ae"
+  },
+  "policy_files": ["answer_evidence.py", "listing_facts.py", "screen_text.py"],
+  "retry_receipts": {
+    "prior": "listing_price_native_retry",
+    "current": "listing_price_upright_retry"
+  },
+  "seed": 0,
+  "max_predictions": 12,
+  "max_model_calls": 8,
+  "acceptance": {
+    "all_pairs_match_frozen_screening_frames": true,
+    "both_arms_reproduce_the_enlarged_ocr_trigger": true,
+    "minimum_additional_trigger_successes": 1,
+    "minimum_current_trigger_successes": 2,
+    "all_prior_trigger_successes_preserved": true,
+    "zero_wrong_submissions": true,
+    "all_readable_control_successes_preserved": true,
+    "control_model_calls_do_not_increase": true,
+    "no_native_scale_retry_on_readable_controls": true
+  }
+}
