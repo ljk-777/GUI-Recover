@@ -1,0 +1,57 @@
+{
+  "scope": "Exposed task 10606 with a new amount-only anchor. The frozen cohort 006 result is separate.",
+  "source_revision": "41692684f5e1dab1865f2a8bc09ec0d72d4e4664",
+  "audit_sha256": "3499bcaca505c287f6a16bf2728a2242912a9953c9e4e407d750d59726d46707",
+  "archives_sha256": {
+    "visualwebarena-catalog-price-amount-anchor-dev-prior-006": "34c6bc7a87686d45f7aa8aea4251de90189df15b095ca4642b2a2069246725ab",
+    "visualwebarena-catalog-price-amount-anchor-dev-current-006": "513e2c76752b0ea235844845a4d77a5813253a9fb68d0bfd80f5207b96376744"
+  },
+  "identical_injections": true,
+  "prior": {
+    "cohort_sha256": "26d82c1df9f7022cd9dad8c03625135f1c645f86deff570d846a9469d83c8a3d",
+    "task_count": 1,
+    "by_task": {
+      "10606": {
+        "success": false,
+        "reason": "task_failure",
+        "answers_submitted": 1,
+        "predictions": 3,
+        "model_calls": 2,
+        "fault": "match-ocr-price-in-reread-amount-anchor",
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 2,
+          "listing_fact_reread": 1
+        }
+      }
+    },
+    "native_successes": 0,
+    "wrong_submissions": 1,
+    "model_calls": 2
+  },
+  "current": {
+    "cohort_sha256": "26d82c1df9f7022cd9dad8c03625135f1c645f86deff570d846a9469d83c8a3d",
+    "task_count": 1,
+    "by_task": {
+      "10606": {
+        "success": false,
+        "reason": "evidence_abstained",
+        "answers_submitted": 0,
+        "predictions": 3,
+        "model_calls": 2,
+        "fault": "match-ocr-price-in-reread-amount-anchor",
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 2,
+          "listing_price_check": 1,
+          "listing_fact_reread": 1
+        }
+      }
+    },
+    "native_successes": 0,
+    "wrong_submissions": 0,
+    "model_calls": 2
+  }
+}

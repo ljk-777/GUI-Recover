@@ -697,6 +697,12 @@ python scripts/audit_vwa_catalog_price_transfer.py \
 
 [Cohort 006 scores and checksums](../examples/vwa-catalog-price-transfer-results-006.json)
 
+### Anchor an isolated price fault to the amount
+
+The `match-ocr-price-in-reread-amount-anchor` registration verifies the sealed price against full-page OCR and the model's first reply on the same frame. The first reply's city can be incomplete. The auditor still requires that exact clean reply before the isolated read, then validates the price-only substitution in the isolated reply. Older registrations keep their original anchor rule.
+
+A separate development run applied this registration to exposed task 10606. Both policies reached the isolated reread in two model calls and received the same price substitution. The prior policy submitted the wrong price. The guarded policy abstained. The original cohort 006 still records that task as unexecuted for its registered fault. [Development audit](../examples/vwa-price-amount-anchor-dev-006.json)
+
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
