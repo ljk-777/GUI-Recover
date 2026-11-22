@@ -1,0 +1,123 @@
+{
+  "archive_sha256": "35a6b160897ca0bfd1a91a87eb2f3e12a4a1c31f9740bb8b4b85588c8199e1ce",
+  "audit_sha256": "e54f92e495619fc2d7742508881556ce931f270aeb3cdb2fc62a6441c184c1c3",
+  "original_cohort_audit_sha256": "1cc1f6849d1d4ec3d3106226a4297a56cde017b62747f20c6f55fb3ff6d64cb4",
+  "scope": "Development reruns on exposed cohort 007 screenshots with fresh Qwen inference",
+  "source_revision": "d05eab5f094fa0d937c23ef26ad55cc94e95a6ae",
+  "same_screening_frames": true,
+  "same_enlarged_ocr_receipts": true,
+  "cpu_upright_amounts_reproduced": true,
+  "scores": {
+    "trigger": {
+      "native_successes": 3,
+      "wrong_submissions": 0,
+      "abstentions": 0,
+      "model_calls": 5,
+      "localized_ocr_reads": 6,
+      "upright_price_ocr_retries": 3
+    },
+    "control": {
+      "native_successes": 3,
+      "wrong_submissions": 0,
+      "abstentions": 0,
+      "model_calls": 3,
+      "localized_ocr_reads": 3,
+      "upright_price_ocr_retries": 0
+    }
+  },
+  "by_group": {
+    "trigger": {
+      "10701": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "model_calls": 2,
+        "predictions": 3,
+        "screenshots": 2,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 2,
+          "listing_price_check": 1,
+          "listing_price_upright_retry": 1,
+          "listing_fact_reread": 1
+        }
+      },
+      "10702": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "model_calls": 1,
+        "predictions": 2,
+        "screenshots": 2,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "listing_price_check": 1,
+          "listing_price_upright_retry": 1
+        }
+      },
+      "10703": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "model_calls": 2,
+        "predictions": 3,
+        "screenshots": 2,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 2,
+          "listing_price_check": 1,
+          "listing_price_upright_retry": 1,
+          "listing_fact_reread": 1
+        }
+      }
+    },
+    "control": {
+      "10704": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "model_calls": 1,
+        "predictions": 2,
+        "screenshots": 2,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "listing_price_check": 1
+        }
+      },
+      "10705": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "model_calls": 1,
+        "predictions": 2,
+        "screenshots": 2,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "listing_price_check": 1
+        }
+      },
+      "10706": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "model_calls": 1,
+        "predictions": 2,
+        "screenshots": 2,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "listing_price_check": 1
+        }
+      }
+    }
+  }
+}

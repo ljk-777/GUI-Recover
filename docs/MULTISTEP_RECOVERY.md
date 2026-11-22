@@ -716,6 +716,8 @@ Cohort 007 screened 87 unseen listings after excluding 332 paths from earlier ev
 
 The frozen native-scale policy retried all three triggers and preserved the controls. It missed the preregistered threshold of two additional successes. CPU diagnostics on the exposed crops found that the longest amount needed more surrounding pixels. RapidOCR's orientation correction also reversed part of the $999 amount. The native-scale candidate kept both cases as abstentions.
 
+Development revision `d05eab5` gives the fallback four more native pixels on each side and reads the horizontal price without orientation correction. Standard reads explicitly restore their configured orientation mode on every call because RapidOCR retains that option on the shared engine. With fresh Qwen inference on the six exposed cases, this revision passed all three triggers and all three controls with zero wrong submissions. Trigger calls rose from three to five and clean controls stayed at three. The CPU audit matched every starting frame and primary OCR receipt and reread the three successful fallback crops. This result is a development replay on cohort 007. [Development results](../examples/vwa-price-upright-dev-007.json)
+
 Use `prepare_vwa_price_retry_holdout.py` with the cohort 007 exclusion file to reproduce CPU screening on the pinned fixture. Audit both saved GPU runs with the sealed cohort and its preflight log.
 
 ~~~bash
