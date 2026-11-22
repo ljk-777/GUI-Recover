@@ -770,7 +770,31 @@ Task 10802 accounted for the one added OCR read and one recovered answer proposa
 
 ### Screen for independent double detector failures
 
-Cohort 009 exhausted its budget of 256 catalog listings after excluding 572 historical listing paths and 102 prior price crop hashes. The selector found 71 readable enlarged crops and two cases recovered by upright detection. It excluded 144 repeated crops and 39 listings without the required catalog evidence. Zero eligible listings had an unreadable price in both detector reads. The registered sample called for three cases in each group, so the run stopped at screening with zero model calls and zero native policy episodes. [Protocol](../examples/vwa-price-retry-holdout-protocol-009.json) · [Screening record](../examples/vwa-price-retry-holdout-screening-009.json)
+Cohort 009 exhausted its budget of 256 catalog listings after excluding 572 historical listing paths and 102 prior price crop hashes. The selector found 71 readable enlarged crops and two cases recovered by upright detection. It excluded 144 repeated crops and 39 listings without the required catalog evidence. The only listing whose price failed both detector reads repeated a previous crop. The registered sample called for three cases in each group, so the run stopped at screening with zero model calls and zero native policy episodes. [Protocol](../examples/vwa-price-retry-holdout-protocol-009.json) · [Screening record](../examples/vwa-price-retry-holdout-screening-009.json)
+
+### Test recovery when both price detector reads are empty
+
+Cohort 010 sealed four new Classifieds listings with distinct prices after excluding 828 paths, including the entire cohort 009 pool. It selected tasks in the registered hash order before any Qwen inference. Each listing passed native scoring preflight and ran in four arms with fresh Qwen2.5-VL-7B inference. The fault erased the OCR rows from the enlarged and upright price crops and retained the original rows and crop hashes in the injection receipt. All arms produced identical starting screenshots, full-page OCR and original model replies for each task. [Protocol](../examples/vwa-catalog-price-holdout-protocol-010.json)
+
+| Condition | Policy | Native successes | Abstentions | Wrong submissions | Model calls | Local price OCR reads |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Clean | Upright retry | 4/4 | 0 | 0 | 4 | 4 |
+| Clean | Whole-line fallback | 4/4 | 0 | 0 | 4 | 4 |
+| Both detector reads erased | Upright retry | 0/4 | 4 | 0 | 4 | 8 |
+| Both detector reads erased | Whole-line fallback | 4/4 | 0 | 0 | 4 | 12 |
+
+All 12 registered checks passed. Each recovery used one additional CPU OCR read. The observed gain applies to controlled detector dropout on the Classifieds fixture. [Scores and archive checksums](../examples/vwa-catalog-price-transfer-results-010.json)
+
+Reconstruct the comparison on CPU from the sealed cohort and the four saved run directories.
+
+~~~bash
+python scripts/audit_vwa_catalog_price_transfer.py \
+  --cohort runs/cohort-010 \
+  --sha256 d0b1722759e5692b0ad267caefe5e05576201a05e8a990b7a275886b641efacd \
+  --protocol examples/vwa-catalog-price-holdout-protocol-010.json \
+  --fault-plan runs/cohort-010/fault-plan.json \
+  --runs runs
+~~~
 
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 

@@ -6,6 +6,7 @@
   "excluded_price_crop_hashes": 102,
   "status": "screen_limit_reached_with_incomplete_groups",
   "listings_screened": 256,
+  "double_detector_failures_with_repeated_crop": 1,
   "screening_outcomes": {
     "control": 71,
     "missing_catalog_evidence": 39,
