@@ -1,0 +1,30 @@
+{
+  "cohort": "gui-recover-catalog-holdout-v7",
+  "selection": {
+    "registered_order": "SHA-256 of the cohort key, a newline, and each item path",
+    "catalog_pages_per_category": 20,
+    "maximum_screened_listings": 96,
+    "triggers": 3,
+    "controls": 3,
+    "trigger_rule": "The whole-page OCR matches the sealed price and city, and OCR at twice the native price-crop scale cannot parse a single amount.",
+    "control_rule": "The whole-page OCR matches the sealed price and city, and OCR at twice the native price-crop scale parses a single amount.",
+    "one_x_ocr_used_for_selection": false,
+    "model_inference_used_for_selection": false
+  },
+  "policy_revisions": {
+    "prior": "8fd6cf8c3fa5e04aea9181b8b74e5486f3c6545f",
+    "current": "633f4138222bd78aece5569970da4766727f026e"
+  },
+  "seed": 0,
+  "max_predictions": 12,
+  "max_model_calls": 8,
+  "acceptance": {
+    "all_pairs_match_frozen_screening_frames": true,
+    "both_arms_reproduce_the_enlarged_ocr_trigger": true,
+    "minimum_additional_trigger_successes": 2,
+    "zero_wrong_submissions": true,
+    "all_readable_control_successes_preserved": true,
+    "control_model_calls_do_not_increase": true,
+    "no_native_scale_retry_on_readable_controls": true
+  }
+}

@@ -29,18 +29,21 @@ CITY_WORD_COUNTS = {"gui-recover-catalog-holdout-v4": (2, 1),
                     "gui-recover-catalog-holdout-v5": (1, 2, 1, 2, 1, 2),
                     "gui-recover-catalog-holdout-v6": (1, 2, 1, 2, 1, 2)}
 DETAIL_PRICE_DIGITS = {"gui-recover-catalog-holdout-v6": (3, 2, 2, 3, 3, 2)}
+PRICE_RETRY_COHORT = "gui-recover-catalog-holdout-v7"
 CATALOG_POOL_PAGES = {"gui-recover-catalog-holdout-v4": 12, "gui-recover-catalog-holdout-v5": 20,
-                      "gui-recover-catalog-holdout-v6": 20}
+                      "gui-recover-catalog-holdout-v6": 20, PRICE_RETRY_COHORT: 20}
 
 
 def catalog_families(key):
-    if key in ("gui-recover-catalog-holdout-v5", "gui-recover-catalog-holdout-v6"):
+    if key in ("gui-recover-catalog-holdout-v5", "gui-recover-catalog-holdout-v6", PRICE_RETRY_COHORT):
         return FAMILIES[:1]
     return FAMILIES
 
 
 def catalog_case_families(key):
     families = catalog_families(key)
+    if len(families) == 1:
+        return [families[0]] * len(CATALOG_SERIES_IDS[key])
     detail_count = len(CITY_WORD_COUNTS.get(key, (1, 1)))
     return [families[0]] * detail_count + [family for family in families[1:] for _ in range(2)]
 
@@ -183,19 +186,7 @@ def task(task_id, goal, start, expected, *, item=None, image=None):
             "image": image, "eval": rule}
 
 
-def freeze(site, excluded, output, *, series=1):
-    key = f"gui-recover-catalog-holdout-v{series}"
-    ids = CATALOG_SERIES_IDS[key]
-    city_word_counts = CITY_WORD_COUNTS.get(key)
-    price_digits = DETAIL_PRICE_DIGITS.get(key)
-    families = catalog_families(key)
-    detail_count = catalog_case_families(key).count(FAMILIES[0])
-    pages = CATALOG_POOL_PAGES.get(key, 4)
-
-    def sample_key(value):
-        return fingerprint(f"{key}\n{value}".encode())
-
-    catalog = Catalog(site)
+def catalog_pool(catalog, excluded, pages):
     pool = {}
     pool_digests = {}
     for category in CATEGORIES:
@@ -205,6 +196,24 @@ def freeze(site, excluded, output, *, series=1):
             for card in cards:
                 if card.item not in excluded and card.dollars and SAFE_TITLE.fullmatch(card.title):
                     pool[card.item] = card
+    return pool, pool_digests
+
+
+def freeze(site, excluded, output, *, series=1):
+    key = f"gui-recover-catalog-holdout-v{series}"
+    if key == PRICE_RETRY_COHORT:
+        raise ValueError("Use prepare_vwa_price_retry_holdout.py to screen the price retry cohort")
+    ids = CATALOG_SERIES_IDS[key]
+    city_word_counts = CITY_WORD_COUNTS.get(key)
+    price_digits = DETAIL_PRICE_DIGITS.get(key)
+    families = catalog_families(key)
+    detail_count = catalog_case_families(key).count(FAMILIES[0])
+
+    def sample_key(value):
+        return fingerprint(f"{key}\n{value}".encode())
+
+    catalog = Catalog(site)
+    pool, pool_digests = catalog_pool(catalog, excluded, CATALOG_POOL_PAGES.get(key, 4))
     available = sorted(pool.values(), key=lambda card: sample_key(card.item))
     specs, evidence, media, used = [], [], {}, set(excluded)
     searched = {}
@@ -289,6 +298,10 @@ def freeze(site, excluded, output, *, series=1):
         if len(specs) != target_count:
             raise ValueError(f"Insufficient unique cases for {family}")
 
+    return seal_catalog(output, key, specs, evidence, media, excluded, pool_digests)
+
+
+def seal_catalog(output, key, specs, evidence, media, excluded, pool_digests, *, screening_digest=None):
     output.mkdir(parents=True, exist_ok=False)
     manifest = {name: {"bytes": len(blob), "sha256": fingerprint(blob)} for name, blob in media.items()}
     archive = output / "reference-media.tar.gz"
@@ -300,7 +313,7 @@ def freeze(site, excluded, output, *, series=1):
     media_record = {"files": manifest, "archive_sha256": fingerprint(archive.read_bytes())}
     protocol = {
         "scope": "independently sampled Classifieds tasks",
-        "sample_key": key, "task_ids": list(ids), "families": list(families),
+        "sample_key": key, "task_ids": list(CATALOG_SERIES_IDS[key]), "families": list(catalog_families(key)),
         "seed": 0, "max_predictions": 12, "max_model_calls": 8,
         "strategies": ["answer-check", "evidence-cards"],
         "acceptance": {"minimum_successes": 2, "more_successes_than_control": True,
@@ -311,12 +324,14 @@ def freeze(site, excluded, output, *, series=1):
         "catalog_pool_sha256": fingerprint(encoded(pool_digests)),
         "exclusion_list_sha256": fingerprint(encoded(sorted(excluded))),
     }
-    if city_word_counts:
-        protocol["detail_city_word_counts_capped_at_two"] = list(city_word_counts)
-    if price_digits:
-        protocol["detail_price_digits"] = list(price_digits)
+    if key in CITY_WORD_COUNTS:
+        protocol["detail_city_word_counts_capped_at_two"] = list(CITY_WORD_COUNTS[key])
+    if key in DETAIL_PRICE_DIGITS:
+        protocol["detail_price_digits"] = list(DETAIL_PRICE_DIGITS[key])
     if key in CATALOG_POOL_PAGES:
-        protocol["catalog_pages_per_category"] = pages
+        protocol["catalog_pages_per_category"] = CATALOG_POOL_PAGES[key]
+    if screening_digest is not None:
+        protocol["price_retry_screening_sha256"] = screening_digest
     for name, payload in (("cohort.json", protocol), ("tasks.json", specs), ("source-evidence.json", evidence),
                           ("reference-media.json", media_record)):
         (output / name).write_bytes(encoded(payload) + b"\n")

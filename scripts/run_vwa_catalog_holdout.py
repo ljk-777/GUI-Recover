@@ -8,6 +8,8 @@ import tempfile
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+from PIL import Image
+
 from audit_visualwebarena_live import audit_episode
 from gui_recover.answer_evidence import EvidenceAnswerPolicy
 from gui_recover.listing_cards import REFERENCE_PHOTO_CLEAR_DISTANCE
@@ -17,7 +19,7 @@ from gui_recover.screen_text import RapidScreenReader
 from gui_recover.verification import pixel_hash
 from gui_recover.vwa_inputs import CATALOG_SERIES_IDS, LocalReferenceArchive
 from prepare_vwa_catalog_holdout import (
-    CATALOG_POOL_PAGES, CITY_WORD_COUNTS, DETAIL_PRICE_DIGITS, FAMILIES, OWN_INDEX,
+    CATALOG_POOL_PAGES, CITY_WORD_COUNTS, DETAIL_PRICE_DIGITS, FAMILIES, OWN_INDEX, PRICE_RETRY_COHORT,
     catalog_case_families, catalog_families, encoded, fingerprint,
 )
 from run_visualwebarena_live import VisualWebArenaEnvironment, exact_vwa_success, holdout_profile, probe_instance
@@ -63,6 +65,31 @@ def validate_reference_photo_evidence(proof):
         raise ValueError("Reference photo screening does not cover distinct photos across the result set")
 
 
+def validate_price_retry_screening(directory, protocol, evidence):
+    raw = (directory / "price-retry-screening.json").read_bytes()
+    if fingerprint(raw) != protocol["price_retry_screening_sha256"]:
+        raise ValueError("The price retry screening receipt changed")
+    report = json.loads(raw)
+    ordered = report["ordered_candidates"]
+    attempts = report["attempts"]
+    paths = [record["listing_path"] for record in attempts]
+    if (report["model_calls"] != 0 or len(set(ordered)) != len(ordered) or len(ordered) > report["screen_limit"]
+            or paths != ordered[:len(paths)]):
+        raise ValueError("The OCR-only search differs from its ordered candidate pool")
+    count = len(evidence) // 2
+    chosen = [record for outcome in ("trigger", "control")
+              for record in [attempt for attempt in attempts if attempt["outcome"] == outcome][:count]]
+    if len(chosen) != len(evidence):
+        raise ValueError("The price retry cohort requires balanced OCR triggers and controls")
+    for proof, record in zip(evidence, chosen, strict=True):
+        frame = directory / "screening-frames" / f"{proof['task_id']}.png"
+        with Image.open(frame) as image:
+            image_sha = pixel_hash(image)
+        if (proof["listing_path"] != record["listing_path"] or proof["source"]["price_retry_screening"] != record
+                or image_sha != record["start_pixels_sha256"]):
+            raise ValueError("The selected price retry case differs from its frozen OCR screen")
+
+
 def load_cohort(directory, digest, homepage):
     raw = (directory / "cohort.json").read_bytes()
     if fingerprint(raw) != digest:
@@ -100,6 +127,8 @@ def load_cohort(directory, digest, homepage):
                          or tuple(len(str(row["source"]["visible"]["dollars"]))
                                   for row in evidence[:len(price_digits)]) != price_digits):
         raise ValueError("Expected the registered mix of two- and three-digit prices")
+    if sample_key == PRICE_RETRY_COHORT:
+        validate_price_retry_screening(directory, protocol, evidence)
     references = LocalReferenceArchive(directory, protocol["reference_files_sha256"], homepage=homepage)
     used_images = set()
     for case, proof in zip(cases, evidence, strict=True):
