@@ -703,6 +703,31 @@ The `match-ocr-price-in-reread-amount-anchor` registration verifies the sealed p
 
 A separate development run applied this registration to exposed task 10606. Both policies reached the isolated reread in two model calls and received the same price substitution. The prior policy submitted the wrong price. The guarded policy abstained. The original cohort 006 still records that task as unexecuted for its registered fault. [Development audit](../examples/vwa-price-amount-anchor-dev-006.json)
 
+### Test actual retry triggers on fresh listings
+
+Cohort 007 screened 87 unseen listings after excluding 332 paths from earlier evidence. The CPU selector took the first three cases whose enlarged price crop did not parse and the first three readable controls. Full-page OCR had to match the catalog price and city. The selector made zero Qwen calls and did not run native-scale OCR. The two frozen policies both used the same Qwen checkpoint on the six selected listings. All starting screenshots and enlarged OCR receipts matched their screening counterparts. [Preregistered protocol](../examples/vwa-price-retry-holdout-protocol-007.json)
+
+| Condition | Policy | Native success | Wrong submissions | Qwen calls |
+| --- | --- | ---: | ---: | ---: |
+| Unreadable enlarged crop | No retry | 0/3 | 0 | 3 |
+| Unreadable enlarged crop | Native-scale retry | 1/3 | 0 | 3 |
+| Readable enlarged crop | No retry | 3/3 | 0 | 3 |
+| Readable enlarged crop | Native-scale retry | 3/3 | 0 | 3 |
+
+The frozen native-scale policy retried all three triggers and preserved the controls. It missed the preregistered threshold of two additional successes. CPU diagnostics on the exposed crops found that the longest amount needed more surrounding pixels. RapidOCR's orientation correction also reversed part of the $999 amount. The native-scale candidate kept both cases as abstentions.
+
+Use `prepare_vwa_price_retry_holdout.py` with the cohort 007 exclusion file to reproduce CPU screening on the pinned fixture. Audit both saved GPU runs with the sealed cohort and its preflight log.
+
+~~~bash
+python scripts/audit_vwa_price_retry_holdout.py \
+  --cohort runs/cohort-007 \
+  --sha256 8085878312a8965626729ff971bd263b8dc2b4e5074986e24a6c7071db2ca8ff \
+  --protocol examples/vwa-price-retry-holdout-protocol-007.json \
+  --runs runs
+~~~
+
+[Cohort 007 scores and checksums](../examples/vwa-price-retry-holdout-results-007.json)
+
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
