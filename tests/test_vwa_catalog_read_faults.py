@@ -75,6 +75,37 @@ def test_model_price_fault_supports_visible_thousands_and_currency(faults):
     assert json.loads(faults.matching_price_reply("initial", reply, 102550, 202550))["dollars"] == "2025.50"
 
 
+@pytest.mark.parametrize(("dollars", "frame"), ((25, "start"), (35, "start"), (25, "different")))
+def test_late_price_fault_anchors_amount_without_requiring_city_agreement(faults, tmp_path, dollars, frame):
+    rows = [
+        {"text": "25.00", "bounds": [791, 123, 884, 160]},
+        {"text": "$", "bounds": [883, 126, 909, 158]},
+        {"text": "Published date: yesterday", "bounds": [115, 187, 316, 203]},
+        {"text": "Location: Borough of Oak Park, Illinois, United States", "bounds": [116, 207, 452, 224]},
+    ]
+    reply = json.dumps({"city": "Oak Park", "dollars": dollars})
+    steps = [
+        {"provider_format": faults.LISTING_FACTS_REGION, "screen_text": rows, "evidence_frame": "start"},
+        {"provider_format": "evidence_verify_disagreed", "evidence_stage": "confirm",
+         "evidence_frame": frame, "provider_output": reply},
+    ]
+    (tmp_path / "trajectory.jsonl").write_text(
+        "".join(json.dumps({"event": "prediction", "metrics": step}) + "\n" for step in steps)
+    )
+    with pytest.raises(faults.FaultAnchorUnavailable):
+        faults.clean_target(tmp_path, "match-ocr-price-in-reread")
+    if dollars != 25 or frame != "start":
+        with pytest.raises(faults.FaultAnchorUnavailable):
+            faults.clean_target(tmp_path, faults.AMOUNT_ANCHORED_REREAD, expected_cents=2500)
+        return
+    target = faults.clean_target(tmp_path, faults.AMOUNT_ANCHORED_REREAD, expected_cents=2500)
+    assert target["clean_confirmation"] == reply
+    reread = '{"text":"Location: Borough of Oak Park, Illinois, United States","dollars":25}'
+    assert json.loads(faults.inject_matching_price(faults.AMOUNT_ANCHORED_REREAD, target, reread)) == {
+        "text": "Location: Borough of Oak Park, Illinois, United States", "dollars": "35.00",
+    }
+
+
 def test_offline_audit_rejects_an_injected_change_to_the_price(faults, monkeypatch, tmp_path):
     original = '{"city":"Oak Park","dollars":30}'
     altered = faults.changed_reply("shorten-city", original)

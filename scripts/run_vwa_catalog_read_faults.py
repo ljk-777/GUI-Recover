@@ -26,9 +26,11 @@ from run_visualwebarena_live import exact_vwa_success, holdout_profile, probe_in
 from run_vwa_catalog_holdout import PROFILE, browser_case, load_cohort
 
 
+AMOUNT_ANCHORED_REREAD = "match-ocr-price-in-reread-amount-anchor"
 PRICE_REPLY_FAULTS = {
     "match-ocr-price-in-confirmation": "initial",
     "match-ocr-price-in-reread": "isolated",
+    AMOUNT_ANCHORED_REREAD: "isolated",
 }
 FAULT_FAMILIES = {
     "shorten-city": ("detail-price-city",),
@@ -91,7 +93,7 @@ def changed_ocr(fault, rows):
     return altered, {"fault": fault, "original_row": original, "injected_row": mutated}
 
 
-def matching_price_reply(stage, reply, original_cents, injected_cents):
+def checked_price_reply(stage, reply, original_cents):
     key = "city" if stage == "initial" else "text"
     data = read_reply(reply, parse_float=Decimal)
     require(isinstance(data, dict) and set(data) == {key, "dollars"} and isinstance(data[key], str)
@@ -99,7 +101,12 @@ def matching_price_reply(stage, reply, original_cents, injected_cents):
     amount = str(data["dollars"]).strip()
     require(_displayed_cents(amount if "$" in amount else amount + " $") == original_cents,
             "The model must originally read the unmodified price")
-    return json.dumps({key: data[key], "dollars": format(Decimal(injected_cents) / 100, ".2f")}, ensure_ascii=False)
+    return key, data[key]
+
+
+def matching_price_reply(stage, reply, original_cents, injected_cents):
+    key, text = checked_price_reply(stage, reply, original_cents)
+    return json.dumps({key: text, "dollars": format(Decimal(injected_cents) / 100, ".2f")}, ensure_ascii=False)
 
 
 def inject_matching_price(kind, target, raw):
@@ -132,7 +139,7 @@ class FaultAnchorUnavailable(ValueError):
     """The clean episode did not reach the registered injection checkpoint."""
 
 
-def clean_target(directory, fault):
+def clean_target(directory, fault, *, expected_cents=None):
     metrics = list(prediction_metrics(directory))
     if fault in OCR_FAULT_TARGETS:
         candidates = [step for step in metrics if step["provider_format"] == OCR_FAULT_TARGETS[fault]
@@ -143,8 +150,15 @@ def clean_target(directory, fault):
         changed_ocr(fault, step["screen_text"])
         if fault in PRICE_REPLY_FAULTS:
             confirmation = next((item for item in metrics if item.get("evidence_stage") == "confirm"), None)
-            if (confirmation is None or confirmation["provider_format"] != "evidence_verify_agreed"
-                    or confirmation["evidence_frame"] != step["evidence_frame"]):
+            same_frame = confirmation is not None and confirmation["evidence_frame"] == step["evidence_frame"]
+            if fault == AMOUNT_ANCHORED_REREAD:
+                if not same_frame or main_listing_price(step["screen_text"])[1] != expected_cents:
+                    raise FaultAnchorUnavailable("Expected the sealed amount in full-page OCR on the first read frame")
+                try:
+                    checked_price_reply("initial", confirmation["provider_output"], expected_cents)
+                except (TypeError, ValueError, RecursionError) as exc:
+                    raise FaultAnchorUnavailable("The first model read did not transcribe the sealed amount") from exc
+            elif not same_frame or confirmation["provider_format"] != "evidence_verify_agreed":
                 raise FaultAnchorUnavailable("Expected a successful first model read on the same screen")
             step = {**step, "clean_confirmation": confirmation["provider_output"]}
     else:
@@ -170,8 +184,8 @@ def load_study(cohort, digest, fault_plan, clean_run, *, allow_unexecuted=False)
     faults = registration.get("cases")
     require(set(registration) == {"cohort_sha256", "cases"} and registration["cohort_sha256"] == digest
             and isinstance(faults, dict) and faults, "Fault plan must name cases in the sealed cohort")
-    families = {str(row["task_id"]): row["family"] for row in read_json(cohort / "source-evidence.json")}
-    require(all(isinstance(fault, str) and families.get(task) in FAULT_FAMILIES.get(fault, ())
+    evidence = {str(row["task_id"]): row for row in read_json(cohort / "source-evidence.json")}
+    require(all(isinstance(fault, str) and evidence.get(task, {}).get("family") in FAULT_FAMILIES.get(fault, ())
                 for task, fault in faults.items()), "Fault must apply to a registered task family")
     clean = read_json(clean_run / "run-plan.json")
     require(clean["cohort_sha256"] == digest
@@ -197,7 +211,12 @@ def load_study(cohort, digest, fault_plan, clean_run, *, allow_unexecuted=False)
         try:
             if not audited["row"]["success"]:
                 raise FaultAnchorUnavailable(f"Clean episode did not succeed: {audited['row']['reason']}")
-            target = clean_target(directory, faults[task])
+            expected_cents = None
+            if faults[task] == AMOUNT_ANCHORED_REREAD:
+                dollars = evidence[task]["source"]["visible"]["dollars"]
+                require(type(dollars) is int and dollars > 0, "Expected a sealed whole dollar amount")
+                expected_cents = dollars * 100
+            target = clean_target(directory, faults[task], expected_cents=expected_cents)
         except FaultAnchorUnavailable as exc:
             if not allow_unexecuted:
                 raise
