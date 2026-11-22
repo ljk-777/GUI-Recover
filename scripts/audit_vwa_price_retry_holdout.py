@@ -26,6 +26,7 @@ def exact_answers(directory, expected):
 def compare(cohort, digest, protocol_file, runs):
     protocol = read_json(protocol_file)
     index, cases, references = load_cohort(cohort, digest, os.getenv("VWA_HOMEPAGE", "__HOMEPAGE__"))
+    series = int(index["sample_key"].rsplit("-v", 1)[1])
     evidence = {str(proof["task_id"]): proof["source"] for proof in read_json(cohort / "source-evidence.json")}
     screening = read_json(cohort / "price-retry-screening.json")
     selection = protocol["selection"]
@@ -40,18 +41,22 @@ def compare(cohort, digest, protocol_file, runs):
     preflight = (cohort / "preflight.log").read_text().splitlines()
     require(all(preflight.count(f"{task} native preflight passed") == 1 for task in evidence),
             "Expected native preflight for every selected case")
+    if selection.get("exclude_repeated_crop_pixels"):
+        crop_exclusions = read_json(protocol_file.with_name(f"vwa-price-crop-exclusions-{series:03d}.json"))
+        require(screening["excluded_crop_sha256"] == sorted(crop_exclusions), "The crop exclusions differ from registration")
 
     by_arm, policy_hashes, receipt_matches, frame_matches = {}, {}, {}, {}
     model = None
     origin = None
     for arm in ("prior", "current"):
-        directory = runs / f"visualwebarena-catalog-price-retry-challenge-{arm}-007"
+        directory = runs / f"visualwebarena-catalog-price-retry-challenge-{arm}-{series:03d}"
         plan = read_json(directory / "run-plan.json")
         if model is None:
             model, origin = plan["model"], plan["listing_origin"]
         require(plan["model"] == model and plan["listing_origin"] == origin and plan["strategies"] == ["evidence-cards"],
                 "The arms must share the frozen checkpoint and site")
-        policy_hashes[arm] = {name: plan["source_files"][name] for name in ("answer_evidence.py", "listing_facts.py")}
+        files = protocol.get("policy_files", ("answer_evidence.py", "listing_facts.py"))
+        policy_hashes[arm] = {name: plan["source_files"][name] for name in files}
         audited = audit_run(directory, cases, references, digest)
         require(audited == read_json(directory / "audit.json"), "Saved arm results differ from the trajectories")
         by_arm[arm], frame_matches[arm], receipt_matches[arm] = {}, [], []
@@ -71,22 +76,41 @@ def compare(cohort, digest, protocol_file, runs):
               for group in ("trigger", "control")}
     scores = {group: {arm: totals({task: rows[task] for task in identifiers}, include_native_retries=True)
                       for arm, rows in by_arm.items()} for group, identifiers in groups.items()}
+    modes = protocol.get("retry_receipts", {"current": "listing_price_native_retry"})
+    require("current" in modes and set(modes) <= set(by_arm)
+            and set(modes.values()) <= {"listing_price_native_retry", "listing_price_upright_retry"},
+            "Unknown registered price retry receipt")
+    if "listing_price_upright_retry" in modes.values():
+        for group, identifiers in groups.items():
+            for arm, rows in by_arm.items():
+                retries = sum(rows[task]["evidence_stages"].get("listing_price_upright_retry", 0) for task in identifiers)
+                scores[group][arm]["upright_price_ocr_retries"] = retries
+                scores[group][arm]["localized_ocr_reads"] += retries
     targets = protocol["acceptance"]
     added = scores["trigger"]["current"]["native_successes"] - scores["trigger"]["prior"]["native_successes"]
     checks = {
         "all_pairs_match_frozen_screening_frames": all(set(matched) == set(evidence) for matched in frame_matches.values()),
         "both_arms_reproduce_the_enlarged_ocr_trigger": (
             all(set(groups["trigger"]) <= set(matched) for matched in receipt_matches.values())
-            and all(by_arm["current"][task]["evidence_stages"].get("listing_price_native_retry") == 1
-                    for task in groups["trigger"])
+            and all(by_arm[arm][task]["evidence_stages"].get(receipt) == 1
+                    for arm, receipt in modes.items() for task in groups["trigger"])
         ),
         "minimum_additional_trigger_successes": added >= targets["minimum_additional_trigger_successes"],
         "zero_wrong_submissions": all(arm["wrong_submissions"] == 0 for group in scores.values() for arm in group.values()),
         "all_readable_control_successes_preserved": all(not by_arm["prior"][task]["success"] or by_arm["current"][task]["success"]
                                                       for task in groups["control"]),
         "control_model_calls_do_not_increase": scores["control"]["current"]["model_calls"] <= scores["control"]["prior"]["model_calls"],
-        "no_native_scale_retry_on_readable_controls": scores["control"]["current"]["native_scale_ocr_retries"] == 0,
+        "no_native_scale_retry_on_readable_controls": all(
+            not by_arm[arm][task]["evidence_stages"].get(receipt)
+            for arm, receipt in modes.items() for task in groups["control"]
+        ),
     }
+    if "minimum_current_trigger_successes" in targets:
+        checks["minimum_current_trigger_successes"] = scores["trigger"]["current"]["native_successes"] >= targets["minimum_current_trigger_successes"]
+    if "all_prior_trigger_successes_preserved" in targets:
+        checks["all_prior_trigger_successes_preserved"] = all(
+            not by_arm["prior"][task]["success"] or by_arm["current"][task]["success"] for task in groups["trigger"]
+        )
     require(set(checks) == set(targets), "The acceptance checks differ from the preregistration")
     return {"cohort_sha256": digest, "model_calls_during_screening": screening["model_calls"],
             "listings_screened": len(screening["attempts"]), "groups": groups, "frame_matches": frame_matches,
