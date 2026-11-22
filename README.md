@@ -1,18 +1,30 @@
+<p align="center"><img src="examples/readme-demo/gui-recover-mark.png" width="112" height="112" alt="GUI-Recover mark, a viewfinder that ends in a checkmark"></p>
+
 <h1 align="center">GUI-Recover</h1>
 
 <p align="center"><strong>Detect and recover from visual GUI agent errors</strong></p>
 
 <p align="center">
   <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a> ·
-  <a href="#benchmarks">Benchmarks</a> · <a href="#quick-start">CPU quick start</a> ·
+  <a href="#demo">Demos</a> · <a href="#benchmarks">Benchmarks</a> · <a href="#quick-start">CPU quick start</a> ·
   <a href="https://github.com/ljk-777/GUI-Recover/releases">Releases</a>
 </p>
 
 <a name="demo"></a>
 
-![Animated comparison of an injected case error. Both policies receive lowercase cristin. The presence check submits it and fails. GUI-Recover restores Cristin and passes.](examples/readme-demo/input-recovery.en.gif)
+## See it in action
 
-An injected fault changes `Cristin` to `cristin` in both runs. The baseline submits the corrupted value. GUI-Recover spots the mismatch in the screenshot and restores the target before submission. [Recorded frames and decisions](examples/visual-text-content-pair/provenance.json) · [Reproduce this demo](#reproduce-the-miniwob-gpu-comparison)
+### Repair a wrong input before submission
+
+[![MiniWoB++ replay. Both policies receive lowercase cristin. The baseline fails and GUI-Recover restores Cristin for full reward. Select to watch the video.](examples/readme-demo/miniwob-case-replay.en.gif)](examples/readme-demo/miniwob-case-replay.en.webm)
+
+The screenshot check catches the case mismatch and restores `Cristin` before the browser submits. [Watch MP4](examples/readme-demo/miniwob-case-replay.en.mp4) · [Recorded trace](examples/visual-text-content-pair/provenance.json) · [Reproduce the run](#reproduce-the-miniwob-gpu-comparison)
+
+### Recover a price when both detectors return empty
+
+[![VisualWebArena replay. Two local OCR reads are cleared. The whole-line read recovers 30 dollars and the native judge awards full credit. Select to watch the video.](examples/readme-demo/vwa-ocr-replay.en.gif)](examples/readme-demo/vwa-ocr-replay.en.webm)
+
+In this controlled fault run, a whole-line read recovers `30.00 $` from the listing screenshot. The native judge accepts the price and city. [Watch MP4](examples/readme-demo/vwa-ocr-replay.en.mp4) · [Video sources and checksums](examples/readme-demo/replay-media-provenance.json)
 
 <a name="selected-results"></a>
 

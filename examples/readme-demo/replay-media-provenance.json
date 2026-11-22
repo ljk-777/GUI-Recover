@@ -1,0 +1,38 @@
+{
+  "scope": "Edited replays of recorded native browser frames and actions",
+  "mark": {
+    "file": "gui-recover-mark.png",
+    "sha256": "b24c541805739d215f6986ee4e4be4e3c1fe039aa405f4f40ffdefb6cf9a4a56",
+    "method": "Built-in image generation",
+    "prompt": "Use case: logo-brand. Make one clean, original graphic mark for the open-source GUI-Recover toolkit. Output is an opaque 1:1 square app tile, with a perfectly uniform evergreen color (#155b50), edge to edge across the entire canvas. Draw one bold ivory inspection symbol in the center: three thick rounded viewfinder corners with the lower-right corner becoming a single checkmark. Place one small bright mint square inside the upper-right quadrant as the inspected pixel. The symbol should fill the middle 62% of the square, with clear negative space, generous padding and crisp geometry readable at 32px. Ensure flat solid ink throughout, with all areas fully painted and opaque. No text, no letters, no texture, no shadows, no black spot, no gradient, no outside border, no transparent holes. Contemporary, restrained and professional software identity."
+  },
+  "assets_sha256": {
+    "miniwob-case-replay.en.mp4": "7764c3f95c81134348aadf18e4143f3e39075d8fbcbf83c4c8aa6e09390c8a05",
+    "miniwob-case-replay.en.webm": "2fbd186982a14e4f714c3d012579c7cddb50014620aadee2da84e8a7af4face2",
+    "miniwob-case-replay.en.gif": "dbddd022356c88f6d8e8ad5119cb5a200b2cd39105bf1c28ee79c2e36ff5c1ff",
+    "vwa-ocr-replay.en.mp4": "5883236e0bff82113d105b3eed5752ccb351812c0793c9870ffdc377d5fe860c",
+    "vwa-ocr-replay.en.webm": "e47224d9709030bb3771be9787f2a6b31ec21d37fb7c2c6e75db04be2b9f7899",
+    "vwa-ocr-replay.en.gif": "416c8f34b36299aa06f2f686663a85cee79ca599a7be5b7aad89b5bc97d65c02",
+    "miniwob-case-replay.zh-CN.mp4": "d659a79406f97a4d454f7207567b84167c5e77f82ea609a001deca1ce70c3641",
+    "miniwob-case-replay.zh-CN.webm": "e1e19a8f437146f2633d8793f477a1c516e4b2484bc58855a332ffdd78300344",
+    "miniwob-case-replay.zh-CN.gif": "23d47977163c6f603694f55e69932a560661a2be7fd30461c62261891e8be5fd",
+    "vwa-ocr-replay.zh-CN.mp4": "afd2adc97e82f6e63b83296e9aa26610277d630a6f7fe17e54ac5ce77f5efdcc",
+    "vwa-ocr-replay.zh-CN.webm": "12c4ba1cc95451f561bf4f21f499fa9cd4d8d38bfdd58b9002308c2f7aa1d13e",
+    "vwa-ocr-replay.zh-CN.gif": "afa50a70e9c3123e64ad62944ac6ceccbbf06088a2e8b5611d7255876f2521d6"
+  },
+  "miniwob": {
+    "task": "enter-text",
+    "seed": 69000,
+    "provenance": "../visual-text-content-pair/provenance.json"
+  },
+  "visualwebarena": {
+    "cohort": "010",
+    "task": "11002",
+    "original_viewport_sha256": "6dc80cac13db747ceb4857f539a287571fddfcaecf0e604aa694315230a3f383",
+    "trajectory_sha256": {
+      "prior": "214705751eb4cc01055d85c71a88bdb37e73fad8a4d79849d9dd60def8e8dda9",
+      "current": "1185e382418d7005392ffc2a2a6565a9066f11e044b63464aa9875f7d6f2554c"
+    },
+    "results": "../vwa-catalog-price-transfer-results-010.json"
+  }
+}

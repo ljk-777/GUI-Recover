@@ -1,18 +1,30 @@
+<p align="center"><img src="examples/readme-demo/gui-recover-mark.png" width="112" height="112" alt="GUI-Recover 项目标志，由取景框、像素和对勾组成"></p>
+
 <h1 align="center">GUI-Recover</h1>
 
 <p align="center"><strong>检测并恢复 GUI 智能体的操作错误</strong></p>
 
 <p align="center">
   <a href="README.md">English</a> · <strong>简体中文</strong> ·
-  <a href="#评测结果">评测结果</a> · <a href="#cpu-快速开始">CPU 快速开始</a> ·
+  <a href="#演示">演示</a> · <a href="#评测结果">评测结果</a> · <a href="#cpu-快速开始">CPU 快速开始</a> ·
   <a href="https://github.com/ljk-777/GUI-Recover/releases">版本发布</a>
 </p>
 
 <a name="演示"></a>
 
-![输入大小写错误的对照动图。两边都收到小写 cristin。基线直接提交后失败，GUI-Recover 把输入纠正为 Cristin 后通过。](examples/readme-demo/input-recovery.zh-CN.gif)
+## 演示
 
-同样的故障把两边的 `Cristin` 改成了 `cristin`。基线直接提交错误文本。GUI-Recover 从截图中发现大小写不符，在提交前纠正了输入。 [原始截图与决策记录](examples/visual-text-content-pair/provenance.json) · [单卡复现这组演示](#单卡复现-miniwob-对照)
+### 提交前修复大小写
+
+[![MiniWoB++ 对照回放。两边都收到小写 cristin，基线失败，GUI-Recover 纠正为 Cristin 后取得满分。点击播放视频。](examples/readme-demo/miniwob-case-replay.zh-CN.gif)](examples/readme-demo/miniwob-case-replay.zh-CN.webm)
+
+截图核验发现大小写错误，在浏览器提交前恢复了 `Cristin`。 [观看 MP4](examples/readme-demo/miniwob-case-replay.zh-CN.mp4) · [原始轨迹](examples/visual-text-content-pair/provenance.json) · [单卡复现](#单卡复现-miniwob-对照)
+
+### 两次局部 OCR 都返回空结果时，重读整行价格
+
+[![VisualWebArena 回放。两次局部 OCR 的结果被清空，整行重读识别出 30 美元，原生评分通过。点击播放视频。](examples/readme-demo/vwa-ocr-replay.zh-CN.gif)](examples/readme-demo/vwa-ocr-replay.zh-CN.webm)
+
+这次受控故障中，整行识别从商品截图读出 `30.00 $`，提交的价格和城市通过了原生评分。 [观看 MP4](examples/readme-demo/vwa-ocr-replay.zh-CN.mp4) · [视频来源及校验值](examples/readme-demo/replay-media-provenance.json)
 
 ## 评测结果
 

@@ -1,5 +1,6 @@
 include LICENSE README.md README.zh-CN.md THIRD_PARTY.md CONTRIBUTING.md CHANGELOG.md
 include examples/readme-demo/input-recovery.en.gif examples/readme-demo/input-recovery.zh-CN.gif
+include examples/readme-demo/*-replay.*.gif examples/readme-demo/*-replay.*.mp4 examples/readme-demo/*-replay.*.webm
 recursive-include docs *.md
 recursive-include scripts *.py *.sh
 recursive-include configs *.json
