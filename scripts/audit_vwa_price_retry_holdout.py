@@ -87,11 +87,9 @@ def compare(cohort, digest, protocol_file, runs):
             and set(modes.values()) <= {"listing_price_native_retry", "listing_price_upright_retry"},
             "Unknown registered price retry receipt")
     if "listing_price_upright_retry" in modes.values():
-        for group, identifiers in groups.items():
-            for arm, rows in by_arm.items():
-                retries = sum(rows[task]["evidence_stages"].get("listing_price_upright_retry", 0) for task in identifiers)
-                scores[group][arm]["upright_price_ocr_retries"] = retries
-                scores[group][arm]["localized_ocr_reads"] += retries
+        for group_scores in scores.values():
+            for score in group_scores.values():
+                score.setdefault("upright_price_ocr_retries", 0)
     targets = protocol["acceptance"]
     added = scores["trigger"]["current"]["native_successes"] - scores["trigger"]["prior"]["native_successes"]
     checks = {

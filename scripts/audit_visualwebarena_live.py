@@ -54,9 +54,9 @@ def verify_ocr_rows(rows, size):
                 "Invalid OCR bounds")
 
 
-def replay_price_ocr(screen_path, candidate, review, *, enlarge=True, upright_retry=False):
+def replay_price_ocr(screen_path, candidate, review, *, enlarge=True, upright_retry=False, whole_line=False):
     with Image.open(screen_path) as screen:
-        if upright_retry:
+        if upright_retry or whole_line:
             from gui_recover.answer_evidence import listing_upright_price_retry_image
 
             image, bounds = listing_upright_price_retry_image(screen, candidate)
@@ -68,6 +68,9 @@ def replay_price_ocr(screen_path, candidate, review, *, enlarge=True, upright_re
     require(review["bounds"] == list(bounds) and review["pixels_sha256"] == pixel_hash(image),
             "Price OCR reread differs from the saved screenshot")
     verify_ocr_rows(review["rows"], image.size)
+    if whole_line:
+        require(len(review["rows"]) <= 1 and all(row["bounds"] == [0, 0, *image.size] for row in review["rows"]),
+                "Whole-line OCR must describe a single crop")
     return review["rows"]
 
 
@@ -230,6 +233,9 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         price_retries = [key for key in ("listing_price_native_retry", "listing_price_upright_retry") if key in metrics]
         require(not price_retries or (len(price_retries) == 1 and "listing_price_check" in metrics),
                 "One price OCR retry requires the enlarged price check")
+        line_retry = "listing_price_line_retry" in metrics
+        require(not line_retry or price_retries == ["listing_price_upright_retry"],
+                "Whole-line price OCR requires the upright crop read")
         require("listing_price_ocr" not in metrics or (stage == "confirm" and listing_fact_reread_pending),
                 "Price OCR reread is outside isolated compound confirmation")
         require("listing_preview" not in metrics or (stage == "locate" and link_count is not None),
@@ -594,6 +600,12 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                                             upright_retry=retry == "listing_price_upright_retry")
                     confirmed, status, checked = checked_listing_confirmation(reply, candidate, rows)
                     stages[retry] += 1
+                if line_retry:
+                    require(checked is None, "Whole-line price OCR requires an unreadable upright crop")
+                    rows = replay_price_ocr(directory / f"{index:04d}.png", candidate,
+                                            metrics["listing_price_line_retry"], whole_line=True)
+                    confirmed, status, _ = checked_listing_confirmation(reply, candidate, rows)
+                    stages["listing_price_line_retry"] += 1
             else:
                 confirmed, status = confirmation_outcome(
                     reply, candidate, request, expected_cents=tie.cents if tie is not None else None,

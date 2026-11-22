@@ -9,6 +9,9 @@ from .actions import Action, ActionError, parse_action
 from .qwen_grounding import normalize_qwen_action, read_reply
 
 
+_MIN_OCR_CONFIDENCE = 0.65
+
+
 def visible_rows(result, source_size, canvas_size):
     """Map OCR quadrilaterals to bounded rectangles in the model canvas."""
     if result.boxes is None:
@@ -17,7 +20,7 @@ def visible_rows(result, source_size, canvas_size):
     width, height = canvas_size
     rows = []
     for points, text, score in zip(result.boxes, result.txts, result.scores, strict=True):
-        if not math.isfinite(score) or score < 0.65 or points.shape != (4, 2):
+        if not math.isfinite(score) or score < _MIN_OCR_CONFIDENCE or points.shape != (4, 2):
             continue
         if not all(math.isfinite(value) for point in points for value in point):
             continue
@@ -43,24 +46,43 @@ class RapidScreenReader:
 
         self.engine = RapidOCR(params={"EngineConfig.onnxruntime.intra_op_num_threads": 2,
                                        "EngineConfig.onnxruntime.inter_op_num_threads": 1})
+        self._default_detection = self.engine.use_det
         self._default_orientation = self.engine.use_cls
+        self._default_recognition = self.engine.use_rec
         self._lock = Lock()
         self.config = {"rapidocr": version("rapidocr"), "onnxruntime": version("onnxruntime")}
 
     def __call__(self, screen, canvas_size):
-        return self._read(screen, canvas_size, use_cls=self._default_orientation)
+        return self._read_regions(screen, canvas_size, use_cls=self._default_orientation)
 
     def read_upright(self, screen, canvas_size):
-        return self._read(screen, canvas_size, use_cls=False)
+        return self._read_regions(screen, canvas_size, use_cls=False)
 
-    def _read(self, screen, canvas_size, *, use_cls):
+    def read_line(self, screen, canvas_size):
+        """Recognize an already isolated horizontal field as one line."""
+        result = self._run(screen, use_det=False, use_cls=False, use_rec=True)
+        texts, scores = result.txts, result.scores
+        if texts is None or scores is None or len(texts) != 1 or len(scores) != 1:
+            return []
+        score, = scores
+        if not math.isfinite(score) or score < _MIN_OCR_CONFIDENCE:
+            return []
+        text = " ".join(texts[0].split())
+        width, height = canvas_size
+        return [{"text": text, "bounds": [0, 0, width, height]}] if 0 < len(text) <= 100 else []
+
+    def _read_regions(self, screen, canvas_size, *, use_cls):
+        result = self._run(screen, use_det=self._default_detection, use_cls=use_cls,
+                           use_rec=self._default_recognition)
+        return visible_rows(result, screen.size, canvas_size)
+
+    def _run(self, screen, *, use_det, use_cls, use_rec):
         import numpy as np
 
         image = np.ascontiguousarray(np.asarray(screen.convert("RGB"))[:, :, ::-1])
-        # RapidOCR retains the last orientation setting on the shared engine.
+        # RapidOCR retains stage settings on the shared engine.
         with self._lock:
-            result = self.engine(image, use_cls=use_cls)
-        return visible_rows(result, screen.size, canvas_size)
+            return self.engine(image, use_det=use_det, use_cls=use_cls, use_rec=use_rec)
 
 
 def from_readable_control(raw, rows, size, *, guarded=False):

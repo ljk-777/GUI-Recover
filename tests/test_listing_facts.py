@@ -95,17 +95,23 @@ def test_compound_disagreement_rereads_only_the_two_fields_once(reread_city):
         assert result is None and policy.last_metrics["stop_after_evidence"] is True
 
 
-@pytest.mark.parametrize(("initial", "isolated", "localized_price", "native_price", "submitted_price", "model_calls"), (
-    ("80.50", "80.50", "80.50 $", None, "80.50", 2),
-    ("90.50", "80.50", "80.50 $", None, "80.50", 2),
-    ("80.50", "90.50", "80.50 $", None, None, 2),
-    ("80.50", "80.50", "120 $", None, None, 2),
-    ("80.50", "80.50", None, None, None, 1),
-    ("90.50", "90.50", "90.50 $", None, "90.50", 1),
-    ("90.50", "80.50", "80. 0.50 $", "80.50 $", "80.50", 2),
-    ("90.50", "90.50", "90. 0.50 $", "90.50 $", "90.50", 1),
+@pytest.mark.parametrize(("initial", "isolated", "localized_price", "native_price", "line_price", "submitted_price", "model_calls"), (
+    ("80.50", "80.50", "80.50 $", None, None, "80.50", 2),
+    ("90.50", "80.50", "80.50 $", None, None, "80.50", 2),
+    ("80.50", "90.50", "80.50 $", None, "80.50 $", None, 2),
+    ("80.50", "80.50", "120 $", None, "80.50 $", None, 2),
+    ("80.50", "80.50", None, None, None, None, 1),
+    ("90.50", "90.50", "90.50 $", None, "90.50 $", "90.50", 1),
+    ("90.50", "80.50", "80. 0.50 $", "80.50 $", None, "80.50", 2),
+    ("90.50", "90.50", "90. 0.50 $", "90.50 $", "80.50 $", "90.50", 1),
+    ("90.50", None, "90. 0.50 $", None, "90.50 $", "90.50", 1),
+    ("90.50", None, None, None, "80.50 $", None, 1),
+    ("80.50", None, None, None, "90.50 $", None, 1),
+    ("80.50", None, None, None, "80.50 $", None, 1),
+    ("90.50", None, None, None, "", None, 1),
 ))
-def test_city_price_requires_local_ocr_agreement(initial, isolated, localized_price, native_price, submitted_price, model_calls):
+def test_city_price_requires_local_ocr_agreement(initial, isolated, localized_price, native_price, line_price,
+                                                 submitted_price, model_calls):
     screen = Image.new("RGB", (1000, 770), "white")
     draw = ImageDraw.Draw(screen)
     draw.rectangle((820, 132, 871, 149), fill="red")
@@ -128,7 +134,14 @@ def test_city_price_requires_local_ocr_agreement(initial, isolated, localized_pr
         assert size == image.size == (134, 53)
         return [row(native_price, 5, 2, 75, 32)] if native_price else []
 
+    def read_line(image, size):
+        ocr_sizes.append(image.size)
+        assert size == image.size == (134, 53)
+        return [row(line_price, 0, 0, *size)] if line_price else []
+
     reader.read_upright = read_upright
+    if line_price is not None:
+        reader.read_line = read_line
 
     actor = SimpleNamespace(prepare_image=lambda image: image)
     calls = []
@@ -148,10 +161,15 @@ def test_city_price_requires_local_ocr_agreement(initial, isolated, localized_pr
     assert policy.last_metrics["listing_price_check"]["bounds"] == [787, 119, 913, 164]
     retried = localized_price is None or " 0." in localized_price
     assert ("listing_price_upright_retry" in policy.last_metrics) is retried
+    line_retried = retried and native_price is None and line_price is not None
+    assert ("listing_price_line_retry" in policy.last_metrics) is line_retried
+    if line_retried:
+        assert policy.last_metrics["listing_price_line_retry"]["pixels_sha256"] == (
+            policy.last_metrics["listing_price_upright_retry"]["pixels_sha256"])
     if model_calls == 2:
         assert result is None and policy.last_metrics["listing_fact_reread_pending"] is True
         result = policy.predict(observation, [])
-    assert len(calls) == model_calls and len(ocr_sizes) == (3 if retried else 2)
+    assert len(calls) == model_calls and len(ocr_sizes) == 2 + retried + line_retried
     if submitted_price:
         assert parse_action(result) == Action("ANSWER", f"Oak Park, {submitted_price} dollars")
     else:

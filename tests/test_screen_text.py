@@ -29,17 +29,21 @@ def test_ocr_regions_map_to_the_canvas_and_reject_unusable_rows():
                                   rows, (50, 30))
 
 
-def test_upright_read_does_not_change_orientation_for_later_screens(monkeypatch):
+def test_crop_reads_do_not_change_ocr_stages_for_later_screens(monkeypatch):
     class StatefulOCR:
         def __init__(self, **kwargs):
-            self.use_cls = True
+            self.use_det = self.use_cls = self.use_rec = True
             self.reads = []
 
-        def __call__(self, image, *, use_cls=None):
+        def __call__(self, image, *, use_det=None, use_cls=None, use_rec=None):
+            if use_det is not None:
+                self.use_det = use_det
             if use_cls is not None:
                 self.use_cls = use_cls
-            self.reads.append(self.use_cls)
-            return SimpleNamespace(boxes=None)
+            if use_rec is not None:
+                self.use_rec = use_rec
+            self.reads.append((self.use_det, self.use_cls, self.use_rec))
+            return SimpleNamespace(boxes=None, txts=("27.00 $",), scores=[0.95])
 
     monkeypatch.setitem(sys.modules, "rapidocr", SimpleNamespace(RapidOCR=StatefulOCR))
     monkeypatch.setattr("importlib.metadata.version", lambda package: "test")
@@ -47,8 +51,22 @@ def test_upright_read_does_not_change_orientation_for_later_screens(monkeypatch)
     screen = Image.new("RGB", (120, 80))
     reader(screen, screen.size)
     reader.read_upright(screen, screen.size)
+    assert reader.read_line(screen, screen.size) == [{"text": "27.00 $", "bounds": [0, 0, 120, 80]}]
+    reader.read_upright(screen, screen.size)
     reader(screen, screen.size)
-    assert reader.engine.reads == [True, False, True]
+    assert reader.engine.reads == [(True, True, True), (True, False, True), (False, False, True),
+                                   (True, False, True), (True, True, True)]
+
+
+@pytest.mark.parametrize(("texts", "scores"), (
+    (None, ()), (("27.00 $",), None), (("27.00 $",), (0.64,)),
+    (("27.00 $",), (float("nan"),)), (("27.", "7.00 $"), (0.9, 0.9)),
+))
+def test_whole_line_ocr_requires_one_confident_read(monkeypatch, texts, scores):
+    reader = RapidScreenReader.__new__(RapidScreenReader)
+    monkeypatch.setattr(reader, "_run", lambda *args, **kwargs: SimpleNamespace(txts=texts, scores=scores))
+    screen = Image.new("RGB", (120, 80))
+    assert reader.read_line(screen, screen.size) == []
 
 
 def test_readable_candidate_still_needs_an_independent_read():

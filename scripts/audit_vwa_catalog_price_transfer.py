@@ -27,6 +27,12 @@ def totals(rows, *, include_native_retries=False):
         retries = sum(row["evidence_stages"].get("listing_price_native_retry", 0) for row in rows.values())
         scores["native_scale_ocr_retries"] = retries
         scores["localized_ocr_reads"] += retries
+    for stage, key in (("listing_price_upright_retry", "upright_price_ocr_retries"),
+                       ("listing_price_line_retry", "whole_line_ocr_retries")):
+        retries = sum(row["evidence_stages"].get(stage, 0) for row in rows.values())
+        if retries:
+            scores[key] = retries
+            scores["localized_ocr_reads"] += retries
     return scores
 
 

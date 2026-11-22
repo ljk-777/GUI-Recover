@@ -755,6 +755,19 @@ python scripts/audit_vwa_price_retry_holdout.py \
   --runs runs
 ~~~
 
+### Use whole-line recognition after two unreadable price crops
+
+The price-and-city verifier can now read the padded native crop as one text line when both detector passes yield an unparseable price. It accepts a single confident read when its price agrees with the full-page OCR and the model's original reply. The city must also agree. A disagreement on this last attempt ends the episode with an abstention. The receipt records the crop bounds, pixel hash and recognized line. The CPU audit checks the order of the reads, recomputes the crop and checks the answer decision.
+
+In a CPU replay of the 12 exposed cases from cohorts 007 and 008, both policies consumed the saved Qwen replies and read the original screenshots with RapidOCR. The table counts exact answer proposals before browser submission.
+
+| Cases | Upright retry | With whole-line fallback | Wrong proposals, either policy | Local price OCR reads, before / after |
+| --- | ---: | ---: | ---: | ---: |
+| Six OCR triggers | 5/6 | 6/6 | 0 | 12 / 13 |
+| Six readable controls | 6/6 | 6/6 | 0 | 7 / 7 |
+
+Task 10802 accounted for the one added OCR read and one recovered answer proposal. Each policy used the same 14 saved model replies. The audit reconstructed the answer decision in all 24 replays and rejected a modified whole-line crop hash.
+
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)

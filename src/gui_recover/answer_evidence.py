@@ -444,6 +444,7 @@ class EvidenceAnswerPolicy:
         self.use_navigation_context = use_navigation_context
         self.screen_reader = screen_reader
         self.price_retry_reader = getattr(screen_reader, "read_upright", screen_reader)
+        self.price_line_reader = getattr(screen_reader, "read_line", None)
         self.listing_preview = listing_preview
         self.listing_site = listing_site
         self.ranked_capture = ranked_capture
@@ -925,6 +926,12 @@ class EvidenceAnswerPolicy:
                                                    upright_retry=True)
                 self.last_metrics["listing_price_upright_retry"] = retry
                 confirmed, status, checked = checked_listing_confirmation(raw, candidate, retry["rows"])
+            if checked is None and self.price_line_reader is not None:
+                line = listing_price_ocr_receipt(observation.screenshot, candidate, self.price_line_reader,
+                                                 upright_retry=True)
+                self.last_metrics["listing_price_line_retry"] = line
+                # A whole-line read may corroborate the original answer. Keep abstention on disagreement.
+                confirmed, status, _ = checked_listing_confirmation(raw, candidate, line["rows"])
         else:
             confirmed, status = confirmation_outcome(
                 raw, candidate, request, expected_cents=tie.cents if tie is not None else None,

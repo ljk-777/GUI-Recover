@@ -237,6 +237,7 @@ class FaultPolicy(EvidenceAnswerPolicy):
         self.reader = reader
         super().__init__(actor, screen_reader=self.read_screen, **kwargs)
         self.price_retry_reader = getattr(reader, "read_upright", reader)
+        self.price_line_reader = getattr(reader, "read_line", None)
 
     def reset(self, seed):
         self.injected = None
