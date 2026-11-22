@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import tempfile
 from pathlib import Path
 
 from PIL import Image
@@ -99,16 +100,19 @@ def freeze_retry_holdout(site, excluded, output):
                "ordered_candidates": [card.item for card in order], "attempts": attempts,
                "selected": {group: [row[0].item for row in rows] for group, rows in selected.items()}}
     raw = encoded(summary) + b"\n"
+    output.parent.mkdir(parents=True, exist_ok=True)
     if len(specs) != len(ids):
-        output.parent.mkdir(parents=True, exist_ok=True)
         output.with_suffix(".screening.json").write_bytes(raw)
         raise ValueError(f"Only {len(selected['trigger'])} triggers and {len(selected['control'])} controls found")
-    digest = seal_catalog(output, key, specs, evidence, {}, excluded, pool_digests, screening_digest=fingerprint(raw))
-    (output / "price-retry-screening.json").write_bytes(raw)
-    frames = output / "screening-frames"
-    frames.mkdir()
-    for ident, screen in screens.items():
-        screen.save(frames / f"{ident}.png")
+    with tempfile.TemporaryDirectory(prefix=".price-retry-", dir=output.parent) as directory:
+        staged = Path(directory) / "cohort"
+        digest = seal_catalog(staged, key, specs, evidence, {}, excluded, pool_digests, screening_digest=fingerprint(raw))
+        (staged / "price-retry-screening.json").write_bytes(raw)
+        frames = staged / "screening-frames"
+        frames.mkdir()
+        for ident, screen in screens.items():
+            screen.save(frames / f"{ident}.png")
+        staged.rename(output)
     return digest
 
 
