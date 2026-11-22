@@ -1,0 +1,358 @@
+{
+  "protocol": "vwa-price-retry-holdout-protocol-008.json",
+  "policy_revisions": {
+    "prior": "633f4138222bd78aece5569970da4766727f026e",
+    "current": "d05eab5f094fa0d937c23ef26ad55cc94e95a6ae"
+  },
+  "screen_and_run_revision": "3e1e3105c2ec9a730757c88ac4c065a9cbaa4a8a",
+  "excluded_listing_paths": 428,
+  "excluded_price_crop_hashes": 57,
+  "fresh_model_inference": true,
+  "audit_sha256": "79acb7490bc64325b43311a04e4d837c22fb939a8a5f379f1a21091a3f9e480c",
+  "archives_sha256": {
+    "cohort-008": "c958e6b080ae915616453e41bc143a0935f2bb6ed62756673befc7b3638c18d8",
+    "visualwebarena-catalog-price-retry-challenge-current-008": "ae76e6c95f8466703ce3b76ed7abc25323964956cc4ab055d396ece7fb738f1a",
+    "visualwebarena-catalog-price-retry-challenge-prior-008": "9051f8aff0594d008bfe1b8a3b1169493f1b2a491e10bd9a9b77250937aac11b"
+  },
+  "cohort_sha256": "708fc827a1ee242b5f418bbbaf85b189bb0554144baec7818f06ae19d1b421e4",
+  "model_calls_during_screening": 0,
+  "listings_screened": 54,
+  "groups": {
+    "trigger": [
+      "10801",
+      "10802",
+      "10803"
+    ],
+    "control": [
+      "10804",
+      "10805",
+      "10806"
+    ]
+  },
+  "frame_matches": {
+    "prior": [
+      "10801",
+      "10802",
+      "10803",
+      "10804",
+      "10805",
+      "10806"
+    ],
+    "current": [
+      "10801",
+      "10802",
+      "10803",
+      "10804",
+      "10805",
+      "10806"
+    ]
+  },
+  "enlarged_ocr_receipt_matches": {
+    "prior": [
+      "10801",
+      "10802",
+      "10803",
+      "10804",
+      "10805",
+      "10806"
+    ],
+    "current": [
+      "10801",
+      "10802",
+      "10803",
+      "10804",
+      "10805",
+      "10806"
+    ]
+  },
+  "policy_file_sha256": {
+    "prior": {
+      "answer_evidence.py": "fc3eb9c156cb9fa452f2281aba805ecbafbe3eb5a7f9518a97d774c32fa97fd2",
+      "listing_facts.py": "e82882d39732623fd2ddf8b7975faf0a8d34ff3da04e8373457b732be3680377",
+      "screen_text.py": "90886d5bcf5d36fb4162e8fb224ada139b65d6e5b1ec8ecdecae3f7b076b3f6b"
+    },
+    "current": {
+      "answer_evidence.py": "dd6a8925afc01ec925c25b561f905d3d6871ca6b277699166f0bdd1aa8e64992",
+      "listing_facts.py": "e82882d39732623fd2ddf8b7975faf0a8d34ff3da04e8373457b732be3680377",
+      "screen_text.py": "e6e8b5c216f0404f46e232b69535172ed7b0947a8a556d30bb9b24953052e3b3"
+    }
+  },
+  "acceptance_checks": {
+    "all_pairs_match_frozen_screening_frames": true,
+    "both_arms_reproduce_the_enlarged_ocr_trigger": true,
+    "minimum_additional_trigger_successes": false,
+    "zero_wrong_submissions": true,
+    "all_readable_control_successes_preserved": true,
+    "control_model_calls_do_not_increase": true,
+    "no_native_scale_retry_on_readable_controls": true,
+    "minimum_current_trigger_successes": true,
+    "all_prior_trigger_successes_preserved": true
+  },
+  "target_met": false,
+  "scores": {
+    "trigger": {
+      "prior": {
+        "native_successes": 2,
+        "wrong_submissions": 0,
+        "abstentions": 1,
+        "model_calls": 3,
+        "localized_ocr_reads": 6,
+        "native_scale_ocr_retries": 3,
+        "upright_price_ocr_retries": 0
+      },
+      "current": {
+        "native_successes": 2,
+        "wrong_submissions": 0,
+        "abstentions": 1,
+        "model_calls": 3,
+        "localized_ocr_reads": 6,
+        "native_scale_ocr_retries": 0,
+        "upright_price_ocr_retries": 3
+      }
+    },
+    "control": {
+      "prior": {
+        "native_successes": 3,
+        "wrong_submissions": 0,
+        "abstentions": 0,
+        "model_calls": 3,
+        "localized_ocr_reads": 3,
+        "native_scale_ocr_retries": 0,
+        "upright_price_ocr_retries": 0
+      },
+      "current": {
+        "native_successes": 3,
+        "wrong_submissions": 0,
+        "abstentions": 0,
+        "model_calls": 3,
+        "localized_ocr_reads": 3,
+        "native_scale_ocr_retries": 0,
+        "upright_price_ocr_retries": 0
+      }
+    }
+  },
+  "by_task": {
+    "prior": {
+      "10801": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "model_calls": 1,
+        "predictions": 2,
+        "screenshots": 2,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "listing_price_check": 1,
+          "listing_price_native_retry": 1
+        }
+      },
+      "10802": {
+        "success": false,
+        "reason": "evidence_abstained",
+        "answers_submitted": 0,
+        "model_calls": 1,
+        "predictions": 2,
+        "screenshots": 1,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "listing_price_check": 1,
+          "listing_price_native_retry": 1
+        }
+      },
+      "10803": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "model_calls": 1,
+        "predictions": 2,
+        "screenshots": 2,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "listing_price_check": 1,
+          "listing_price_native_retry": 1
+        }
+      },
+      "10804": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "model_calls": 1,
+        "predictions": 2,
+        "screenshots": 2,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "listing_price_check": 1
+        }
+      },
+      "10805": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "model_calls": 1,
+        "predictions": 2,
+        "screenshots": 2,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "listing_price_check": 1
+        }
+      },
+      "10806": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "model_calls": 1,
+        "predictions": 2,
+        "screenshots": 2,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "listing_price_check": 1
+        }
+      }
+    },
+    "current": {
+      "10801": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "model_calls": 1,
+        "predictions": 2,
+        "screenshots": 2,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "listing_price_check": 1,
+          "listing_price_upright_retry": 1
+        }
+      },
+      "10802": {
+        "success": false,
+        "reason": "evidence_abstained",
+        "answers_submitted": 0,
+        "model_calls": 1,
+        "predictions": 2,
+        "screenshots": 1,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "listing_price_check": 1,
+          "listing_price_upright_retry": 1
+        }
+      },
+      "10803": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "model_calls": 1,
+        "predictions": 2,
+        "screenshots": 2,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "listing_price_check": 1,
+          "listing_price_upright_retry": 1
+        }
+      },
+      "10804": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "model_calls": 1,
+        "predictions": 2,
+        "screenshots": 2,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "listing_price_check": 1
+        }
+      },
+      "10805": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "model_calls": 1,
+        "predictions": 2,
+        "screenshots": 2,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "listing_price_check": 1
+        }
+      },
+      "10806": {
+        "success": true,
+        "reason": "success",
+        "answers_submitted": 1,
+        "model_calls": 1,
+        "predictions": 2,
+        "screenshots": 2,
+        "evidence_stages": {
+          "locate": 1,
+          "listing_facts_region": 1,
+          "confirm": 1,
+          "listing_price_check": 1
+        }
+      }
+    }
+  },
+  "development_cpu_probe": {
+    "mode": "whole_crop_recognition_only",
+    "cohorts": [
+      "007",
+      "008"
+    ],
+    "model_calls": 0,
+    "ocr_dependencies": {
+      "rapidocr": "3.10.0",
+      "onnxruntime": "1.23.2"
+    },
+    "scores": {
+      "trigger": {
+        "exact_prices": 6,
+        "crops": 6
+      },
+      "control": {
+        "exact_prices": 6,
+        "crops": 6
+      }
+    },
+    "input_and_output_sha256": "1b1e4db001fe24e03dbb7e868fb11c4d39879ac8ffe52213c72577ce3082cd38",
+    "recorded_confirmation_check": {
+      "task_id": "10802",
+      "checks": {
+        "recorded_ocr": {
+          "answer": null,
+          "status": "evidence_verify_abstained"
+        },
+        "whole_crop_ocr": {
+          "answer": "Baltimore, 27 dollars",
+          "status": "evidence_verify_agreed"
+        },
+        "wrong_crop_price": {
+          "answer": null,
+          "status": "evidence_verify_disagreed"
+        },
+        "wrong_model_price": {
+          "answer": null,
+          "status": "evidence_verify_disagreed"
+        }
+      }
+    }
+  }
+}

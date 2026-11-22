@@ -730,6 +730,31 @@ python scripts/audit_vwa_price_retry_holdout.py \
 
 [Cohort 007 scores and checksums](../examples/vwa-price-retry-holdout-results-007.json)
 
+### Compare upright rereading on unseen price crops
+
+Cohort 008 excluded 428 previously seen listing paths, including the entire cohort 007 screening pool, and 57 identical-pixel price crops from earlier evidence. CPU screening visited 54 listings and sealed three unreadable 2× crops and three readable controls with distinct pixels. Every selected case matched the visible catalog price and city in full-page OCR and passed native grading preflight. The selector used only the enlarged crop to decide whether a listing triggered a retry. Both policies then ran fresh Qwen2.5-VL-7B inference with the same checkpoint, starting frames and primary OCR receipts. [Preregistered protocol](../examples/vwa-price-retry-holdout-protocol-008.json)
+
+| Condition | Policy | Native success | Abstentions | Wrong submissions | Qwen calls | Local price OCR reads |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Unreadable enlarged crop | Plain native retry | 2/3 | 1 | 0 | 3 | 6 |
+| Unreadable enlarged crop | Padded upright retry | 2/3 | 1 | 0 | 3 | 6 |
+| Readable enlarged crop | Plain native retry | 3/3 | 0 | 0 | 3 | 3 |
+| Readable enlarged crop | Padded upright retry | 3/3 | 0 | 0 | 3 | 3 |
+
+The upright retry missed the preregistered target of one additional success. Both policies retried exactly once on each trigger and preserved the same successes. The controls each took one model call and one local price read. The results cover three deliberately selected triggers on a single Classifieds fixture. [Cohort 008 scores and checksums](../examples/vwa-price-retry-holdout-results-008.json)
+
+On task 10802, all local detector passes split `27.00 $` into overlapping fragments. A post-comparison CPU probe ran recognition directly on the padded crop with text detection and orientation correction disabled. It read the exact amount on all six trigger crops and six controls from the now-exposed cohorts 007 and 008. For task 10802, the existing agreement check accepted the full-crop text with the saved model reply and rejected a wrong amount from either source. The frozen live result for task 10802 remains an abstention.
+
+Audit the saved cohort and two run directories on CPU.
+
+~~~bash
+python scripts/audit_vwa_price_retry_holdout.py \
+  --cohort runs/cohort-008 \
+  --sha256 708fc827a1ee242b5f418bbbaf85b189bb0554144baec7818f06ae19d1b421e4 \
+  --protocol examples/vwa-price-retry-holdout-protocol-008.json \
+  --runs runs
+~~~
+
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
