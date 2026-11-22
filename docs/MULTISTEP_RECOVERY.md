@@ -796,6 +796,24 @@ python scripts/audit_vwa_catalog_price_transfer.py \
   --runs runs
 ~~~
 
+### Register a higher-resolution transfer test
+
+Cohort 011 uses a 1280 × 720 CSS viewport with 1.25× screenshot capture, yielding 1600 × 900 input pixels. Both policies use the same BrowserGym capture setting. The cohort manifest, screening report and run plan bind the profile. The auditor checks the recorded viewport, scale, screenshot dimensions and pixel hashes.
+
+The selector excludes 832 historical listing paths and 181 prior crop hashes. It visits up to 192 listings and seeks three cases in each group. The groups cover prices unreadable by both detectors, prices read correctly in the enlarged crop, and prices recovered by the upright detector. Selection uses the two detector reads and full-page OCR. The whole-line recognizer runs during the comparison.
+
+The local Chromium check captured identical pixels through BrowserGym observations and direct screenshot extraction. Two fresh scaled browser sessions also produced identical pixels. The price element occupied the same CSS box at both scales, and the CPU selector read the fixture price correctly in both captures. This check used zero model calls. [Transfer protocol](../examples/vwa-price-retry-holdout-protocol-011.json)
+
+Screen the registered transfer cohort against the pinned Classifieds fixture.
+
+~~~bash
+python scripts/prepare_vwa_price_retry_holdout.py \
+  --site "$VWA_CLASSIFIEDS" --series 11 \
+  --exclude examples/vwa-catalog-exclusions-011.json \
+  --exclude-crops examples/vwa-price-crop-exclusions-011.json \
+  --out runs/cohort-011
+~~~
+
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)

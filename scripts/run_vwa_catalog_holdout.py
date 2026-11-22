@@ -18,9 +18,9 @@ from gui_recover.qwen_grounding import QwenGroundingPolicy
 from gui_recover.runner import render_replay, run_episode, write_json
 from gui_recover.screen_text import RapidScreenReader
 from gui_recover.verification import pixel_hash
-from gui_recover.vwa_inputs import CATALOG_SERIES_IDS, LocalReferenceArchive
+from gui_recover.vwa_inputs import CATALOG_CAPTURE_PROFILES, CATALOG_SERIES_IDS, LocalReferenceArchive, catalog_capture_profile
 from prepare_vwa_catalog_holdout import (
-    CATALOG_POOL_PAGES, CITY_WORD_COUNTS, DETAIL_PRICE_DIGITS, FAMILIES, OWN_INDEX, PRICE_RETRY_COHORTS, WHOLE_LINE_COHORT,
+    CATALOG_POOL_PAGES, CITY_WORD_COUNTS, DETAIL_PRICE_DIGITS, FAMILIES, OWN_INDEX, PRICE_RETRY_COHORTS, WHOLE_LINE_COHORTS,
     catalog_case_families, catalog_families, encoded, fingerprint, price_retry_groups,
 )
 from run_visualwebarena_live import VisualWebArenaEnvironment, exact_vwa_success, holdout_profile, probe_instance
@@ -66,11 +66,21 @@ def validate_reference_photo_evidence(proof):
         raise ValueError("Reference photo screening does not cover distinct photos across the result set")
 
 
+def validate_capture(profile, metadata, image_size):
+    if (metadata["viewport"] != profile["viewport"] or metadata["screenshot_scale"] != profile["screenshot_scale"]
+            or list(metadata["screenshot_size"]) != profile["screenshot_size"]
+            or list(image_size) != profile["screenshot_size"]):
+        raise ValueError("The browser capture differs from the registered viewport, scale or pixel dimensions")
+
+
 def validate_price_retry_screening(directory, protocol, evidence):
     raw = (directory / "price-retry-screening.json").read_bytes()
     if fingerprint(raw) != protocol["price_retry_screening_sha256"]:
         raise ValueError("The price retry screening receipt changed")
     report = json.loads(raw)
+    capture = CATALOG_CAPTURE_PROFILES.get(protocol["sample_key"])
+    if report.get("capture_profile") != capture:
+        raise ValueError("The screening report differs from the registered capture profile")
     ordered = report["ordered_candidates"]
     attempts = report["attempts"]
     paths = [record["listing_path"] for record in attempts]
@@ -94,11 +104,13 @@ def validate_price_retry_screening(directory, protocol, evidence):
     for proof, record in zip(evidence, chosen, strict=True):
         frame = directory / "screening-frames" / f"{proof['task_id']}.png"
         with Image.open(frame) as image:
+            if capture is not None and list(image.size) != capture["screenshot_size"]:
+                raise ValueError("A screening frame has different dimensions from the registered capture")
             image_sha = pixel_hash(image)
         if (proof["listing_path"] != record["listing_path"] or proof["source"]["price_retry_screening"] != record
                 or image_sha != record["start_pixels_sha256"]):
             raise ValueError("The selected price retry case differs from its frozen OCR screen")
-        if protocol["sample_key"] == WHOLE_LINE_COHORT:
+        if protocol["sample_key"] in WHOLE_LINE_COHORTS:
             amount = 100 * proof["source"]["visible"]["dollars"]
             expected = {"trigger": (None, None), "control": (amount,), "upright_control": (None, amount)}
             readings = tuple(_displayed_cents(" ".join(row["text"] for row in record[name]["rows"]))
@@ -119,6 +131,8 @@ def load_cohort(directory, digest, homepage):
         raise ValueError("Unexpected independent evaluation profile")
     if protocol.get("catalog_pages_per_category") != CATALOG_POOL_PAGES.get(protocol["sample_key"]):
         raise ValueError("Unexpected catalog sampling depth")
+    if protocol.get("capture_profile") != CATALOG_CAPTURE_PROFILES.get(sample_key):
+        raise ValueError("The sealed capture profile differs from the registered rendering")
     minimum_photo_distance = protocol.get("minimum_reference_photo_distance")
     if ((ids[0] >= 10301 or minimum_photo_distance is not None)
             and minimum_photo_distance != REFERENCE_PHOTO_CLEAR_DISTANCE):
@@ -193,6 +207,9 @@ def preflight(cases, references):
         env = browser_case(case, references, cards=False)
         try:
             observation, _ = env.reset(0)
+            capture = catalog_capture_profile(case["task_id"])
+            if capture is not None:
+                validate_capture(capture, env.metadata(), observation.screenshot.size)
             start = case["start_url"].replace("__CLASSIFIEDS__", os.environ["VWA_CLASSIFIEDS"].rstrip("/"))
             if observation.goal != case["intent"] or len(observation.tabs) != 1 or observation.tabs[0][1] != start:
                 raise ValueError("Native task did not expose exactly the registered question and start page")
@@ -213,6 +230,7 @@ def preflight(cases, references):
 
 def audit_pair(run, case, reference_pixels, listing_site, model, strategies=STRATEGIES):
     task_id = case["task_id"]
+    capture = catalog_capture_profile(task_id)
     checked = {}
     for mode in strategies:
         evidence = mode == "evidence-cards"
@@ -225,6 +243,9 @@ def audit_pair(run, case, reference_pixels, listing_site, model, strategies=STRA
             use_ranked_cards=evidence, use_browser_context=True, model_budget=PROFILE["max_model_calls"],
         )
         row = checked[mode]
+        if capture is not None:
+            with Image.open(directory / "0000.png") as screen:
+                validate_capture(capture, row["row"]["environment"], screen.size)
         if row["reset"] != (case["intent"], PROFILE["seed"]) or row["reset_context"][1] != reference_pixels:
             raise ValueError("Native replay differs from the frozen question or reference")
     outcomes = {mode: {"success": row["row"]["success"], "reason": row["row"]["reason"],
@@ -243,6 +264,8 @@ def audit_pair(run, case, reference_pixels, listing_site, model, strategies=STRA
 
 def audit_run(run, cases, references, cohort_digest):
     plan = json.loads((run / "run-plan.json").read_bytes())
+    if plan.get("capture_profile") != catalog_capture_profile(cases[0]["task_id"]):
+        raise ValueError("The run plan differs from the registered capture profile")
     if plan["cohort_sha256"] != cohort_digest or not holdout_profile(
         "evidence-cards", PROFILE["max_model_calls"], plan["model"], "evidence-cards"
     ):
@@ -289,6 +312,9 @@ def run_pairs(run, cases, references, cohort_digest, model, listing_site, *, evi
             "source_files": {path.name: fingerprint(path.read_bytes()) for path in
                              [Path(__file__), Path(__file__).with_name("run_visualwebarena_live.py"),
                               *sorted(package.glob("*.py"))]}}
+    capture = catalog_capture_profile(cases[0]["task_id"])
+    if capture is not None:
+        plan["capture_profile"] = capture
     strategies = ("evidence-cards",) if evidence_only else STRATEGIES
     if evidence_only:
         plan["strategies"] = list(strategies)

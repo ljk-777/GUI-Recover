@@ -22,7 +22,9 @@ from gui_recover.runner import aggregate, render_replay, run_episode, write_json
 from gui_recover.screen_text import RapidScreenReader
 from gui_recover.verification import pixel_hash
 from gui_recover.visible_links import visible_listing_links
-from gui_recover.vwa_inputs import CATALOG_SERIES_IDS, LocalReferenceArchive, contextual_observation, reference_name
+from gui_recover.vwa_inputs import (
+    CATALOG_SERIES_IDS, LocalReferenceArchive, catalog_capture_profile, contextual_observation, reference_name,
+)
 
 
 BACKEND_VARIABLES = ("VWA_CLASSIFIEDS", "VWA_SHOPPING", "VWA_REDDIT", "VWA_WIKIPEDIA",
@@ -326,6 +328,7 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
                 raise ValueError("Expected one frozen independent Classifieds case")
         elif not any(task_id in tasks for tasks in TASK_SETS.values()):
             raise ValueError("Task is outside the registered Classifieds subset")
+        capture = catalog_capture_profile(task_id) if catalog_case is not None else None
         # The upstream module constructs an OpenAI client even for its local
         # string evaluator. These tasks require no external judging service.
         os.environ["OPENAI_API_KEY"] = "local-string-evaluator"
@@ -356,6 +359,9 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
                     self.task_configs = [{**supplemental, "start_url": self.webarena_instance.urls["classifieds"]}]
 
             def setup(self, page):
+                if capture is not None:
+                    # BrowserGym uses this scale for both screenshot capture and coordinate actions.
+                    page._bgym_scale_factor = capture["screenshot_scale"]
                 permitted = set(INPUT_SITE_TOKENS.values()) if enable_browser_context else {"classifieds"}
                 sites = set()
                 for config in self.task_configs:
@@ -418,6 +424,7 @@ class VisualWebArenaEnvironment(MiniwobEnvironment):
         actions = HighLevelActionSet(subsets=subsets, strict=True, multiaction=True,
                                      custom_actions=custom_actions if enable_card_view else None)
         self.env = BrowserEnv(LocalAnswerTask, task_kwargs={"task_id": task_id}, headless=True,
+                              viewport=capture["viewport"] if capture is not None else None,
                               action_mapping=actions.to_python_code)
 
     def reset(self, seed):

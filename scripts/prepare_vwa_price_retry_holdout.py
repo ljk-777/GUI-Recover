@@ -13,16 +13,16 @@ from gui_recover.listing_facts import listing_fact_decision
 from gui_recover.screen_text import RapidScreenReader
 from gui_recover.verification import pixel_hash
 from gui_recover.visual_text_audit import read_json
-from gui_recover.vwa_inputs import CATALOG_SERIES_IDS
+from gui_recover.vwa_inputs import CATALOG_CAPTURE_PROFILES, CATALOG_SERIES_IDS
 from prepare_vwa_catalog_holdout import (
-    CATALOG_POOL_PAGES, FAMILIES, OWN_INDEX, WHOLE_LINE_COHORT, Catalog,
+    CATALOG_POOL_PAGES, FAMILIES, OWN_INDEX, WHOLE_LINE_COHORTS, Catalog,
     catalog_pool, encoded, fingerprint, price_retry_groups, seal_catalog, task,
 )
-from run_vwa_catalog_holdout import PROFILE, browser_case
+from run_vwa_catalog_holdout import PROFILE, browser_case, validate_capture
 
 
 GOAL = "What is the asking price in dollars and the city for the listing open in this tab?"
-SCREEN_LIMITS = {7: 96, 8: 144, 9: 256}
+SCREEN_LIMITS = {7: 96, 8: 144, 9: 256, 11: 192}
 CASES_PER_GROUP = 3
 
 
@@ -82,11 +82,14 @@ def freeze_retry_holdout(site, excluded, output, *, series=7, excluded_crops=Non
     env = browser_case(task(ids[0], GOAL, order[0].item, ["10", "placeholder"], item=order[0].item), None, cards=True)
     reader = RapidScreenReader()
     selected = {group: [] for group in price_retry_groups(key)}
-    screen_upright = key == WHOLE_LINE_COHORT
+    screen_upright = key in WHOLE_LINE_COHORTS
+    capture = CATALOG_CAPTURE_PROFILES.get(key)
     seen_crops = set(excluded_crops or ())
     attempts = []
     try:
-        env.reset(PROFILE["seed"])
+        observation, _ = env.reset(PROFILE["seed"])
+        if capture is not None:
+            validate_capture(capture, env.metadata(), observation.screenshot.size)
         page = env.env.unwrapped.page
         for card in order:
             details = catalog.detail(card)
@@ -106,6 +109,8 @@ def freeze_retry_holdout(site, excluded, output, *, series=7, excluded_crops=Non
                 record["outcome"] = "navigation_mismatch"
                 continue
             screen = Image.fromarray(extract_screenshot(page)).convert("RGB")
+            if capture is not None and list(screen.size) != capture["screenshot_size"]:
+                raise ValueError("The current screening frame differs from the registered capture")
             height, width = smart_resize(screen.height, screen.width, factor=28, min_pixels=56 * 56, max_pixels=784 * 784)
             receipt = screen_price(screen, url, catalog.origin, city, card.dollars, reader, (width, height),
                                    screen_upright=screen_upright)
@@ -142,6 +147,8 @@ def freeze_retry_holdout(site, excluded, output, *, series=7, excluded_crops=Non
         summary["excluded_crop_sha256"] = sorted(excluded_crops)
     if screen_upright:
         summary.update(upright_ocr_used_for_selection=True, whole_line_ocr_used_for_selection=False)
+    if capture is not None:
+        summary["capture_profile"] = capture
     raw = encoded(summary) + b"\n"
     output.parent.mkdir(parents=True, exist_ok=True)
     if len(specs) != len(ids):

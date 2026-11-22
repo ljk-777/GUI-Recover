@@ -7,7 +7,7 @@ from pathlib import Path
 
 from audit_vwa_catalog_price_transfer import exact_answers, totals
 from gui_recover.visual_text_audit import read_json, require
-from prepare_vwa_catalog_holdout import WHOLE_LINE_COHORT, encoded, fingerprint, price_retry_groups
+from prepare_vwa_catalog_holdout import WHOLE_LINE_COHORTS, encoded, fingerprint, price_retry_groups
 from run_vwa_catalog_holdout import PROFILE, audit_run, load_cohort
 from run_vwa_catalog_read_faults import prediction_metrics
 
@@ -19,11 +19,12 @@ def compare(cohort, digest, protocol_file, runs):
     evidence = {str(proof["task_id"]): proof["source"] for proof in read_json(cohort / "source-evidence.json")}
     screening = read_json(cohort / "price-retry-screening.json")
     selection = protocol["selection"]
-    whole_line = index["sample_key"] == WHOLE_LINE_COHORT
+    whole_line = index["sample_key"] in WHOLE_LINE_COHORTS
     require(protocol["cohort"] == index["sample_key"]
             and all(protocol[key] == PROFILE[key] for key in ("seed", "max_predictions", "max_model_calls"))
             and screening["screen_limit"] == selection["maximum_screened_listings"]
             and index["catalog_pages_per_category"] == selection["catalog_pages_per_category"]
+            and index.get("capture_profile") == selection.get("capture_profile")
             and len(screening["selected"]["trigger"]) == selection["triggers"]
             and len(screening["selected"]["control"]) == selection["controls"]
             and selection["one_x_ocr_used_for_selection"] is whole_line
@@ -158,6 +159,8 @@ def compare(cohort, digest, protocol_file, runs):
               "acceptance_checks": checks, "target_met": all(checks.values()), "scores": scores, "by_task": by_arm}
     if whole_line:
         report["upright_ocr_receipt_matches"] = upright_matches
+    if "capture_profile" in index:
+        report["capture_profile"] = index["capture_profile"]
     return report
 
 

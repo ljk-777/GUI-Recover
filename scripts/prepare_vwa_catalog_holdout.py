@@ -17,7 +17,7 @@ from bs4 import BeautifulSoup
 from PIL import Image
 
 from gui_recover.listing_cards import REFERENCE_PHOTO_CLEAR_DISTANCE, reference_photo_distance, reference_thumbnail_pixels
-from gui_recover.vwa_inputs import CATALOG_SERIES_IDS
+from gui_recover.vwa_inputs import CATALOG_CAPTURE_PROFILES, CATALOG_SERIES_IDS
 
 CATEGORIES = (9, 19, 6)
 FAMILIES = ("detail-price-city", "gallery-reference", "search-reference", "search-highest-price")
@@ -29,16 +29,16 @@ CITY_WORD_COUNTS = {"gui-recover-catalog-holdout-v4": (2, 1),
                     "gui-recover-catalog-holdout-v5": (1, 2, 1, 2, 1, 2),
                     "gui-recover-catalog-holdout-v6": (1, 2, 1, 2, 1, 2)}
 DETAIL_PRICE_DIGITS = {"gui-recover-catalog-holdout-v6": (3, 2, 2, 3, 3, 2)}
-WHOLE_LINE_COHORT = "gui-recover-catalog-holdout-v9"
 PRICE_READ_DROPOUT_COHORT = "gui-recover-catalog-holdout-v10"
-PRICE_RETRY_COHORTS = ("gui-recover-catalog-holdout-v7", "gui-recover-catalog-holdout-v8", WHOLE_LINE_COHORT)
+WHOLE_LINE_COHORTS = ("gui-recover-catalog-holdout-v9", "gui-recover-catalog-holdout-v11")
+PRICE_RETRY_COHORTS = ("gui-recover-catalog-holdout-v7", "gui-recover-catalog-holdout-v8", *WHOLE_LINE_COHORTS)
 CATALOG_POOL_PAGES = {"gui-recover-catalog-holdout-v4": 12, "gui-recover-catalog-holdout-v5": 20,
                       "gui-recover-catalog-holdout-v6": 20, PRICE_RETRY_COHORTS[0]: 20, PRICE_RETRY_COHORTS[1]: 32,
-                      WHOLE_LINE_COHORT: 48, PRICE_READ_DROPOUT_COHORT: 48}
+                      WHOLE_LINE_COHORTS[0]: 48, PRICE_READ_DROPOUT_COHORT: 48, WHOLE_LINE_COHORTS[1]: 64}
 
 
 def price_retry_groups(key):
-    return ("trigger", "control", "upright_control") if key == WHOLE_LINE_COHORT else ("trigger", "control")
+    return ("trigger", "control", "upright_control") if key in WHOLE_LINE_COHORTS else ("trigger", "control")
 
 
 def catalog_families(key):
@@ -342,6 +342,8 @@ def seal_catalog(output, key, specs, evidence, media, excluded, pool_digests, *,
         protocol["detail_price_digits"] = list(DETAIL_PRICE_DIGITS[key])
     if key in CATALOG_POOL_PAGES:
         protocol["catalog_pages_per_category"] = CATALOG_POOL_PAGES[key]
+    if key in CATALOG_CAPTURE_PROFILES:
+        protocol["capture_profile"] = CATALOG_CAPTURE_PROFILES[key]
     if screening_digest is not None:
         protocol["price_retry_screening_sha256"] = screening_digest
     for name, payload in (("cohort.json", protocol), ("tasks.json", specs), ("source-evidence.json", evidence),

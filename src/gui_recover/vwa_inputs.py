@@ -23,7 +23,23 @@ CATALOG_SERIES_IDS = {
     "gui-recover-catalog-holdout-v8": tuple(range(10801, 10807)),
     "gui-recover-catalog-holdout-v9": tuple(range(10901, 10910)),
     "gui-recover-catalog-holdout-v10": tuple(range(11001, 11005)),
+    "gui-recover-catalog-holdout-v11": tuple(range(11101, 11110)),
 }
+
+CATALOG_CAPTURE_PROFILES = {
+    "gui-recover-catalog-holdout-v11": {
+        "viewport": {"width": 1280, "height": 720},
+        "screenshot_scale": 1.25,
+        "screenshot_size": [1600, 900],
+    },
+}
+
+
+def catalog_capture_profile(task_id):
+    for cohort, profile in CATALOG_CAPTURE_PROFILES.items():
+        if task_id in CATALOG_SERIES_IDS[cohort]:
+            return profile
+    return None
 
 
 def reference_name(value, homepage="__HOMEPAGE__"):

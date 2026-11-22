@@ -8,6 +8,29 @@ def row(text, bounds):
     return {"text": text, "bounds": bounds}
 
 
+@pytest.mark.parametrize(("change", "frame_size"), (
+    ({}, (1600, 900)),
+    ({"screenshot_scale": 1.0}, (1600, 900)),
+    ({"viewport": {"width": 1280, "height": 900}}, (1600, 900)),
+    ({"screenshot_size": [1280, 720]}, (1600, 900)),
+    ({}, (1280, 720)),
+))
+def test_scaled_capture_requires_matching_metadata_and_pixels(monkeypatch, change, frame_size):
+    pytest.importorskip("bs4")
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1] / "scripts"))
+    from gui_recover.vwa_inputs import catalog_capture_profile
+    from run_vwa_catalog_holdout import validate_capture
+
+    profile = catalog_capture_profile(11101)
+    assert catalog_capture_profile(11001) is None
+    metadata = {**profile, **change}
+    if change or frame_size != tuple(profile["screenshot_size"]):
+        with pytest.raises(ValueError, match="registered viewport, scale or pixel dimensions"):
+            validate_capture(profile, metadata, frame_size)
+    else:
+        validate_capture(profile, metadata, frame_size)
+
+
 def test_varied_price_order_preserves_first_hash_match_for_each_amount(monkeypatch):
     pytest.importorskip("bs4")
     monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1] / "scripts"))
