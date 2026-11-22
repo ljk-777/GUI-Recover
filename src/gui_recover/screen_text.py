@@ -3,6 +3,7 @@
 import json
 import math
 import re
+from threading import Lock
 
 from .actions import Action, ActionError, parse_action
 from .qwen_grounding import normalize_qwen_action, read_reply
@@ -42,19 +43,23 @@ class RapidScreenReader:
 
         self.engine = RapidOCR(params={"EngineConfig.onnxruntime.intra_op_num_threads": 2,
                                        "EngineConfig.onnxruntime.inter_op_num_threads": 1})
+        self._default_orientation = self.engine.use_cls
+        self._lock = Lock()
         self.config = {"rapidocr": version("rapidocr"), "onnxruntime": version("onnxruntime")}
 
     def __call__(self, screen, canvas_size):
-        return self._read(screen, canvas_size)
+        return self._read(screen, canvas_size, use_cls=self._default_orientation)
 
     def read_upright(self, screen, canvas_size):
         return self._read(screen, canvas_size, use_cls=False)
 
-    def _read(self, screen, canvas_size, *, use_cls=None):
+    def _read(self, screen, canvas_size, *, use_cls):
         import numpy as np
 
         image = np.ascontiguousarray(np.asarray(screen.convert("RGB"))[:, :, ::-1])
-        result = self.engine(image, use_cls=use_cls)
+        # RapidOCR retains the last orientation setting on the shared engine.
+        with self._lock:
+            result = self.engine(image, use_cls=use_cls)
         return visible_rows(result, screen.size, canvas_size)
 
 

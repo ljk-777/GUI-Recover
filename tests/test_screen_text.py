@@ -1,4 +1,5 @@
 import json
+import sys
 from types import SimpleNamespace
 
 import numpy as np
@@ -8,7 +9,7 @@ from PIL import Image
 from gui_recover.actions import Action, ActionError, compile_action, parse_action
 from gui_recover.answer_evidence import EvidenceAnswerPolicy, parse_evidence_location
 from gui_recover.environment import VisualObservation
-from gui_recover.screen_text import exact_initial_search, from_readable_control, visible_rows
+from gui_recover.screen_text import RapidScreenReader, exact_initial_search, from_readable_control, visible_rows
 
 
 def test_ocr_regions_map_to_the_canvas_and_reject_unusable_rows():
@@ -26,6 +27,28 @@ def test_ocr_regions_map_to_the_canvas_and_reject_unusable_rows():
         with pytest.raises(ActionError):
             from_readable_control(json.dumps({"action": "CLICK", "value": None, "control": control}),
                                   rows, (50, 30))
+
+
+def test_upright_read_does_not_change_orientation_for_later_screens(monkeypatch):
+    class StatefulOCR:
+        def __init__(self, **kwargs):
+            self.use_cls = True
+            self.reads = []
+
+        def __call__(self, image, *, use_cls=None):
+            if use_cls is not None:
+                self.use_cls = use_cls
+            self.reads.append(self.use_cls)
+            return SimpleNamespace(boxes=None)
+
+    monkeypatch.setitem(sys.modules, "rapidocr", SimpleNamespace(RapidOCR=StatefulOCR))
+    monkeypatch.setattr("importlib.metadata.version", lambda package: "test")
+    reader = RapidScreenReader()
+    screen = Image.new("RGB", (120, 80))
+    reader(screen, screen.size)
+    reader.read_upright(screen, screen.size)
+    reader(screen, screen.size)
+    assert reader.engine.reads == [True, False, True]
 
 
 def test_readable_candidate_still_needs_an_independent_read():
