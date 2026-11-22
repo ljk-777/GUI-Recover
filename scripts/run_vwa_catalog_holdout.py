@@ -77,10 +77,13 @@ def validate_price_retry_screening(directory, protocol, evidence):
             or paths != ordered[:len(paths)]):
         raise ValueError("The OCR-only search differs from its ordered candidate pool")
     count = len(evidence) // 2
-    chosen = [record for outcome in ("trigger", "control")
-              for record in [attempt for attempt in attempts if attempt["outcome"] == outcome][:count]]
+    groups = {outcome: [attempt for attempt in attempts if attempt["outcome"] == outcome][:count]
+              for outcome in ("trigger", "control")}
+    chosen = [record for group in groups.values() for record in group]
     if len(chosen) != len(evidence):
         raise ValueError("The price retry cohort requires balanced OCR triggers and controls")
+    if report["selected"] != {outcome: [record["listing_path"] for record in rows] for outcome, rows in groups.items()}:
+        raise ValueError("The screening groups differ from the frozen candidate order")
     if "excluded_crop_sha256" in report:
         hashes = [record["enlarged_ocr"]["pixels_sha256"] for record in chosen]
         if len(set(hashes)) != len(hashes) or set(hashes).intersection(report["excluded_crop_sha256"]):

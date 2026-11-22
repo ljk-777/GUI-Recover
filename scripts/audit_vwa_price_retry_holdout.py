@@ -8,6 +8,7 @@ from pathlib import Path
 from audit_vwa_catalog_price_transfer import totals
 from gui_recover.actions import parse_action
 from gui_recover.visual_text_audit import read_json, require
+from prepare_vwa_catalog_holdout import encoded, fingerprint
 from run_vwa_catalog_holdout import PROFILE, audit_run, load_cohort
 from run_vwa_catalog_read_faults import prediction_metrics
 
@@ -44,6 +45,11 @@ def compare(cohort, digest, protocol_file, runs):
     if selection.get("exclude_repeated_crop_pixels"):
         crop_exclusions = read_json(protocol_file.with_name(f"vwa-price-crop-exclusions-{series:03d}.json"))
         require(screening["excluded_crop_sha256"] == sorted(crop_exclusions), "The crop exclusions differ from registration")
+    if selection.get("exclude_previous_screening_pool"):
+        listing_exclusions = set(read_json(protocol_file.with_name(f"vwa-catalog-exclusions-{series:03d}.json")))
+        require(index["exclusion_list_sha256"] == fingerprint(encoded(sorted(listing_exclusions)))
+                and not listing_exclusions.intersection(screening["ordered_candidates"]),
+                "The ordered candidate pool overlaps the registered listing exclusions")
 
     by_arm, policy_hashes, receipt_matches, frame_matches = {}, {}, {}, {}
     model = None
