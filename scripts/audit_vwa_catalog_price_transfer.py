@@ -5,13 +5,26 @@ import json
 import os
 from pathlib import Path
 
+from gui_recover.actions import parse_action
 from gui_recover.qwen_grounding import read_reply
+from prepare_vwa_catalog_holdout import encoded, fingerprint
 from run_vwa_catalog_holdout import PROFILE, audit_run, load_cohort
-from run_vwa_catalog_read_faults import audit_fault_run, load_study
+from run_vwa_catalog_read_faults import LOCAL_PRICE_DROPOUT, audit_fault_run, load_study, prediction_metrics
 
 
 def read_json(path):
     return json.loads(path.read_bytes())
+
+
+def exact_answers(directory, expected):
+    answers = []
+    for line in (directory / "trajectory.jsonl").read_text().splitlines():
+        event = json.loads(line)
+        if event["event"] == "prediction" and event["raw"]:
+            action = parse_action(event["raw"])
+            if action.action == "ANSWER":
+                answers.append(action.value)
+    return answers == [f"{expected['city']}, {expected['dollars']} dollars"]
 
 
 def totals(rows, *, include_native_retries=False):
@@ -57,6 +70,16 @@ def compare(cohort, digest, protocol_path, fault_path, runs):
     clean_runs = {arm: runs / f"visualwebarena-catalog-price-transfer-clean-{arm}-{series:03d}" for arm in ("prior", "current")}
     fault_runs = {arm: runs / f"visualwebarena-catalog-price-transfer-fault-{arm}-{series:03d}" for arm in clean_runs}
     plan, fault_cases, _ = load_study(cohort, digest, fault_path, clean_runs["prior"], allow_unexecuted=True)
+    dropout = set(protocol["faults"].values()) == {LOCAL_PRICE_DROPOUT}
+    if dropout:
+        excluded = set(read_json(protocol_path.with_name(f"vwa-catalog-exclusions-{series:03d}.json")))
+        sealed = read_json(cohort / "source-evidence.json")
+        paths = {row["listing_path"] for row in sealed}
+        amounts = {row["source"]["visible"]["dollars"] for row in sealed}
+        if (cohort_protocol["exclusion_list_sha256"] != fingerprint(encoded(sorted(excluded)))
+                or not paths.isdisjoint(excluded) or len(amounts) != len(cases)
+                or cohort_protocol["catalog_pages_per_category"] != protocol["selection"]["catalog_pages_per_category"]):
+            raise ValueError("The dropout cohort differs from the registered catalog sample")
     clean_reports, fault_reports, policy_hashes = {}, {}, {}
     for arm in clean_runs:
         clean_plan = read_json(clean_runs[arm] / "run-plan.json")
@@ -67,6 +90,8 @@ def compare(cohort, digest, protocol_path, fault_path, runs):
                 or any(clean_plan[key] != plan[key] or fault_plan[key] != plan[key] for key in ("model", "listing_origin"))
                 or any(fault_plan["source_files"][name] != digest for name, digest in policy_hashes[arm].items())):
             raise ValueError("The checkpoint, origin, or policy changed within the comparison")
+        if dropout and policy_hashes[arm] != protocol["policy_file_sha256"][arm]:
+            raise ValueError("The dropout run does not use the registered policy revision")
         clean_reports[arm] = audit_run(clean_runs[arm], cases, references, digest)
         if clean_reports[arm] != read_json(clean_runs[arm] / "audit.json"):
             raise ValueError(f"The {arm} clean audit differs from the episode traces")
@@ -90,15 +115,37 @@ def compare(cohort, digest, protocol_path, fault_path, runs):
     fault_scores = {arm: totals(rows, include_native_retries=include_retries) for arm, rows in fault.items()}
     preflight = (cohort / "preflight.log").read_text().splitlines()
     clean_losses = sorted(task for task in identifiers if clean["prior"][task]["success"] and not clean["current"][task]["success"])
+    native_check = "all_registered_tasks_pass_native_preflight" if dropout else "all_six_tasks_pass_native_preflight"
     checks = {
-        "all_six_tasks_pass_native_preflight": all(preflight.count(f"{task} native preflight passed") == 1 for task in identifiers),
+        native_check: all(preflight.count(f"{task} native preflight passed") == 1 for task in identifiers),
         "all_clean_and_fault_pairs_audited_with_identical_start_frames": set(paired_clean) == set(paired_fault) == identifiers,
         "all_prior_clean_successes_preserved": not clean_losses,
         "clean_wrong_submissions_do_not_increase": clean_scores["current"]["wrong_submissions"] <= clean_scores["prior"]["wrong_submissions"],
         "more_native_successes_under_faults": fault_scores["current"]["native_successes"] > fault_scores["prior"]["native_successes"],
-        "fewer_wrong_submissions_under_faults": fault_scores["current"]["wrong_submissions"] < fault_scores["prior"]["wrong_submissions"],
-        "clean_model_calls_do_not_increase": clean_scores["current"]["model_calls"] <= clean_scores["prior"]["model_calls"],
     }
+    if dropout:
+        expected = {str(row["task_id"]): row["source"]["visible"] for row in read_json(cohort / "source-evidence.json")}
+        replies = {arm: {task: next(step["provider_output"] for step in prediction_metrics(
+                   fault_runs[arm] / f"visualwebarena.{task}") if "listing_price_check" in step)
+                   for task in rows} for arm, rows in fault.items()}
+        checks.update(
+            zero_wrong_submissions=all(
+                score["wrong_submissions"] == 0 for group in (clean_scores, fault_scores) for score in group.values()),
+            every_native_success_has_the_exact_answer=all(
+                not row["success"] or exact_answers(directory / f"visualwebarena.{task}{suffix}", expected[task])
+                for group, dirs, suffix in ((clean, clean_runs, "-evidence-cards"), (fault, fault_runs, ""))
+                for arm, directory in dirs.items() for task, row in group[arm].items()),
+            minimum_current_fault_successes=fault_scores["current"]["native_successes"] >= protocol["minimum_current_fault_successes"],
+            original_fault_model_replies_match=replies["prior"] == replies["current"],
+            fault_model_calls_do_not_increase=fault_scores["current"]["model_calls"] <= fault_scores["prior"]["model_calls"],
+            whole_line_read_only_under_dropout=(
+                all(not row["evidence_stages"].get("listing_price_line_retry") for group in clean.values() for row in group.values())
+                and all(not row["evidence_stages"].get("listing_price_line_retry") for row in fault["prior"].values())
+                and all(row["evidence_stages"].get("listing_price_line_retry") == 1 for row in fault["current"].values())),
+        )
+    else:
+        checks["fewer_wrong_submissions_under_faults"] = fault_scores["current"]["wrong_submissions"] < fault_scores["prior"]["wrong_submissions"]
+    checks["clean_model_calls_do_not_increase"] = clean_scores["current"]["model_calls"] <= clean_scores["prior"]["model_calls"]
     if "no_current_wrong_submissions_under_faults" in protocol["acceptance"]:
         checks["no_current_wrong_submissions_under_faults"] = fault_scores["current"]["wrong_submissions"] == 0
     if set(checks) != set(protocol["acceptance"]) or not all(value is True for value in protocol["acceptance"].values()):

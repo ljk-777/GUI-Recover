@@ -1,9 +1,12 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from PIL import Image
 
+from gui_recover.actions import parse_action
+from gui_recover.environment import VisualObservation
 from gui_recover.verification import pixel_hash
 
 
@@ -58,6 +61,47 @@ def test_price_ocr_fault_changes_only_the_registered_amount(faults):
     assert altered[1:] == rows[1:]
     assert policy.injected == {"fault": case.kind, "original_row": price, "injected_row": altered[0]}
     assert policy.read_screen(screen, screen.size) == rows
+
+
+def test_price_dropout_erases_only_detector_rows_and_preserves_whole_line_read(faults):
+    screen = Image.new("RGB", (1000, 770), "white")
+    rows = [
+        {"text": "90.00", "bounds": [791, 123, 884, 160]},
+        {"text": "$", "bounds": [883, 126, 909, 158]},
+        {"text": "Published date: yesterday", "bounds": [115, 187, 316, 203]},
+        {"text": "Location: Oak Park, Illinois, United States", "bounds": [116, 207, 452, 224]},
+    ]
+
+    def crop_rows(_, size):
+        return [{"text": "90.00 $", "bounds": [0, 0, *size]}]
+
+    def reader(image, size):
+        return rows if image is screen else crop_rows(image, size)
+
+    reader.read_upright = reader.read_line = crop_rows
+    actor = SimpleNamespace(prepare_image=lambda image: image)
+
+    def ask(*_, **__):
+        actor.last_metrics = {"model_invocations": 1}
+        return '{"city":"Oak Park","dollars":90}'
+
+    actor.ask = ask
+    frame = pixel_hash(screen)
+    case = faults.FaultCase({"task_id": 11001}, faults.LOCAL_PRICE_DROPOUT, {}, {"evidence_frame": frame})
+    site = "http://localhost:19980"
+    policy = faults.FaultPolicy(actor, reader, case, confirm=True, listing_site=site, ranked_capture=lambda: None)
+    observation = VisualObservation("What is the asking price in dollars and the city for the listing open in this tab?",
+                                    screen, tabs=(("Detail", site + "/index.php?page=item&id=7"),))
+    assert policy.predict(observation, []) is None
+    assert parse_action(policy.predict(observation, [])).value == "Oak Park, 90 dollars"
+    for key in faults.PRICE_DETECTOR_RECEIPTS:
+        receipt = policy.last_metrics[key]
+        recorded = policy.injected["reads"][key]
+        assert receipt["rows"] == []
+        assert recorded["original_rows"][0]["text"] == "90.00 $"
+        assert receipt["pixels_sha256"] == recorded["pixels_sha256"]
+    assert policy.read_screen(screen, screen.size) == rows
+    assert policy.price_retry_reader is crop_rows
 
 
 @pytest.mark.parametrize(("stage", "key"), (("initial", "city"), ("isolated", "text")))

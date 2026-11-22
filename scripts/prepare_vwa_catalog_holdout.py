@@ -30,10 +30,11 @@ CITY_WORD_COUNTS = {"gui-recover-catalog-holdout-v4": (2, 1),
                     "gui-recover-catalog-holdout-v6": (1, 2, 1, 2, 1, 2)}
 DETAIL_PRICE_DIGITS = {"gui-recover-catalog-holdout-v6": (3, 2, 2, 3, 3, 2)}
 WHOLE_LINE_COHORT = "gui-recover-catalog-holdout-v9"
+PRICE_READ_DROPOUT_COHORT = "gui-recover-catalog-holdout-v10"
 PRICE_RETRY_COHORTS = ("gui-recover-catalog-holdout-v7", "gui-recover-catalog-holdout-v8", WHOLE_LINE_COHORT)
 CATALOG_POOL_PAGES = {"gui-recover-catalog-holdout-v4": 12, "gui-recover-catalog-holdout-v5": 20,
                       "gui-recover-catalog-holdout-v6": 20, PRICE_RETRY_COHORTS[0]: 20, PRICE_RETRY_COHORTS[1]: 32,
-                      WHOLE_LINE_COHORT: 48}
+                      WHOLE_LINE_COHORT: 48, PRICE_READ_DROPOUT_COHORT: 48}
 
 
 def price_retry_groups(key):
@@ -41,7 +42,8 @@ def price_retry_groups(key):
 
 
 def catalog_families(key):
-    if key in ("gui-recover-catalog-holdout-v5", "gui-recover-catalog-holdout-v6", *PRICE_RETRY_COHORTS):
+    if key in ("gui-recover-catalog-holdout-v5", "gui-recover-catalog-holdout-v6",
+               PRICE_READ_DROPOUT_COHORT, *PRICE_RETRY_COHORTS):
         return FAMILIES[:1]
     return FAMILIES
 
@@ -223,6 +225,7 @@ def freeze(site, excluded, output, *, series=1):
     available = sorted(pool.values(), key=lambda card: sample_key(card.item))
     specs, evidence, media, used = [], [], {}, set(excluded)
     searched = {}
+    selected_amounts = set()
 
     def record(family, start, goal, expected, card, source, *, pin_item=False, reference=False):
         case_id = ids[len(specs)]
@@ -239,6 +242,8 @@ def freeze(site, excluded, output, *, series=1):
     for card in available:
         if price_digits and len(str(card.dollars)) != price_digits[len(specs)]:
             continue
+        if key == PRICE_READ_DROPOUT_COHORT and card.dollars in selected_amounts:
+            continue
         verified = catalog.detail(card)
         if verified and card.dollars >= 10:
             city, digest = verified
@@ -247,6 +252,7 @@ def freeze(site, excluded, output, *, series=1):
             record(FAMILIES[0], card.item, "What is the asking price in dollars and the city for the listing open in this tab?",
                    [str(card.dollars), city], card, {"detail_sha256": digest, "visible": {"dollars": card.dollars, "city": city}},
                    pin_item=True)
+            selected_amounts.add(card.dollars)
         if len(specs) == detail_count:
             break
     if len(specs) != detail_count:

@@ -1,0 +1,63 @@
+{
+  "cohort": "gui-recover-catalog-holdout-v10",
+  "selection": {
+    "order": "First four catalog-qualified price-and-city listings with distinct amounts in SHA-256 order of the cohort key and path.",
+    "catalog_pages_per_category": 48,
+    "exclude_previous_screening_pool": true,
+    "model_inference_used_for_selection": false
+  },
+  "policy_revisions": {
+    "prior": "8a52b4f7fcdd1dfbe52f453222367fb3b1f580aa",
+    "current": "f04542ce85253c092c15d008b382264f901ea331"
+  },
+  "policy_files": [
+    "answer_evidence.py",
+    "listing_facts.py",
+    "screen_text.py"
+  ],
+  "policy_file_sha256": {
+    "prior": {
+      "answer_evidence.py": "dd6a8925afc01ec925c25b561f905d3d6871ca6b277699166f0bdd1aa8e64992",
+      "listing_facts.py": "e82882d39732623fd2ddf8b7975faf0a8d34ff3da04e8373457b732be3680377",
+      "screen_text.py": "e6e8b5c216f0404f46e232b69535172ed7b0947a8a556d30bb9b24953052e3b3"
+    },
+    "current": {
+      "answer_evidence.py": "c7c0543600f64ecdab194bf0271d24f973774bdb48d50877555d98cebf00ef7e",
+      "listing_facts.py": "e82882d39732623fd2ddf8b7975faf0a8d34ff3da04e8373457b732be3680377",
+      "screen_text.py": "337ef49d80bad751f6bc892b18032b390fddde37098b8ce058a3844412c28066"
+    }
+  },
+  "seed": 0,
+  "max_predictions": 12,
+  "max_model_calls": 8,
+  "minimum_current_fault_successes": 3,
+  "faults": {
+    "11001": "drop-local-price-detector-reads",
+    "11002": "drop-local-price-detector-reads",
+    "11003": "drop-local-price-detector-reads",
+    "11004": "drop-local-price-detector-reads"
+  },
+  "acceptance": {
+    "all_registered_tasks_pass_native_preflight": true,
+    "all_clean_and_fault_pairs_audited_with_identical_start_frames": true,
+    "all_prior_clean_successes_preserved": true,
+    "clean_wrong_submissions_do_not_increase": true,
+    "clean_model_calls_do_not_increase": true,
+    "more_native_successes_under_faults": true,
+    "zero_wrong_submissions": true,
+    "every_native_success_has_the_exact_answer": true,
+    "minimum_current_fault_successes": true,
+    "original_fault_model_replies_match": true,
+    "fault_model_calls_do_not_increase": true,
+    "whole_line_read_only_under_dropout": true
+  },
+  "report": [
+    "native_successes",
+    "wrong_submissions",
+    "abstentions",
+    "model_calls",
+    "localized_ocr_reads",
+    "upright_price_ocr_retries",
+    "whole_line_ocr_retries"
+  ]
+}

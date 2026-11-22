@@ -11,7 +11,7 @@ from decimal import Decimal
 from pathlib import Path
 
 import gui_recover
-from audit_visualwebarena_live import audit_episode
+from audit_visualwebarena_live import audit_episode, verify_ocr_rows
 from gui_recover.answer_evidence import EvidenceAnswerPolicy, REFERENCE_TITLE_HEADING
 from gui_recover.listing_cards import is_listing_breadcrumb
 from gui_recover.listing_facts import LISTING_FACTS_REGION, ListingFacts, main_listing_price
@@ -27,6 +27,8 @@ from run_vwa_catalog_holdout import PROFILE, browser_case, load_cohort
 
 
 AMOUNT_ANCHORED_REREAD = "match-ocr-price-in-reread-amount-anchor"
+LOCAL_PRICE_DROPOUT = "drop-local-price-detector-reads"
+PRICE_DETECTOR_RECEIPTS = ("listing_price_check", "listing_price_upright_retry")
 PRICE_REPLY_FAULTS = {
     "match-ocr-price-in-confirmation": "initial",
     "match-ocr-price-in-reread": "isolated",
@@ -37,6 +39,7 @@ FAULT_FAMILIES = {
     "omit-breadcrumb": ("gallery-reference", "search-reference"),
     "change-title-letter": ("search-highest-price",),
     "change-ocr-price-digit": ("detail-price-city",),
+    LOCAL_PRICE_DROPOUT: ("detail-price-city",),
     **dict.fromkeys(PRICE_REPLY_FAULTS, ("detail-price-city",)),
 }
 OCR_FAULT_TARGETS = {
@@ -141,6 +144,13 @@ class FaultAnchorUnavailable(ValueError):
 
 def clean_target(directory, fault, *, expected_cents=None):
     metrics = list(prediction_metrics(directory))
+    if fault == LOCAL_PRICE_DROPOUT:
+        first = next((step for step in metrics if "listing_price_check" in step), None)
+        price_text = " ".join(row["text"] for row in first["listing_price_check"]["rows"]) if first else ""
+        clean_price = _displayed_cents(price_text)
+        if clean_price is None or clean_price != expected_cents:
+            raise FaultAnchorUnavailable("The clean enlarged crop must read the sealed price")
+        return first
     if fault in OCR_FAULT_TARGETS:
         candidates = [step for step in metrics if step["provider_format"] == OCR_FAULT_TARGETS[fault]
                       and "reference_title_breadcrumb" not in step]
@@ -212,7 +222,7 @@ def load_study(cohort, digest, fault_plan, clean_run, *, allow_unexecuted=False)
             if not audited["row"]["success"]:
                 raise FaultAnchorUnavailable(f"Clean episode did not succeed: {audited['row']['reason']}")
             expected_cents = None
-            if faults[task] == AMOUNT_ANCHORED_REREAD:
+            if faults[task] in (AMOUNT_ANCHORED_REREAD, LOCAL_PRICE_DROPOUT):
                 dollars = evidence[task]["source"]["visible"]["dollars"]
                 require(type(dollars) is int and dollars > 0, "Expected a sealed whole dollar amount")
                 expected_cents = dollars * 100
@@ -256,6 +266,9 @@ class FaultPolicy(EvidenceAnswerPolicy):
     def intercept_reply(self, frame, candidate, stage):
         fault = self.fault_case.kind
         target = self.fault_case.target
+        if fault == LOCAL_PRICE_DROPOUT:
+            yield
+            return
         compound = fault in PRICE_REPLY_FAULTS
         paired = compound and self.injected is not None and "reply" not in self.injected and PRICE_REPLY_FAULTS[fault] == stage
         single = stage == "initial" and fault not in OCR_FAULT_TARGETS and self.injected is None
@@ -284,8 +297,32 @@ class FaultPolicy(EvidenceAnswerPolicy):
             self.actor.ask = ask
 
     def verify(self, observation, frame, crop, bounds, candidate):
+        if (self.fault_case.kind == LOCAL_PRICE_DROPOUT and self.injected is None
+                and frame == self.fault_case.target["evidence_frame"]
+                and isinstance(candidate, ListingFacts) and candidate.field == "city"):
+            return self.verify_with_price_dropout(observation, frame, crop, bounds, candidate)
         with self.intercept_reply(frame, candidate, "initial"):
             return super().verify(observation, frame, crop, bounds, candidate)
+
+    def verify_with_price_dropout(self, observation, frame, crop, bounds, candidate):
+        full_reader, upright_reader = self.screen_reader, self.price_retry_reader
+        reads = {}
+
+        def drop_rows(reader, key):
+            def read(screen, size):
+                rows = reader(screen, size)
+                reads[key] = {"pixels_sha256": pixel_hash(screen), "original_rows": rows}
+                return []
+
+            return read
+
+        self.screen_reader = drop_rows(full_reader, PRICE_DETECTOR_RECEIPTS[0])
+        self.price_retry_reader = drop_rows(upright_reader, PRICE_DETECTOR_RECEIPTS[1])
+        self.injected = {"fault": LOCAL_PRICE_DROPOUT, "reads": reads}
+        try:
+            return super().verify(observation, frame, crop, bounds, candidate)
+        finally:
+            self.screen_reader, self.price_retry_reader = full_reader, upright_reader
 
     def reread_listing_facts(self, observation, frame, candidate):
         with self.intercept_reply(frame, candidate, "isolated"):
@@ -303,7 +340,24 @@ def audit_fault(directory, case, plan):
     same_frame = [step for step in metrics if step.get("evidence_frame") == target["evidence_frame"]]
     row = checked["row"]
     delivery = "complete"
-    if kind in OCR_FAULT_TARGETS:
+    if kind == LOCAL_PRICE_DROPOUT:
+        reads = proof["reads"]
+        require(set(reads) == set(PRICE_DETECTOR_RECEIPTS), "Both price detector reads must receive the registered dropout")
+        hits = [step for step in same_frame if all(key in step for key in PRICE_DETECTOR_RECEIPTS)]
+        require(len(hits) == 1, "The dropout must occur in one confirmation on the clean frame")
+        step, = hits
+        for key in PRICE_DETECTOR_RECEIPTS:
+            receipt = step[key]
+            clean = reads[key]
+            left, top, right, bottom = receipt["bounds"]
+            scale = 2 if key == "listing_price_check" else 1
+            verify_ocr_rows(clean["original_rows"], ((right - left) * scale, (bottom - top) * scale))
+            require(receipt["rows"] == [] and receipt["pixels_sha256"] == clean["pixels_sha256"],
+                    "The dropout must erase only OCR rows from the recorded crop")
+        primary = PRICE_DETECTOR_RECEIPTS[0]
+        require({**step[primary], "rows": reads[primary]["original_rows"]} == target[primary],
+                "The unmodified primary read must match the clean OCR receipt")
+    elif kind in OCR_FAULT_TARGETS:
         expected, expected_proof = changed_ocr(kind, target["screen_text"])
         if kind in PRICE_REPLY_FAULTS:
             stage = PRICE_REPLY_FAULTS[kind]

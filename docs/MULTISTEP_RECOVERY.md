@@ -768,6 +768,10 @@ In a CPU replay of the 12 exposed cases from cohorts 007 and 008, both policies 
 
 Task 10802 accounted for the one added OCR read and one recovered answer proposal. Each policy used the same 14 saved model replies. The audit reconstructed the answer decision in all 24 replays and rejected a modified whole-line crop hash.
 
+### Screen for independent double detector failures
+
+Cohort 009 exhausted its budget of 256 catalog listings after excluding 572 historical listing paths and 102 prior price crop hashes. The selector found 71 readable enlarged crops and two cases recovered by upright detection. It excluded 144 repeated crops and 39 listings without the required catalog evidence. Zero eligible listings had an unreadable price in both detector reads. The registered sample called for three cases in each group, so the run stopped at screening with zero model calls and zero native policy episodes. [Protocol](../examples/vwa-price-retry-holdout-protocol-009.json) · [Screening record](../examples/vwa-price-retry-holdout-screening-009.json)
+
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)

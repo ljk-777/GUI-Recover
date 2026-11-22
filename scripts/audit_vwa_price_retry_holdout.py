@@ -5,23 +5,11 @@ import json
 import os
 from pathlib import Path
 
-from audit_vwa_catalog_price_transfer import totals
-from gui_recover.actions import parse_action
+from audit_vwa_catalog_price_transfer import exact_answers, totals
 from gui_recover.visual_text_audit import read_json, require
 from prepare_vwa_catalog_holdout import WHOLE_LINE_COHORT, encoded, fingerprint, price_retry_groups
 from run_vwa_catalog_holdout import PROFILE, audit_run, load_cohort
 from run_vwa_catalog_read_faults import prediction_metrics
-
-
-def exact_answers(directory, expected):
-    answers = []
-    for line in (directory / "trajectory.jsonl").read_text().splitlines():
-        event = json.loads(line)
-        if event["event"] == "prediction" and event["raw"]:
-            action = parse_action(event["raw"])
-            if action.action == "ANSWER":
-                answers.append(action.value)
-    return answers == [f"{expected['city']}, {expected['dollars']} dollars"]
 
 
 def compare(cohort, digest, protocol_file, runs):
