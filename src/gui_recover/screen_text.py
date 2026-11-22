@@ -45,10 +45,16 @@ class RapidScreenReader:
         self.config = {"rapidocr": version("rapidocr"), "onnxruntime": version("onnxruntime")}
 
     def __call__(self, screen, canvas_size):
+        return self._read(screen, canvas_size)
+
+    def read_upright(self, screen, canvas_size):
+        return self._read(screen, canvas_size, use_cls=False)
+
+    def _read(self, screen, canvas_size, *, use_cls=None):
         import numpy as np
 
         image = np.ascontiguousarray(np.asarray(screen.convert("RGB"))[:, :, ::-1])
-        result = self.engine(image)
+        result = self.engine(image, use_cls=use_cls)
         return visible_rows(result, screen.size, canvas_size)
 
 

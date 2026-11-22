@@ -54,10 +54,14 @@ def verify_ocr_rows(rows, size):
                 "Invalid OCR bounds")
 
 
-def replay_price_ocr(screen_path, candidate, review, *, enlarge=True):
+def replay_price_ocr(screen_path, candidate, review, *, enlarge=True, upright_retry=False):
     with Image.open(screen_path) as screen:
+        if upright_retry:
+            from gui_recover.answer_evidence import listing_upright_price_retry_image
+
+            image, bounds = listing_upright_price_retry_image(screen, candidate)
         # The prior policy uses the same enlarged crop but has no scale argument.
-        if enlarge:
+        elif enlarge:
             image, bounds = listing_price_ocr_image(screen, candidate)
         else:
             image, bounds = listing_price_ocr_image(screen, candidate, enlarge=False)
@@ -223,8 +227,9 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
         require(metrics.get("evidence_stage") == stage, "Evidence check schedule disagrees with the observed frame")
         require("listing_price_check" not in metrics or (stage == "confirm" and not listing_fact_reread_pending),
                 "Price OCR check must occur during the first compound confirmation")
-        require("listing_price_native_retry" not in metrics or "listing_price_check" in metrics,
-                "Native price OCR retry requires the enlarged price check")
+        price_retries = [key for key in ("listing_price_native_retry", "listing_price_upright_retry") if key in metrics]
+        require(not price_retries or (len(price_retries) == 1 and "listing_price_check" in metrics),
+                "One price OCR retry requires the enlarged price check")
         require("listing_price_ocr" not in metrics or (stage == "confirm" and listing_fact_reread_pending),
                 "Price OCR reread is outside isolated compound confirmation")
         require("listing_preview" not in metrics or (stage == "locate" and link_count is not None),
@@ -581,12 +586,14 @@ def audit_evidence(directory, predictions, frame_before_prediction, frames, goal
                 rows = replay_price_ocr(directory / f"{index:04d}.png", candidate, metrics["listing_price_check"])
                 confirmed, status, checked = checked_listing_confirmation(reply, candidate, rows)
                 stages["listing_price_check"] += 1
-                if "listing_price_native_retry" in metrics:
+                if price_retries:
                     require(checked is None, "Native price OCR retry requires an unreadable enlarged crop")
+                    retry, = price_retries
                     rows = replay_price_ocr(directory / f"{index:04d}.png", candidate,
-                                            metrics["listing_price_native_retry"], enlarge=False)
+                                            metrics[retry], enlarge=False,
+                                            upright_retry=retry == "listing_price_upright_retry")
                     confirmed, status, checked = checked_listing_confirmation(reply, candidate, rows)
-                    stages["listing_price_native_retry"] += 1
+                    stages[retry] += 1
             else:
                 confirmed, status = confirmation_outcome(
                     reply, candidate, request, expected_cents=tie.cents if tie is not None else None,

@@ -127,8 +127,15 @@ def listing_price_ocr_image(screen, candidate, *, enlarge=True):
     return crop, bounds
 
 
-def listing_price_ocr_receipt(screen, candidate, reader, *, enlarge=True):
-    crop, bounds = listing_price_ocr_image(screen, candidate, enlarge=enlarge)
+def listing_upright_price_retry_image(screen, candidate):
+    _, (left, top, right, bottom) = listing_price_ocr_image(screen, candidate, enlarge=False)
+    bounds = (max(0, left - 4), max(0, top - 4), min(screen.width, right + 4), min(screen.height, bottom + 4))
+    return screen.crop(bounds), bounds
+
+
+def listing_price_ocr_receipt(screen, candidate, reader, *, upright_retry=False):
+    image_for_ocr = listing_upright_price_retry_image if upright_retry else listing_price_ocr_image
+    crop, bounds = image_for_ocr(screen, candidate)
     return {"bounds": list(bounds), "pixels_sha256": pixel_hash(crop), "rows": reader(crop, crop.size)}
 
 
@@ -436,6 +443,7 @@ class EvidenceAnswerPolicy:
         self.confirm = confirm
         self.use_navigation_context = use_navigation_context
         self.screen_reader = screen_reader
+        self.price_retry_reader = getattr(screen_reader, "read_upright", screen_reader)
         self.listing_preview = listing_preview
         self.listing_site = listing_site
         self.ranked_capture = ranked_capture
@@ -912,9 +920,10 @@ class EvidenceAnswerPolicy:
             self.last_metrics["listing_price_check"] = receipt
             confirmed, status, checked = checked_listing_confirmation(raw, candidate, receipt["rows"])
             if checked is None:
-                # OCR can split a single amount into overlapping fragments after enlargement.
-                retry = listing_price_ocr_receipt(observation.screenshot, candidate, self.screen_reader, enlarge=False)
-                self.last_metrics["listing_price_native_retry"] = retry
+                # The price row is upright. Preserve its margins and skip orientation correction.
+                retry = listing_price_ocr_receipt(observation.screenshot, candidate, self.price_retry_reader,
+                                                   upright_retry=True)
+                self.last_metrics["listing_price_upright_retry"] = retry
                 confirmed, status, checked = checked_listing_confirmation(raw, candidate, retry["rows"])
         else:
             confirmed, status = confirmation_outcome(

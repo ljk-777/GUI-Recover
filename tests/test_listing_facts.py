@@ -118,12 +118,17 @@ def test_city_price_requires_local_ocr_agreement(initial, isolated, localized_pr
         ocr_sizes.append(image.size)
         if image is screen:
             return rows
-        if size == image.size == (126, 45):
-            return [row(native_price, 5, 2, 75, 32)] if native_price else []
         assert size == image.size == (252, 90)
         assert image.getpixel((100, 40)) == (255, 0, 0)
         assert not any(color == (0, 0, 255) for _, color in image.getcolors(256))
         return [row(localized_price, 10, 3, 150, 64)] if localized_price else []
+
+    def read_upright(image, size):
+        ocr_sizes.append(image.size)
+        assert size == image.size == (134, 53)
+        return [row(native_price, 5, 2, 75, 32)] if native_price else []
+
+    reader.read_upright = read_upright
 
     actor = SimpleNamespace(prepare_image=lambda image: image)
     calls = []
@@ -142,7 +147,7 @@ def test_city_price_requires_local_ocr_agreement(initial, isolated, localized_pr
     result = policy.predict(observation, [])
     assert policy.last_metrics["listing_price_check"]["bounds"] == [787, 119, 913, 164]
     retried = localized_price is None or " 0." in localized_price
-    assert ("listing_price_native_retry" in policy.last_metrics) is retried
+    assert ("listing_price_upright_retry" in policy.last_metrics) is retried
     if model_calls == 2:
         assert result is None and policy.last_metrics["listing_fact_reread_pending"] is True
         result = policy.predict(observation, [])
