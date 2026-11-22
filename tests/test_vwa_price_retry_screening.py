@@ -46,3 +46,41 @@ def test_screening_uses_enlarged_ocr_without_checking_native_retry(monkeypatch, 
     screened = screen_price(image, site + "/index.php?page=item&id=7", site, "Oak Park", 80, reader, image.size)
     assert screened["outcome"] == group
     assert sizes == [image.size, (252, 90)]
+
+
+@pytest.mark.parametrize(("enlarged", "upright", "group"), (
+    ("80. 0.00 $", "80. 0.00 $", "trigger"),
+    ("80. 0.00 $", "80.00 $", "upright_control"),
+    ("80. 0.00 $", "81.00 $", "upright_ocr_disagrees"),
+    ("80.00 $", None, "control"),
+    ("81.00 $", None, "enlarged_ocr_disagrees"),
+))
+def test_whole_line_cohort_screens_detector_reads_only(monkeypatch, enlarged, upright, group):
+    pytest.importorskip("bs4")
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1] / "scripts"))
+    from prepare_vwa_price_retry_holdout import screen_price
+
+    site = "http://localhost:19980"
+    image = Image.new("RGB", (1000, 770), "white")
+    whole = [
+        row("80.00", [791, 123, 884, 160]),
+        row("$", [883, 126, 909, 158]),
+        row("Published date: yesterday", [115, 187, 316, 203]),
+        row("Location: Oak Park, Illinois, United States", [116, 207, 452, 224]),
+    ]
+
+    class Detector:
+        def __call__(self, screen, size):
+            return whole if screen is image else [row(enlarged, [10, 3, 150, 64])]
+
+        def read_upright(self, screen, size):
+            assert upright is not None and screen.size == size == (134, 53)
+            return [row(upright, [5, 2, 75, 32])]
+
+        def read_line(self, screen, size):
+            pytest.fail("The candidate recognizer must never select the holdout")
+
+    screened = screen_price(image, site + "/index.php?page=item&id=7", site, "Oak Park", 80, Detector(), image.size,
+                            screen_upright=True)
+    assert screened["outcome"] == group
+    assert ("upright_ocr" in screened) is (upright is not None)

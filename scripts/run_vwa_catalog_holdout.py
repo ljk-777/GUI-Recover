@@ -13,14 +13,15 @@ from PIL import Image
 from audit_visualwebarena_live import audit_episode
 from gui_recover.answer_evidence import EvidenceAnswerPolicy
 from gui_recover.listing_cards import REFERENCE_PHOTO_CLEAR_DISTANCE
+from gui_recover.price_discovery import _displayed_cents
 from gui_recover.qwen_grounding import QwenGroundingPolicy
 from gui_recover.runner import render_replay, run_episode, write_json
 from gui_recover.screen_text import RapidScreenReader
 from gui_recover.verification import pixel_hash
 from gui_recover.vwa_inputs import CATALOG_SERIES_IDS, LocalReferenceArchive
 from prepare_vwa_catalog_holdout import (
-    CATALOG_POOL_PAGES, CITY_WORD_COUNTS, DETAIL_PRICE_DIGITS, FAMILIES, OWN_INDEX, PRICE_RETRY_COHORTS,
-    catalog_case_families, catalog_families, encoded, fingerprint,
+    CATALOG_POOL_PAGES, CITY_WORD_COUNTS, DETAIL_PRICE_DIGITS, FAMILIES, OWN_INDEX, PRICE_RETRY_COHORTS, WHOLE_LINE_COHORT,
+    catalog_case_families, catalog_families, encoded, fingerprint, price_retry_groups,
 )
 from run_visualwebarena_live import VisualWebArenaEnvironment, exact_vwa_success, holdout_profile, probe_instance
 
@@ -76,16 +77,18 @@ def validate_price_retry_screening(directory, protocol, evidence):
     if (report["model_calls"] != 0 or len(set(ordered)) != len(ordered) or len(ordered) > report["screen_limit"]
             or paths != ordered[:len(paths)]):
         raise ValueError("The OCR-only search differs from its ordered candidate pool")
-    count = len(evidence) // 2
+    group_names = price_retry_groups(protocol["sample_key"])
+    count = len(evidence) // len(group_names)
     groups = {outcome: [attempt for attempt in attempts if attempt["outcome"] == outcome][:count]
-              for outcome in ("trigger", "control")}
+              for outcome in group_names}
     chosen = [record for group in groups.values() for record in group]
     if len(chosen) != len(evidence):
         raise ValueError("The price retry cohort requires balanced OCR triggers and controls")
     if report["selected"] != {outcome: [record["listing_path"] for record in rows] for outcome, rows in groups.items()}:
         raise ValueError("The screening groups differ from the frozen candidate order")
     if "excluded_crop_sha256" in report:
-        hashes = [record["enlarged_ocr"]["pixels_sha256"] for record in chosen]
+        hashes = [record[name]["pixels_sha256"] for record in chosen for name in ("enlarged_ocr", "upright_ocr")
+                  if name in record]
         if len(set(hashes)) != len(hashes) or set(hashes).intersection(report["excluded_crop_sha256"]):
             raise ValueError("The fresh cohort contains an already screened price crop")
     for proof, record in zip(evidence, chosen, strict=True):
@@ -95,6 +98,13 @@ def validate_price_retry_screening(directory, protocol, evidence):
         if (proof["listing_path"] != record["listing_path"] or proof["source"]["price_retry_screening"] != record
                 or image_sha != record["start_pixels_sha256"]):
             raise ValueError("The selected price retry case differs from its frozen OCR screen")
+        if protocol["sample_key"] == WHOLE_LINE_COHORT:
+            amount = 100 * proof["source"]["visible"]["dollars"]
+            expected = {"trigger": (None, None), "control": (amount,), "upright_control": (None, amount)}
+            readings = tuple(_displayed_cents(" ".join(row["text"] for row in record[name]["rows"]))
+                             for name in ("enlarged_ocr", "upright_ocr") if name in record)
+            if readings != expected[record["outcome"]]:
+                raise ValueError("The frozen OCR readings do not identify the registered group")
 
 
 def load_cohort(directory, digest, homepage):

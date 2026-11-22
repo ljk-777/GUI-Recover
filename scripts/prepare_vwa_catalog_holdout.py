@@ -29,9 +29,15 @@ CITY_WORD_COUNTS = {"gui-recover-catalog-holdout-v4": (2, 1),
                     "gui-recover-catalog-holdout-v5": (1, 2, 1, 2, 1, 2),
                     "gui-recover-catalog-holdout-v6": (1, 2, 1, 2, 1, 2)}
 DETAIL_PRICE_DIGITS = {"gui-recover-catalog-holdout-v6": (3, 2, 2, 3, 3, 2)}
-PRICE_RETRY_COHORTS = ("gui-recover-catalog-holdout-v7", "gui-recover-catalog-holdout-v8")
+WHOLE_LINE_COHORT = "gui-recover-catalog-holdout-v9"
+PRICE_RETRY_COHORTS = ("gui-recover-catalog-holdout-v7", "gui-recover-catalog-holdout-v8", WHOLE_LINE_COHORT)
 CATALOG_POOL_PAGES = {"gui-recover-catalog-holdout-v4": 12, "gui-recover-catalog-holdout-v5": 20,
-                      "gui-recover-catalog-holdout-v6": 20, PRICE_RETRY_COHORTS[0]: 20, PRICE_RETRY_COHORTS[1]: 32}
+                      "gui-recover-catalog-holdout-v6": 20, PRICE_RETRY_COHORTS[0]: 20, PRICE_RETRY_COHORTS[1]: 32,
+                      WHOLE_LINE_COHORT: 48}
+
+
+def price_retry_groups(key):
+    return ("trigger", "control", "upright_control") if key == WHOLE_LINE_COHORT else ("trigger", "control")
 
 
 def catalog_families(key):
