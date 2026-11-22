@@ -5,6 +5,8 @@ The [RC3 tail selection](rc3-tail-selection/provenance.json) example contains a 
 The [multistep focus example](multistep-focus-probe/provenance.json) shows three first-click states with an identical ordinary screenshot. The reversible focus probe reveals the omitted click, and the replay records the exact success and failure outcomes.
 The [multistep validation results](multistep-recovery-results.json) include the 540-trajectory ShowUI comparison, the Qwen portability run, the training follow-ups, and the live VisualWebArena smoke.
 
+The [Classifieds detector-dropout results](vwa-catalog-price-transfer-results-010.json) contain four new price-and-city tasks in clean and fault-injected browser runs. The report records matched reset pixels, fault delivery, model calls, local OCR reads and the archive checksums. The [native OCR screening record](vwa-price-retry-holdout-screening-009.json) records the separate search for new natural failures. [Run and audit the price study](../docs/MULTISTEP_RECOVERY.md#test-recovery-when-both-price-detector-reads-are-empty)
+
 Open `recovered/replay.html` to inspect one successful dropped-input recovery without installing a model or browser.
 `wrong-input/replay.html` is a content-correctness counterexample: visible ink does not prove that the text is correct.
 

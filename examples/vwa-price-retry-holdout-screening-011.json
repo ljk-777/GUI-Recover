@@ -1,0 +1,34 @@
+{
+  "protocol": "vwa-price-retry-holdout-protocol-011.json",
+  "screening_revision": "f250f07cbad720e8fd87ae2af6c5522bf2168279",
+  "screening_report_sha256": "20cab0b0022b339abe6d2bfb909d97be078eb676c3b1c61dc30c411e4ddaf665",
+  "capture_profile": {
+    "screenshot_scale": 1.25,
+    "screenshot_size": [
+      1600,
+      900
+    ],
+    "viewport": {
+      "height": 720,
+      "width": 1280
+    }
+  },
+  "excluded_listing_paths": 832,
+  "excluded_price_crop_hashes": 181,
+  "status": "screen_limit_reached_with_incomplete_groups",
+  "listings_screened": 192,
+  "screening_outcomes": {
+    "control": 122,
+    "missing_catalog_evidence": 26,
+    "repeated_price_crop": 44
+  },
+  "selected_counts": {
+    "control": 3,
+    "trigger": 0,
+    "upright_control": 0
+  },
+  "enlarged_crops_with_parseable_prices": 166,
+  "cohort_sealed": false,
+  "fresh_model_calls": 0,
+  "native_policy_episodes": 0
+}

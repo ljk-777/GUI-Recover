@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0rc4 — release candidate
+
+- Added reproducible Classifieds evidence verification, independent catalog sampling and CPU audits for clean and fault-injected browser runs.
+- Added whole-line price recognition for cases where both localized OCR detector reads fail. On four new price-and-city tasks with controlled OCR dropout, the candidate passed 4/4 and the upright retry passed 0/4. Both passed the four clean controls with one model call per task.
+- Added a registered higher-resolution capture profile and linked the bilingual VisualWebArena benchmark to the per-task results and protocol.
+- Added an offline HTML report to the installed CPU demo, with matched screenshots, exact submissions and links to the original frames.
+- Expanded the multistep MiniWoB++ research workflow with replayable focus probes, bounded recovery comparisons and held-out model transfer.
+
 ## 0.2.0rc3 — release candidate
 
 - Added an installed CPU-only tail-selection demo covering single-line and multiline fields, light and dark themes, and negative controls.

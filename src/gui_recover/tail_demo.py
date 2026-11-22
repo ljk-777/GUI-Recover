@@ -6,6 +6,7 @@ import sys
 from .portable_tail import inspect_selection
 from .runner import write_json
 from .sft import file_sha256
+from .tail_demo_report import write_tail_demo_report
 from .verification_capture import capture_context_frame, capture_selected_tail
 
 
@@ -168,4 +169,5 @@ def run_tail_demo(out, samples=SAMPLES):
         "cases": [r["id"] for r in rows], "controls": [r["id"] for r in controls],
     }
     write_json(out / "summary.json", result)
+    write_tail_demo_report(out, result, zip(clean, faulted, strict=True))
     return result

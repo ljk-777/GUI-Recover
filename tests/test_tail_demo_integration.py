@@ -1,4 +1,5 @@
 import json
+import re
 import subprocess
 import sys
 
@@ -17,3 +18,7 @@ def test_portable_tail_demo_distinguishes_controls_and_preserves_clean_fields(tm
     assert report["clean_rewrites"] == 0
     assert report["selection_preserved_input"] == 24
     assert report["negative_control_abstentions"] == report["negative_controls"] == 8
+    html = (out / "report.html").read_text()
+    images = re.findall(r'<img src="([^"]+)"', html)
+    assert "Trailing-space recovery" in html and len(images) == 24
+    assert all((out / image).is_file() for image in images)

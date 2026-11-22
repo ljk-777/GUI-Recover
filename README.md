@@ -24,11 +24,13 @@ An injected fault changes `Cristin` to `cristin` in both runs. The baseline subm
 
 Active verification matched the success count of unconditional rewriting with eight fewer rewrites on the native text variants. In the visible-error study, the glyph check left all six clean inputs untouched. [Visible-error protocol and data](docs/VISUAL_TEXT_CONTENT.md#正式结果) · [Native variant protocol and data](docs/TAIL_PROBE_PORTABILITY.md#transfer-to-native-miniwob-task-variants)
 
-### VisualWebArena answer verification
+### VisualWebArena price and city recovery
 
-![VisualWebArena fresh Classifieds cohort. Both strategies scored full credit on 0/8 tasks. Wrong submissions occurred on 1/8 tasks with the answer baseline and 0/8 with evidence checking.](examples/readme-demo/benchmark-visualwebarena.en.png)
+![Four new Classifieds price-and-city tasks. Both policies pass 4/4 clean tasks. Under controlled dropout of both local OCR reads, upright retry passes 0/4 and whole-line recognition passes 4/4.](examples/readme-demo/benchmark-visualwebarena.en.png)
 
-Each dot represents one task, with up to eight model calls per policy. A filled dot marks the outcome named above its row. The evidence policy missed the fresh cohort's native-success gate. It scored 2/2 in the earlier development replays. [Fresh task scores](https://github.com/ljk-777/GUI-Recover/blob/cdc54ef4525f1ec2338ba0fdb521f167dc409b25/examples/vwa-fresh-heldout-results.json) · [Development scores](https://github.com/ljk-777/GUI-Recover/blob/cdc54ef4525f1ec2338ba0fdb521f167dc409b25/examples/vwa-reference-retrieval-development-results.json)
+Each dot represents one task and a filled dot means full native credit. In cohort 010, both policies received the same screenshots and Qwen replies. Whole-line recognition recovered the four injected failures with one extra CPU OCR read per task and zero wrong submissions. The earlier search-and-navigation cohort scored 0/8 with both policies. [Controlled fault results](examples/vwa-catalog-price-transfer-results-010.json) · [Protocol and replay](docs/MULTISTEP_RECOVERY.md#test-recovery-when-both-price-detector-reads-are-empty) · [Earlier navigation results](examples/vwa-fresh-heldout-results.json)
+
+A higher-resolution scan reached 192 listings and enrolled zero fresh double detector failures. [Natural-trigger screening](examples/vwa-price-retry-holdout-screening-011.json)
 
 <a name="安装与本地验收"></a>
 
@@ -46,13 +48,14 @@ python -m playwright install chromium
 gui-recover demo-tail-probe --out runs/tail-demo
 ```
 
-The clean field and the field with a trailing space start with identical pixels. A reversible keyboard selection exposes the final character, so the demo can repair the corrupted field and leave the clean field untouched. Compare the selected PNGs and open `runs/tail-demo/summary.json` for the exact submission results. Use a fresh output directory to run it again.
+Open `runs/tail-demo/report.html` to compare the selected screenshots and exact submission results. The clean and faulted fields start with identical pixels. A reversible selection exposes the final character so the policy can identify the extra space before submission. Use a fresh output directory to run it again.
 
 | Clean input | Injected trailing space |
 | --- | --- |
 | ![The final letter is highlighted in the textarea](examples/rc3-tail-selection/clean-selected.png) | ![The blank space after the final letter is highlighted](examples/rc3-tail-selection/trailing-selected.png) |
 
 [Shared starting screenshot](examples/rc3-tail-selection/before.png) · [Demo protocol and verified outputs](docs/TAIL_PROBE_PORTABILITY.md)
+· [Release candidate validation](docs/RELEASE_CANDIDATE_RC4.md)
 
 To smoke-test the MiniWoB++ execution and trace pipeline, run `bash scripts/demo_cpu.sh runs/miniwob-smoke`. It uses a diagnostic oracle on simple click tasks. [Environment setup](docs/SERVER.md)
 
@@ -61,7 +64,7 @@ To smoke-test the MiniWoB++ execution and trace pipeline, run `bash scripts/demo
 ## What you can test
 
 - **Input and action recovery in MiniWoB++.** Inject missed clicks, dropped input, or corrupted text. Compare a baseline with a visual check, a targeted retry, or a reversible probe. Model-backed runs use ShowUI for visual grounding.
-- **Answer verification research in VisualWebArena.** The Classifieds research branch asks Qwen to locate evidence, read a screenshot crop, and verify its answer before submission. The tasks keep native grading. [Research branch protocol](https://github.com/ljk-777/GUI-Recover/blob/cdc54ef4525f1ec2338ba0fdb521f167dc409b25/docs/MULTISTEP_RECOVERY.md)
+- **Answer verification in VisualWebArena.** Run Qwen with screenshot-grounded evidence checks, targeted OCR rereads and native grading on a Classifieds instance you control. [CUDA setup and evaluation](docs/MULTISTEP_RECOVERY.md#inspect-visualwebarena-recordings)
 - **Auditable comparisons.** Match strategies by task, seed, and budget. Each run saves proposed and executed actions, screenshots, and rewards. To try an offline replay, open `examples/recovered/replay.html` locally after cloning. The CPU auditor can reconstruct supported decisions from recorded files. [More recorded examples](examples/README.md)
 
 <a name="gpu-最小恢复演示"></a>

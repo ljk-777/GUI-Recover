@@ -87,10 +87,10 @@ python scripts/replay_visualwebarena.py --recordings runs/vwa-recordings \
   --qwen models/Qwen2.5-VL-3B-Instruct --device cpu --out runs/vwa-qwen-check.json
 ```
 
-A native run requires a Classifieds instance you control. The opt-in adapter sends answers to the BrowserGym task evaluator and uses its terminal reward. The registered tasks use the native string judge, so the runner skips the unused BLIP captioner and external judging clients. The first command reports the setup status without loading a model or starting a browser. Configure `VWA_*` and a private NLTK data directory with `punkt_tab` before the live command. [BrowserGym setup](https://github.com/ServiceNow/BrowserGym/tree/main/browsergym/visualwebarena)
+A native run requires a Classifieds instance you control. The opt-in adapter sends answers to the BrowserGym task evaluator and uses its terminal reward. The registered tasks use the native string judge, so the runner skips the unused BLIP captioner and external judging clients. The preflight command checks the setup before loading model weights or starting a browser. Configure `VWA_*` and a local NLTK data directory with `punkt_tab` before the live command. [BrowserGym setup](https://github.com/ServiceNow/BrowserGym/tree/main/browsergym/visualwebarena)
 
 ```bash
-python -m pip install 'browsergym-visualwebarena==0.14.3'
+python -m pip install -e '.[showui,ocr]' -r requirements/visualwebarena-cuda.txt
 python scripts/run_visualwebarena_live.py --preflight
 python scripts/run_visualwebarena_live.py --model models/ShowUI-2B --out runs/visualwebarena-live
 ```
@@ -803,6 +803,8 @@ Cohort 011 uses a 1280 × 720 CSS viewport with 1.25× screenshot capture, yield
 The selector excludes 832 historical listing paths and 181 prior crop hashes. It visits up to 192 listings and seeks three cases in each group. The groups cover prices unreadable by both detectors, prices read correctly in the enlarged crop, and prices recovered by the upright detector. Selection uses the two detector reads and full-page OCR. The whole-line recognizer runs during the comparison.
 
 The local Chromium check captured identical pixels through BrowserGym observations and direct screenshot extraction. Two fresh scaled browser sessions also produced identical pixels. The price element occupied the same CSS box at both scales, and the CPU selector read the fixture price correctly in both captures. This check used zero model calls. [Transfer protocol](../examples/vwa-price-retry-holdout-protocol-011.json)
+
+The live Classifieds selector reached its 192-listing cap. It recorded 122 readable controls, 44 repeated crops and 26 listings without the required catalog evidence. All 166 enlarged OCR receipts contained a parseable price, including the 44 repeated crops. The scan enrolled zero double failures and zero upright-only controls. It ended before sealing a comparison, with zero model calls and zero native policy episodes. [Verified screening outcomes](../examples/vwa-price-retry-holdout-screening-011.json)
 
 Screen the registered transfer cohort against the pinned Classifieds fixture.
 

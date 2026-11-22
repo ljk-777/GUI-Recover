@@ -1,0 +1,8 @@
+# Optional Linux CUDA environment used for the Classifieds evaluation.
+# Install alongside the project's showui and ocr extras.
+accelerate==1.4.0
+bitsandbytes==0.45.3
+browsergym-visualwebarena==0.14.3
+datasets==5.0.1
+evaluate==0.4.6
+pyarrow==26.0.1
