@@ -1,0 +1,444 @@
+{
+  "protocol": "vwa-catalog-price-holdout-protocol-006.json",
+  "policy_revisions": {
+    "prior": "9e0e980091d7a049d3d5a0e30355d8f00485c3ac",
+    "current": "633f4138222bd78aece5569970da4766727f026e"
+  },
+  "sampler_revision": "0ff4f7a5f587c9320dfe71503f92ccb52d75d9c0",
+  "evaluation_revision": "95a5d9f5e7dc2a8138865ff714bb450d799af5c9",
+  "excluded_listing_paths": 326,
+  "fresh_model_inference": true,
+  "exact_successful_answers_verified": true,
+  "reused_prior_clean_after_server_restart": true,
+  "audit_sha256": "446e906fd28408d4224a253379f2e8785e7781c5f40df85cf9e9af0fe84e33ba",
+  "archives_sha256": {
+    "cohort-006": "80640eccc989a642c0e37f32b5c6dc0251cec61a2b9d755a71e6a57ca71c8d6b",
+    "visualwebarena-catalog-price-transfer-clean-prior-006": "c548eac73121dd71fe288559055b5c5708cc97f8e8ebdaa35d017a6dcc5305d2",
+    "visualwebarena-catalog-price-transfer-clean-current-006": "337e0a809780d3b1a842685c1d0af1705e1936df04b0efb22b7737bd9215c837",
+    "visualwebarena-catalog-price-transfer-fault-prior-006": "2ed9b3887dbfed94ec184f98b7113000660cd56b7c742ff75c281de956c199b9",
+    "visualwebarena-catalog-price-transfer-fault-current-006": "4eb6c4a0f51869ac2ec62988ee4bab2ed2ddc9b6a9551a6f5684f28babb603f5"
+  },
+  "cohort_sha256": "26d82c1df9f7022cd9dad8c03625135f1c645f86deff570d846a9469d83c8a3d",
+  "registered_tasks": [
+    "10601",
+    "10602",
+    "10603",
+    "10604",
+    "10605",
+    "10606"
+  ],
+  "acceptance_checks": {
+    "all_six_tasks_pass_native_preflight": true,
+    "all_clean_and_fault_pairs_audited_with_identical_start_frames": false,
+    "all_prior_clean_successes_preserved": true,
+    "clean_wrong_submissions_do_not_increase": true,
+    "more_native_successes_under_faults": true,
+    "fewer_wrong_submissions_under_faults": true,
+    "clean_model_calls_do_not_increase": true,
+    "no_current_wrong_submissions_under_faults": true
+  },
+  "target_met": false,
+  "paired_clean_tasks": [
+    "10601",
+    "10602",
+    "10603",
+    "10604",
+    "10605",
+    "10606"
+  ],
+  "paired_fault_tasks": [
+    "10601",
+    "10602",
+    "10603",
+    "10604",
+    "10605"
+  ],
+  "clean_losses": [],
+  "policy_file_sha256": {
+    "prior": {
+      "answer_evidence.py": "67baa322101f758e316bb854e46de6e0828513c06d7717d1ec60cf6f8cb0b5cc",
+      "listing_facts.py": "875b5ad36502d71bb47471386bddf54b9652c597e85965b5ab03fa8a5c049c3a"
+    },
+    "current": {
+      "answer_evidence.py": "fc3eb9c156cb9fa452f2281aba805ecbafbe3eb5a7f9518a97d774c32fa97fd2",
+      "listing_facts.py": "e82882d39732623fd2ddf8b7975faf0a8d34ff3da04e8373457b732be3680377"
+    }
+  },
+  "clean": {
+    "prior": {
+      "native_successes": 6,
+      "wrong_submissions": 0,
+      "abstentions": 0,
+      "model_calls": 7,
+      "localized_ocr_reads": 0,
+      "native_scale_ocr_retries": 0
+    },
+    "current": {
+      "native_successes": 6,
+      "wrong_submissions": 0,
+      "abstentions": 0,
+      "model_calls": 7,
+      "localized_ocr_reads": 6,
+      "native_scale_ocr_retries": 0
+    }
+  },
+  "fault": {
+    "prior": {
+      "native_successes": 2,
+      "wrong_submissions": 3,
+      "abstentions": 0,
+      "model_calls": 8,
+      "localized_ocr_reads": 2,
+      "native_scale_ocr_retries": 0
+    },
+    "current": {
+      "native_successes": 4,
+      "wrong_submissions": 0,
+      "abstentions": 1,
+      "model_calls": 10,
+      "localized_ocr_reads": 5,
+      "native_scale_ocr_retries": 0
+    }
+  },
+  "by_task": {
+    "clean": {
+      "prior": {
+        "10601": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 2,
+          "screenshots": 2,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1
+          }
+        },
+        "10602": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 2,
+          "screenshots": 2,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1
+          }
+        },
+        "10603": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 2,
+          "screenshots": 2,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1
+          }
+        },
+        "10604": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 2,
+          "screenshots": 2,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1
+          }
+        },
+        "10605": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 2,
+          "screenshots": 2,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1
+          }
+        },
+        "10606": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 2,
+          "predictions": 3,
+          "screenshots": 2,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 2,
+            "listing_fact_reread": 1
+          }
+        }
+      },
+      "current": {
+        "10601": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 2,
+          "screenshots": 2,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1,
+            "listing_price_check": 1
+          }
+        },
+        "10602": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 2,
+          "screenshots": 2,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1,
+            "listing_price_check": 1
+          }
+        },
+        "10603": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 2,
+          "screenshots": 2,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1,
+            "listing_price_check": 1
+          }
+        },
+        "10604": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 2,
+          "screenshots": 2,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1,
+            "listing_price_check": 1
+          }
+        },
+        "10605": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 1,
+          "predictions": 2,
+          "screenshots": 2,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1,
+            "listing_price_check": 1
+          }
+        },
+        "10606": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "model_calls": 2,
+          "predictions": 3,
+          "screenshots": 2,
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 2,
+            "listing_price_check": 1,
+            "listing_fact_reread": 1
+          }
+        }
+      }
+    },
+    "fault": {
+      "prior": {
+        "10601": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "predictions": 3,
+          "model_calls": 2,
+          "fault": "change-ocr-price-digit",
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 2,
+            "listing_price_ocr": 1,
+            "listing_fact_reread": 1
+          },
+          "fault_delivery": "complete"
+        },
+        "10602": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "predictions": 3,
+          "model_calls": 2,
+          "fault": "change-ocr-price-digit",
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 2,
+            "listing_price_ocr": 1,
+            "listing_fact_reread": 1
+          },
+          "fault_delivery": "complete"
+        },
+        "10603": {
+          "success": false,
+          "reason": "task_failure",
+          "answers_submitted": 1,
+          "predictions": 2,
+          "model_calls": 1,
+          "fault": "match-ocr-price-in-confirmation",
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1
+          },
+          "fault_delivery": "complete"
+        },
+        "10604": {
+          "success": false,
+          "reason": "task_failure",
+          "answers_submitted": 1,
+          "predictions": 2,
+          "model_calls": 1,
+          "fault": "match-ocr-price-in-confirmation",
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 1
+          },
+          "fault_delivery": "complete"
+        },
+        "10605": {
+          "success": false,
+          "reason": "task_failure",
+          "answers_submitted": 1,
+          "predictions": 3,
+          "model_calls": 2,
+          "fault": "match-ocr-price-in-reread",
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 2,
+            "listing_fact_reread": 1
+          },
+          "fault_delivery": "complete"
+        }
+      },
+      "current": {
+        "10601": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "predictions": 3,
+          "model_calls": 2,
+          "fault": "change-ocr-price-digit",
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 2,
+            "listing_price_check": 1,
+            "listing_fact_reread": 1
+          },
+          "fault_delivery": "complete"
+        },
+        "10602": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "predictions": 3,
+          "model_calls": 2,
+          "fault": "change-ocr-price-digit",
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 2,
+            "listing_price_check": 1,
+            "listing_fact_reread": 1
+          },
+          "fault_delivery": "complete"
+        },
+        "10603": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "predictions": 3,
+          "model_calls": 2,
+          "fault": "match-ocr-price-in-confirmation",
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 2,
+            "listing_price_check": 1,
+            "listing_fact_reread": 1
+          },
+          "fault_delivery": "complete"
+        },
+        "10604": {
+          "success": true,
+          "reason": "success",
+          "answers_submitted": 1,
+          "predictions": 3,
+          "model_calls": 2,
+          "fault": "match-ocr-price-in-confirmation",
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 2,
+            "listing_price_check": 1,
+            "listing_fact_reread": 1
+          },
+          "fault_delivery": "complete"
+        },
+        "10605": {
+          "success": false,
+          "reason": "evidence_abstained",
+          "answers_submitted": 0,
+          "predictions": 3,
+          "model_calls": 2,
+          "fault": "match-ocr-price-in-reread",
+          "evidence_stages": {
+            "locate": 1,
+            "listing_facts_region": 1,
+            "confirm": 2,
+            "listing_price_check": 1,
+            "listing_fact_reread": 1
+          },
+          "fault_delivery": "complete"
+        }
+      }
+    }
+  },
+  "unexecuted_registered_cases": {
+    "prior": {
+      "10606": "Expected a successful first model read on the same screen"
+    },
+    "current": {
+      "10606": "Expected a successful first model read on the same screen"
+    }
+  }
+}

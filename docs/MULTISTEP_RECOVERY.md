@@ -671,6 +671,32 @@ Use the [exclusion list](../examples/vwa-catalog-exclusions-005.json) with `prep
 
 [Cohort 005 scores and checksums](../examples/vwa-catalog-price-transfer-results-005.json)
 
+### Check the native-scale retry on a new sample
+
+Cohort 006 excluded 326 previously recorded item paths and assigned two unseen listings to each of the three price fault conditions. Each condition had a two-digit and a three-digit price. All six listings passed native preflight. The paired CPU audit matched all six clean starts and the reset screenshots and injection receipts for the five executed fault pairs. It also verified the exact city and amount in every successful submission. [Preregistered protocol](../examples/vwa-catalog-price-holdout-protocol-006.json)
+
+| Condition | Policy | Native success | Wrong submissions | Abstentions | Qwen calls |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Clean | Prior | 6/6 | 0 | 0 | 7 |
+| Clean | Native-scale retry candidate | 6/6 | 0 | 0 | 7 |
+| Executed fault pairs | Prior | 2/5 | 3 | 0 | 8 |
+| Executed fault pairs | Native-scale retry candidate | 4/5 | 0 | 1 | 10 |
+
+The full gate failed fault coverage. Task 10606 remained in the six-task fault registration. Its first clean confirmation shortened the city and required a second model read, so it did not provide the preregistered successful first-read anchor. Both arms kept the task as unexecuted in the fault report. The candidate used one localized OCR check per episode and all enlarged crops were readable. The native-scale retry therefore has zero activations in this new sample.
+
+Reproduce the audit from the four saved run directories and the original cohort, including its preflight log.
+
+~~~bash
+python scripts/audit_vwa_catalog_price_transfer.py \
+  --cohort runs/cohort-006 \
+  --sha256 26d82c1df9f7022cd9dad8c03625135f1c645f86deff570d846a9469d83c8a3d \
+  --protocol examples/vwa-catalog-price-holdout-protocol-006.json \
+  --fault-plan examples/vwa-catalog-price-transfer-faults-006.json \
+  --runs runs
+~~~
+
+[Cohort 006 scores and checksums](../examples/vwa-catalog-price-transfer-results-006.json)
+
 [Development scores, source revision and evidence checksum](../examples/vwa-price-discovery-dev-results.json)
 
 [Machine-readable results, method costs and model provenance](../examples/multistep-recovery-results.json)
